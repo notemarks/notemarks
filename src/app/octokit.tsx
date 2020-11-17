@@ -10,6 +10,7 @@ import * as yaml from "js-yaml"
 import { Repo, Repos } from "./repo";
 import { Note } from "./types"
 import * as date_utils from "./date_utils"
+import { CommentOutlined } from "@ant-design/icons";
 
 
 const NOTEMARKS_FOLDER = ".notemarks"
@@ -416,4 +417,65 @@ function parseMetaData(content: string): Result<MetaData, Error> {
       })
     }
   }
+}
+
+// ----------------------------------------------------------------------------
+// Commit experiments
+// ----------------------------------------------------------------------------
+
+// http://www.levibotelho.com/development/commit-a-file-with-the-github-api/
+
+export async function commit(repo: Repo) {
+  const octokit = new Octokit({
+    auth: repo.token,
+  });
+
+  /*
+  const content = await expect(octokit.repos.getContent({
+    owner: repo.userName,
+    repo: repo.repoName,
+    path: ".",
+  }))
+  console.log(content)
+  */
+
+  const headRef = await expect(octokit.git.getRef({
+    owner: repo.userName,
+    repo: repo.repoName,
+    ref: "heads/main", // TODO repo must contain branch
+  }))
+
+
+  let commitSha: string
+  if (headRef.isOk()) {
+    console.log("headRef: ", headRef.value);
+    commitSha = headRef.value.data.object.sha;
+  } else {
+    return;
+  }
+
+  const headCommit = await expect(octokit.git.getCommit({
+    owner: repo.userName,
+    repo: repo.repoName,
+    commit_sha: commitSha,
+  }))
+
+  let rootTreeSha: string
+  if (headCommit.isOk()) {
+    console.log("headCommit: ", headCommit.value);
+    rootTreeSha = headCommit.value.data.tree.sha;
+  } else {
+    return;
+  }
+
+  const tree = await expect(octokit.git.getTree({
+    owner: repo.userName,
+    repo: repo.repoName,
+    tree_sha: rootTreeSha,
+    recursive: "true",
+  }))
+  if (tree.isOk()) {
+    console.log("tree", tree.value.data.tree)
+  }
+
 }
