@@ -425,7 +425,12 @@ function parseMetaData(content: string): Result<MetaData, Error> {
 
 // http://www.levibotelho.com/development/commit-a-file-with-the-github-api/
 
-export async function commit(repo: Repo) {
+type WrappedError = {
+  msg: string,
+  originalError: Error,
+}
+
+export async function commit(repo: Repo): Promise<Result<string, WrappedError>> {
   const octokit = new Octokit({
     auth: repo.token,
   });
@@ -451,7 +456,10 @@ export async function commit(repo: Repo) {
     console.log("headRef: ", headRef.value);
     commitSha = headRef.value.data.object.sha;
   } else {
-    return;
+    return err({
+      msg: "Failed to get head ref.",
+      originalError: headRef.error,
+    })
   }
 
   const headCommit = await expect(octokit.git.getCommit({
@@ -465,7 +473,10 @@ export async function commit(repo: Repo) {
     console.log("headCommit: ", headCommit.value);
     rootTreeSha = headCommit.value.data.tree.sha;
   } else {
-    return;
+    return err({
+      msg: "Failed to get head commit.",
+      originalError: headRef.error,
+    })
   }
 
   const tree = await expect(octokit.git.getTree({
@@ -478,4 +489,5 @@ export async function commit(repo: Repo) {
     console.log("tree", tree.value.data.tree)
   }
 
+  return ok("true");
 }

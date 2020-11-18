@@ -1,3 +1,4 @@
+/* eslint-disable jest/no-conditional-expect */
 import * as octokit from './octokit';
 import { Repo, createDefaultInitializedRepo } from './repo';
 
@@ -23,10 +24,12 @@ test('commitIntegrationTest', async () => {
     console.log("foobar");
 
     let repo: Repo = createDefaultInitializedRepo(true)
-    repo.userName = "bluenote10";
+    repo.userName = "notemarks";
     repo.repoName = "DummyRepo";
     repo.token = process.env.REACT_APP_AUTH;
 
-    await octokit.commit(repo);
+    let result = await octokit.commit(repo);
+    console.log(result)
+    expect(result.isOk()).toBe(true);
   }
 });
