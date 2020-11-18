@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Octokit } from '@octokit/rest';
 import { ok, err, okAsync, errAsync, Result, ResultAsync } from 'neverthrow'
 
@@ -140,6 +141,58 @@ function neverthrow_test_2() {
       okAsync(resultA.value + resultB.value) :
       errAsync(new Error("failed"))
     )
+  }
+}
+
+function neverthrow_test_3() {
+  type ResponseType = {
+    some: {
+      nested: {
+        field: number
+      }
+    },
+    other: {
+      nested: {
+        field: number
+      }
+    }
+  }
+
+  async function exampleRequest(arg?: number): Promise<ResponseType> {
+    return Promise.resolve({
+      some: {nested: {field: 1}},
+      other: {nested: {field: 2}},
+    });
+  }
+  async function exampleRequestBad(): Promise<ResponseType> {
+    return Promise.reject(new Error("some error"));
+  }
+
+  function wrap<T>(promise: Promise<T>): ResultAsync<T, Error> {
+    return ResultAsync.fromPromise(promise, (e) => e as Error);
+  }
+
+  async function requestChain(): Promise<Result<number, string>> {
+
+    let aResult = await wrap(exampleRequest())
+    if (aResult.isErr()) {
+      return err("something went wrong in request A")
+    }
+    let a = aResult.value.some.nested.field
+
+    let bResult = await wrap(exampleRequest(a))
+    if (bResult.isErr()) {
+      return err("something went wrong in request B")
+    }
+    let b = aResult.value.other.nested.field
+
+    let cResult = await wrap(exampleRequest(b))
+    if (cResult.isErr()) {
+      return err("something went wrong in request C")
+    }
+    let c = aResult.value.other.nested.field
+
+    return ok(a + b + c)
   }
 }
 
