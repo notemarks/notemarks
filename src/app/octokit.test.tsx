@@ -28,8 +28,28 @@ test('commitIntegrationTest', async () => {
     repo.repoName = "DummyRepo";
     repo.token = process.env.REACT_APP_AUTH;
 
-    let result = await octokit.commit(repo);
-    console.log(result)
-    expect(result.isOk()).toBe(true);
+    {
+      let ops: octokit.GitOp[] = [
+        {
+          kind: "write",
+          path: "foo.txt",
+          content: "foocontent",
+        }
+      ]
+      let result = await octokit.commit(repo, ops, "added foo.txt");
+      console.log(result)
+      expect(result.isOk()).toBe(true);
+    }
+    {
+      let ops: octokit.GitOp[] = [
+        {
+          kind: "remove",
+          path: "foo.txt",
+        }
+      ]
+      let result = await octokit.commit(repo, ops, "removed foo.txt");
+      console.log(result)
+      expect(result.isOk()).toBe(true);
+    }
   }
 });
