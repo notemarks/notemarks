@@ -107,6 +107,7 @@ async function expect<T>(promise: Promise<T>): Promise<[T?, Error?]> {
 }
 */
 
+
 function neverthrow_test_1() {
   async function foo(): Promise<number> {
     return 42;
@@ -126,6 +127,7 @@ function neverthrow_test_1() {
   }
 }
 
+
 function neverthrow_test_2() {
   async function foo(): Promise<number> {
     return 42;
@@ -143,6 +145,7 @@ function neverthrow_test_2() {
     )
   }
 }
+
 
 function neverthrow_test_3() {
   type ResponseType = {
@@ -172,7 +175,7 @@ function neverthrow_test_3() {
     return ResultAsync.fromPromise(promise, (e) => e as Error);
   }
 
-  async function requestChain(): Promise<Result<number, string>> {
+  async function requestChain1(): Promise<Result<number, string>> {
 
     let aResult = await wrap(exampleRequest())
     if (aResult.isErr()) {
@@ -194,7 +197,112 @@ function neverthrow_test_3() {
 
     return ok(a + b + c)
   }
+
+  async function requestChain2() {
+
+    let a: number
+    let b: number
+    let c: number
+
+    wrap(exampleRequest()).andThen(result => {
+      a = result.some.nested.field
+      return wrap(exampleRequest(a))
+    }).andThen(result => {
+      b = result.other.nested.field
+      return wrap(exampleRequest(a + b))
+    }).map(result => {
+      c = result.other.nested.field
+      return a + b + c
+    })
+  }
+
 }
+
+
+function neverthrow_test_4() {
+  type ResponseType = number;
+
+  async function exampleRequest(arg?: number): Promise<ResponseType> {
+    return Promise.resolve(42);
+  }
+
+  type WrappedError = {
+    msg: string,
+    originalError: Error,
+  }
+
+  function wrapPromise<T>(promise: Promise<T>, msg: string): ResultAsync<T, WrappedError> {
+    return ResultAsync.fromPromise(promise, (e) => ({
+      msg: msg,
+      originalError: e as Error
+    }));
+  }
+
+  function startChain(): ResultAsync<null, WrappedError> {
+    return okAsync(null)
+  }
+
+  function requestChain(): ResultAsync<number, WrappedError> {
+
+    // predefine stuff that should be remembered across requests
+    let a: number
+    let b: number
+    let c: number
+
+    return startChain().andThen(() => {
+      return wrapPromise(
+        exampleRequest(),
+        "Something failed in request A",
+      )
+    }).andThen(result => {
+      a = result
+      return wrapPromise(
+        exampleRequest(a),
+        "Something failed in request B",
+      )
+    }).andThen(result => {
+      b = result
+      return wrapPromise(
+        exampleRequest(a + b),
+        "Something failed in request C",
+      )
+    }).andThen(result => {
+      c = result
+      return ok(a + b + c)
+    })
+  }
+
+  const requestChain2: () => ResultAsync<number, WrappedError> = () => (
+    startChain().andThen(() =>
+      wrapPromise(
+        exampleRequest(),
+        "Something failed in request A",
+      ).map(result => ({
+        a: result, // extract `a` here instead
+      }))
+    ).andThen(({a}) =>
+      wrapPromise(
+        exampleRequest(a),
+        "Something failed in request B",
+      ).map(result => ({
+        a: a,      // forward
+        b: result, // extract `b` here instead
+      }))
+    ).andThen(({a, b}) =>
+      wrapPromise(
+        exampleRequest(a + b),
+        "Something failed in request C",
+      ).map(result => ({
+        a: a,      // forward
+        b: b,      // forward
+        c: result, // extract `c` here instead
+      }))
+    ).andThen(({a, b, c}) =>
+      ok(a + b + c)
+    )
+  )
+}
+
 
 // ----------------------------------------------------------------------------
 // Octokit
