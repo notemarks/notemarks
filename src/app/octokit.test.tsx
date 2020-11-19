@@ -32,7 +32,7 @@ test('commitIntegrationTest', async () => {
       let ops: octokit.GitOp[] = [
         {
           kind: "write",
-          path: "foo.txt",
+          path: "some/subfolder/foo.txt",
           content: "foocontent",
         }
       ]
@@ -44,7 +44,7 @@ test('commitIntegrationTest', async () => {
       let ops: octokit.GitOp[] = [
         {
           kind: "remove",
-          path: "foo.txt",
+          path: "some/subfolder/foo.txt",
         }
       ]
       let result = await octokit.commit(repo, ops, "removed foo.txt");

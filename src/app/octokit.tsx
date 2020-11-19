@@ -3,7 +3,7 @@ import * as localforage from "localforage"
 
 import { Octokit } from '@octokit/rest';
 import { OctokitResponse } from '@octokit/types/dist-types/OctokitResponse'
-import { GitGetTreeResponseData } from '@octokit/types/dist-types/generated/Endpoints'
+import { GitGetTreeResponseData, GitCreateTreeResponseData } from '@octokit/types/dist-types/generated/Endpoints'
 
 import * as neverthrow from 'neverthrow'
 import { ok, err, okAsync, errAsync, Result, ResultAsync } from 'neverthrow'
@@ -79,9 +79,24 @@ export function titleToFilename(title: string, extension: string) {
 // ResultAsync helper
 // ----------------------------------------------------------------------------
 
-
 function expect<T>(promise: Promise<T>): neverthrow.ResultAsync<T, Error> {
   return neverthrow.ResultAsync.fromPromise(promise, (e) => e as Error);
+}
+
+export type WrappedError = {
+  msg: string,
+  originalError?: Error,
+}
+
+function wrapPromise<T>(promise: Promise<T>, msg: string): ResultAsync<T, WrappedError> {
+  return ResultAsync.fromPromise(promise, (e) => ({
+    msg: msg,
+    originalError: e as Error
+  }));
+}
+
+function startChain(): ResultAsync<null, WrappedError> {
+  return okAsync(null)
 }
 
 // ----------------------------------------------------------------------------
@@ -428,10 +443,6 @@ function parseMetaData(content: string): Result<MetaData, Error> {
 
 // http://www.levibotelho.com/development/commit-a-file-with-the-github-api/
 
-export type WrappedError = {
-  msg: string,
-  originalError: Error,
-}
 
 export type GitOpWriteFile = {
   kind: "write",
@@ -458,124 +469,90 @@ export async function commit(repo: Repo, ops: GitOp[], commitMsg: string): Promi
     auth: repo.token,
   });
 
-  /*
-  const content = await expect(octokit.repos.getContent({
-    owner: repo.userName,
-    repo: repo.repoName,
-    path: ".",
-  }))
-  console.log(content)
-  */
-
-  const headRef = await expect(octokit.git.getRef({
-    owner: repo.userName,
-    repo: repo.repoName,
-    ref: "heads/main", // TODO repo must contain branch or infer default branch...
-  }))
-
-
-  let commitSha: string
-  if (headRef.isOk()) {
-    console.log("headRef: ", headRef.value);
-    commitSha = headRef.value.data.object.sha;
-  } else {
-    return err({
-      msg: "Failed to get head ref.",
-      originalError: headRef.error,
-    })
-  }
-
-  const headCommit = await expect(octokit.git.getCommit({
-    owner: repo.userName,
-    repo: repo.repoName,
-    commit_sha: commitSha,
-  }))
-
-  let rootTreeSha: string
-  if (headCommit.isOk()) {
-    console.log("headCommit: ", headCommit.value);
-    rootTreeSha = headCommit.value.data.tree.sha;
-  } else {
-    return err({
-      msg: "Failed to get head commit.",
-      originalError: headCommit.error,
-    })
-  }
-
-  let oldTree: GitGetTreeResponseData
-  const treeResponse = await expect(octokit.git.getTree({
-    owner: repo.userName,
-    repo: repo.repoName,
-    tree_sha: rootTreeSha,
-    recursive: "true",
-  }))
-  if (treeResponse.isOk()) {
-    console.log("tree", treeResponse.value.data.tree)
-    oldTree = treeResponse.value.data
-  } else {
-    return err({
-      msg: `Failed to get tree with sha ${rootTreeSha}`,
-      originalError: treeResponse.error,
-    })
-  }
-
-  let newTree: GitCreateTreeParamsTree[] = []
-  applyOps(ops, oldTree, newTree)
-
-  let newTreeSHA: string
-  const createTreeResponse = await expect(octokit.git.createTree({
-    owner: repo.userName,
-    repo: repo.repoName,
-    tree: newTree,
-  }))
-  if (createTreeResponse.isOk()) {
-    console.log("createTreeResponse", createTreeResponse.value)
-    newTreeSHA = createTreeResponse.value.data.sha;
-  } else {
-    return err({
-      msg: `Create tree failed.`,
-      originalError: createTreeResponse.error,
-    })
-  }
-
+  let oldCommitSHA: string
   let newCommitSHA: string
-  const createCommitResponse = await expect(octokit.git.createCommit({
-    owner: repo.userName,
-    repo: repo.repoName,
-    message: commitMsg,
-    parents: [commitSha],
-    tree: newTreeSHA,
-  }))
-  if (createCommitResponse.isOk()) {
-    console.log("createCommitResponse", createCommitResponse.value)
-    newCommitSHA = createCommitResponse.value.data.sha;
-  } else {
-    return err({
-      msg: `Create commit failed.`,
-      originalError: createCommitResponse.error,
-    })
-  }
 
-  const updateRefResponse = await expect(octokit.git.updateRef({
-    owner: repo.userName,
-    repo: repo.repoName,
-    ref: "heads/main",
-    sha: newCommitSHA,
-    force: true,
-  }))
-  if (updateRefResponse.isOk()) {
-    console.log("updateRefResponse", updateRefResponse.value)
-    return ok(newCommitSHA);
-  } else {
-    return err({
-      msg: `Update ref failed.`,
-      originalError: updateRefResponse.error,
-    })
-  }
+  return startChain().andThen(() => {
+    return wrapPromise(
+      octokit.git.getRef({
+        owner: repo.userName,
+        repo: repo.repoName,
+        ref: "heads/main", // TODO repo must contain branch or infer default branch...
+      }),
+      "Failed to get head ref.",
+    )
+  }).andThen(result => {
+    oldCommitSHA = result.data.object.sha
+    return wrapPromise(
+      octokit.git.getCommit({
+        owner: repo.userName,
+        repo: repo.repoName,
+        commit_sha: oldCommitSHA,
+      }),
+      "Failed to get head commit.",
+    )
+  }).andThen(result => {
+    let oldTreeSHA = result.data.tree.sha
+    return wrapPromise(
+      octokit.git.getTree({
+        owner: repo.userName,
+        repo: repo.repoName,
+        tree_sha: oldTreeSHA,
+        recursive: "true",
+      }),
+      `Failed to get tree with sha ${oldTreeSHA}.`,
+    )
+  }).andThen(result => {
+    if (result.data.truncated) {
+      return errAsync({
+        msg: "Tree has been truncated -- handling that many files is not supported yet.",
+        error: null,
+      }) as ResultAsync<OctokitResponse<GitCreateTreeResponseData>, WrappedError>
+    }
+    let oldTree: GitGetTreeResponseData = result.data
+    let newTree: GitCreateTreeParamsTree[] = applyOps(ops, oldTree)
+
+    return wrapPromise(
+      octokit.git.createTree({
+        owner: repo.userName,
+        repo: repo.repoName,
+        tree: newTree,
+      }),
+      "Failed to create tree.",
+    )
+  }).andThen(result => {
+    let newTreeSHA = result.data.sha
+    return wrapPromise(
+      octokit.git.createCommit({
+        owner: repo.userName,
+        repo: repo.repoName,
+        message: commitMsg,
+        parents: [oldCommitSHA],
+        tree: newTreeSHA,
+      }),
+      "Failed to create commit.",
+    )
+  }).andThen(result => {
+    newCommitSHA = result.data.sha
+    return wrapPromise(
+      octokit.git.updateRef({
+        owner: repo.userName,
+        repo: repo.repoName,
+        ref: "heads/main",
+        sha: newCommitSHA,
+        force: true,
+      }),
+      "Failed to update ref.",
+    )
+  }).map(() => (
+    newCommitSHA
+  ))
 }
 
-function applyOps(ops: GitOp[], oldTree: GitGetTreeResponseData, newTree: GitCreateTreeParamsTree[]) {
+function applyOps(ops: GitOp[], oldTree: GitGetTreeResponseData): GitCreateTreeParamsTree[] {
   // https://developer.github.com/v3/git/trees/#create-a-tree
+
+  let newTree: GitCreateTreeParamsTree[] = []
 
   // Merge-in existing tree content
   for (let entry of oldTree.tree) {
@@ -612,4 +589,6 @@ function applyOps(ops: GitOp[], oldTree: GitGetTreeResponseData, newTree: GitCre
       })
     }
   }
+
+  return newTree
 }
