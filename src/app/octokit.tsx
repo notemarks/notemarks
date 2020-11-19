@@ -453,8 +453,13 @@ export type GitOpRemoveFile = {
   kind: "remove",
   path: string,
 }
+export type GitOpMoveFile = {
+  kind: "move",
+  pathFrom: string,
+  pathTo: string,
+}
 
-export type GitOp = GitOpWriteFile | GitOpRemoveFile
+export type GitOp = GitOpWriteFile | GitOpRemoveFile | GitOpMoveFile
 
 type GitCreateTreeParamsTree = {
   path?: string;
@@ -557,20 +562,23 @@ function applyOps(ops: GitOp[], oldTree: GitGetTreeResponseData): GitCreateTreeP
   // Merge-in existing tree content
   for (let entry of oldTree.tree) {
     let keep = true;
+    let destinationPath = entry.path;
     for (let op of ops) {
       // In both write/remove cases we don't keep the existing SHA
       // In theory we could check whether in the write case the existing
       // file actually has the expected content already. However, overwriting
       // does not seem to be forbidden, and typically the content is expected
       // to be modified anyway.
-      if (op.path === entry.path) {
+      if (op.kind !== "move" && op.path === entry.path) {
         keep = false;
         break;
+      } else if (op.kind === "move" && op.pathFrom === entry.path) {
+        destinationPath = op.pathTo
       }
     }
     if (keep) {
       newTree.push({
-        path: entry.path,
+        path: destinationPath,
         mode: entry.mode as any,
         type: entry.type as any,
         sha: entry.sha,

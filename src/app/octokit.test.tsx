@@ -43,13 +43,25 @@ test('commitIntegrationTest', async () => {
     {
       let ops: octokit.GitOp[] = [
         {
-          kind: "remove",
-          path: "some/subfolder/foo.txt",
+          kind: "move",
+          pathFrom: "some/subfolder/foo.txt",
+          pathTo: "some/subfolder/bar.txt",
         }
       ]
-      let result = await octokit.commit(repo, ops, "removed foo.txt");
+      let result = await octokit.commit(repo, ops, "moved foo.txt -> bar.txt");
+      console.log(result)
+      expect(result.isOk()).toBe(true);
+    }
+    {
+      let ops: octokit.GitOp[] = [
+        {
+          kind: "remove",
+          path: "some/subfolder/bar.txt",
+        }
+      ]
+      let result = await octokit.commit(repo, ops, "removed bar.txt");
       console.log(result)
       expect(result.isOk()).toBe(true);
     }
   }
-});
+}, 20000);
