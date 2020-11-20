@@ -21,7 +21,6 @@ test('filenameToTitle', () => {
 
 test('commitIntegrationTest', async () => {
   if (process.env.REACT_APP_AUTH != null) {
-    console.log("foobar");
 
     let repo: Repo = createDefaultInitializedRepo(true)
     repo.userName = "notemarks";

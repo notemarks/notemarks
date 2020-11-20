@@ -89,10 +89,13 @@ export type WrappedError = {
 }
 
 function wrapPromise<T>(promise: Promise<T>, msg: string): ResultAsync<T, WrappedError> {
-  return ResultAsync.fromPromise(promise, (e) => ({
-    msg: msg,
-    originalError: e as Error
-  }));
+  return ResultAsync.fromPromise(promise, (error) => {
+    console.log(msg, error)
+    return {
+      msg: msg,
+      originalError: error as Error,
+    }
+  });
 }
 
 function startChain(): ResultAsync<null, WrappedError> {
@@ -478,80 +481,121 @@ export async function commit(repo: Repo, ops: GitOp[], commitMsg: string): Promi
   let newCommitSHA: string
 
   return startChain().andThen(() => {
-    return wrapPromise(
-      octokit.git.getRef({
-        owner: repo.userName,
-        repo: repo.repoName,
-        ref: "heads/main", // TODO repo must contain branch or infer default branch...
-      }),
-      "Failed to get head ref.",
+    return octokitGetRef(
+      octokit, repo, "heads/main" // TODO repo must contain branch or infer default branch...
     )
-  }).andThen(result => {
-    oldCommitSHA = result.data.object.sha
-    return wrapPromise(
-      octokit.git.getCommit({
-        owner: repo.userName,
-        repo: repo.repoName,
-        commit_sha: oldCommitSHA,
-      }),
-      "Failed to get head commit.",
+  }).andThen(response => {
+    oldCommitSHA = response.data.object.sha
+    return octokitGetCommit(
+      octokit, repo, oldCommitSHA,
     )
-  }).andThen(result => {
-    let oldTreeSHA = result.data.tree.sha
-    return wrapPromise(
-      octokit.git.getTree({
-        owner: repo.userName,
-        repo: repo.repoName,
-        tree_sha: oldTreeSHA,
-        recursive: "true",
-      }),
-      `Failed to get tree with sha ${oldTreeSHA}.`,
+  }).andThen(response => {
+    let oldTreeSHA = response.data.tree.sha
+    return octokitGetTree(
+      octokit, repo, oldTreeSHA,
     )
-  }).andThen(result => {
-    if (result.data.truncated) {
+  }).andThen(response => {
+    if (response.data.truncated) {
       return errAsync({
         msg: "Tree has been truncated -- handling that many files is not supported yet.",
         error: null,
       }) as ResultAsync<OctokitResponse<GitCreateTreeResponseData>, WrappedError>
     }
-    let oldTree: GitGetTreeResponseData = result.data
+    let oldTree: GitGetTreeResponseData = response.data
     let newTree: GitCreateTreeParamsTree[] = applyOps(ops, oldTree)
 
-    return wrapPromise(
-      octokit.git.createTree({
-        owner: repo.userName,
-        repo: repo.repoName,
-        tree: newTree,
-      }),
-      "Failed to create tree.",
+    console.log(oldTree)
+    console.log(newTree)
+
+    return octokitCreateTree(
+      octokit, repo, newTree,
     )
-  }).andThen(result => {
-    let newTreeSHA = result.data.sha
-    return wrapPromise(
-      octokit.git.createCommit({
-        owner: repo.userName,
-        repo: repo.repoName,
-        message: commitMsg,
-        parents: [oldCommitSHA],
-        tree: newTreeSHA,
-      }),
-      "Failed to create commit.",
+  }).andThen(response => {
+    let newTreeSHA = response.data.sha
+    return octokitCreateCommit(
+      octokit, repo, commitMsg, oldCommitSHA, newTreeSHA,
     )
-  }).andThen(result => {
-    newCommitSHA = result.data.sha
-    return wrapPromise(
-      octokit.git.updateRef({
-        owner: repo.userName,
-        repo: repo.repoName,
-        ref: "heads/main",
-        sha: newCommitSHA,
-        force: true,
-      }),
-      "Failed to update ref.",
+  }).andThen(response => {
+    newCommitSHA = response.data.sha
+    return octokitUpdateRef(
+      octokit, repo, "heads/main", newCommitSHA,
     )
   }).map(() => (
     newCommitSHA
   ))
+}
+
+function octokitGetRef(octokit: Octokit, repo: Repo, ref: string) {
+  return wrapPromise(
+    octokit.git.getRef({
+      owner: repo.userName,
+      repo: repo.repoName,
+      ref: "heads/main", // TODO repo must contain branch or infer default branch...
+    }),
+    "Failed to get head ref.",
+  )
+}
+
+function octokitGetCommit(octokit: Octokit, repo: Repo, commitSHA: string) {
+  return wrapPromise(
+    octokit.git.getCommit({
+      owner: repo.userName,
+      repo: repo.repoName,
+      commit_sha: commitSHA,
+    }),
+    "Failed to get head commit.",
+  )
+}
+
+function octokitGetTree(octokit: Octokit, repo: Repo, treeSHA: string) {
+  // TODO: getTree seems to fail if a repo is completely empty.
+  // How to recover from that?
+  return wrapPromise(
+    octokit.git.getTree({
+      owner: repo.userName,
+      repo: repo.repoName,
+      tree_sha: treeSHA,
+      recursive: "true",
+    }),
+    `Failed to get tree with sha ${treeSHA}.`,
+  )
+}
+
+function octokitCreateTree(octokit: Octokit, repo: Repo, tree: GitCreateTreeParamsTree[]) {
+  return wrapPromise(
+    octokit.git.createTree({
+      owner: repo.userName,
+      repo: repo.repoName,
+      tree: tree,
+    }),
+    "Failed to create tree.",
+  )
+}
+
+function octokitCreateCommit(octokit: Octokit, repo: Repo, commitMsg: string, oldCommitSHA: string, newTreeSHA: string) {
+  return wrapPromise(
+    octokit.git.createCommit({
+      owner: repo.userName,
+      repo: repo.repoName,
+      message: commitMsg,
+      parents: [oldCommitSHA],
+      tree: newTreeSHA,
+    }),
+    "Failed to create commit.",
+  )
+}
+
+function octokitUpdateRef(octokit: Octokit, repo: Repo, ref: string, commitSHA: string) {
+  return wrapPromise(
+    octokit.git.updateRef({
+      owner: repo.userName,
+      repo: repo.repoName,
+      ref: ref,
+      sha: commitSHA,
+      force: true,
+    }),
+    "Failed to update ref.",
+  )
 }
 
 function applyOps(ops: GitOp[], oldTree: GitGetTreeResponseData): GitCreateTreeParamsTree[] {
@@ -576,6 +620,17 @@ function applyOps(ops: GitOp[], oldTree: GitGetTreeResponseData): GitCreateTreeP
         destinationPath = op.pathTo
       }
     }
+
+    // As mentioned in the blob post, it seems necessary to omit "tree" elements from
+    // the new tree. In contrast to what is mentioned in the blob post however, this
+    // did not error with a 500. Even worse, it succeeded, but it did had any "delete"
+    // behavior. Files omitted in the new tree were still there, perhaps because their
+    // parent tree elements were in the new tree as well. To get the desired behavior
+    // removing tree elements seems still necessary.
+    if (entry.type === "tree") {
+      keep = false;
+    }
+
     if (keep) {
       newTree.push({
         path: destinationPath,
