@@ -1,5 +1,4 @@
 import React from 'react';
-import { useEffect, useState } from "react";
 
 import { Typography } from 'antd';
 import { Table, Tag } from 'antd';
@@ -86,4 +85,3 @@ function Notes({ repos, entries }: NotesProps) {
 
 
 export default Notes;
-

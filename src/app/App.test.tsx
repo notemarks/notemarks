@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import React from 'react';
 
 import { render, act } from '@testing-library/react';
@@ -21,13 +22,10 @@ window.matchMedia = window.matchMedia || function() {
   };
 };
 
-/*
 test('basic app rendering', async () => {
+  /*
   await act(async () => {
     render(<App />);
   })
+  */
 });
-*/
-
-test('basic app rendering', async () => {
-})

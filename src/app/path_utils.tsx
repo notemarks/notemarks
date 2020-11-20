@@ -1,4 +1,4 @@
-import { Entry, EntryKind } from "./types"
+import { EntryKind } from "./types"
 
 export const NOTEMARKS_FOLDER = ".notemarks"
 
@@ -39,10 +39,10 @@ export function filenameToTitle(filename: string) {
   }
 }
 
-export function titleToFilename(title: string, extension: string) {
+export function titleToFilename(title: string, extension?: string) {
   // TODO: Escaping of special chars has to go here...
   let titleEscaped = title
-  if (extension.length > 0) {
+  if (extension != null && extension.length > 0) {
     return `${titleEscaped}.${extension}`;
   } else {
     return titleEscaped;

@@ -1,4 +1,5 @@
-import * as sandbox from './sandbox';
+const module = {}
+export default module
 
 test('someTest', () => {
   // test something here...
