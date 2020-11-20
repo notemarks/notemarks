@@ -61,3 +61,9 @@ export type Entry = {
 }
 
 export type Entries = Entry[]
+
+export type LabelCount = {
+  label: Label,
+  count: number,
+}
+export type LabelCounts = LabelCount[]

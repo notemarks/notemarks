@@ -2,14 +2,14 @@ import React from 'react';
 import { useState, useEffect } from 'react';
 import './App.css';
 
-import { Row, Col, Layout, Menu } from 'antd';
-
+import { Row, Col, Layout, Menu, Tag } from 'antd';
 import { EditOutlined, SettingOutlined } from '@ant-design/icons';
 
 import styled from '@emotion/styled'
 
+import { Entries, LabelCounts } from "./types";
+import * as entry_utils from "./entry_utils"
 import * as repo_utils from "./repo"
-import { Entries } from "./types";
 import { loadEntries } from "./octokit";
 import Settings from "./Settings";
 import Notes from "./Notes";
@@ -58,14 +58,17 @@ function App() {
   // *** Entries
 
   let [entries, setEntries] = useState([] as Entries)
+  let [labels, setLabels] = useState([] as LabelCounts)
 
   useEffect(() => {
     async function loadContents() {
       let newEntries = await loadEntries(repos)
       setEntries(newEntries)
+      setLabels(entry_utils.getLabelCounts(newEntries))
     }
     loadContents();
-  }, [repos])
+  }, [repos, setLabels])
+
 
   return (
     <Layout>
@@ -89,12 +92,25 @@ function App() {
       </Row>
       <ContentStyled>
         <Row justify="center">
+          <Col md={3} xl={6}>
+            {
+              labels.map(label =>
+                <div key={label.label}>
+                  <Tag >
+                    {label.label}
+                  </Tag>
+                </div>
+              )
+            }
+          </Col>
           <Col md={18} xl={12}>
             {(
               page === Page.Main
               ? <Notes repos={activeRepos} entries={entries}/>
               : <Settings repos={repos} setRepos={setRepos}/>
             )}
+          </Col>
+          <Col md={3} xl={6}>
           </Col>
         </Row>
       </ContentStyled>
