@@ -69,7 +69,6 @@ type NotesProps = {
 
 function Notes({ repos, entries }: NotesProps) {
 
-
   return (
     <>
       <StyledTitle level={4}>Notes</StyledTitle>

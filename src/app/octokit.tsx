@@ -13,61 +13,8 @@ import * as yaml from "js-yaml"
 import { Repo, Repos } from "./repo";
 import { Entry, EntryKind } from "./types"
 import * as date_utils from "./date_utils"
-import { CommentOutlined } from "@ant-design/icons";
+import * as path_utils from "./path_utils"
 
-
-const NOTEMARKS_FOLDER = ".notemarks"
-
-// ----------------------------------------------------------------------------
-// File name / path handling utils
-// ----------------------------------------------------------------------------
-
-export function getEntryKind(path: string): EntryKind {
-  let extension = path.split('.').pop()?.toLowerCase();
-  if (extension === "md") {
-    return EntryKind.NoteMarkdown;
-  } else if (extension === "desktop") {
-    return EntryKind.Link;
-  } else {
-    return EntryKind.Document;
-  }
-}
-
-export function getAssociatedMetaPath(path: string): string {
-  return `${NOTEMARKS_FOLDER}/${path}.yaml`
-}
-
-export function splitLocationAndFilename(path: string): [string, string] {
-  let idxLastSlash = path.lastIndexOf('/')
-  if (idxLastSlash === -1) {
-    return ["", path]
-  } else {
-    return [
-      path.substring(0, idxLastSlash),
-      path.substring(idxLastSlash + 1),
-    ]
-  }
-}
-
-export function filenameToTitle(filename: string) {
-  // TODO: Unescaping of special chars has to go here...
-  let idxLastDot = filename.lastIndexOf('.')
-  if (idxLastDot === -1) {
-    return filename;
-  } else {
-    return filename.substring(0, idxLastDot);
-  }
-}
-
-export function titleToFilename(title: string, extension: string) {
-  // TODO: Escaping of special chars has to go here...
-  let titleEscaped = title
-  if (extension.length > 0) {
-    return `${titleEscaped}.${extension}`;
-  } else {
-    return titleEscaped;
-  }
-}
 
 // ----------------------------------------------------------------------------
 // ResultAsync helper
@@ -183,7 +130,7 @@ async function listFilesRecursive(octokit: Octokit, repo: Repo, path: string, fi
     // https://developer.github.com/v3/repos/contents/#get-repository-content
 
     for (let entry of content.data as any) {
-      if (entry.type === "dir" &&  entry.name !== NOTEMARKS_FOLDER) {
+      if (entry.type === "dir" &&  entry.name !== path_utils.NOTEMARKS_FOLDER) {
         // It is important to await the recursive load, otherwise the outer logic does not
         // even know what / how many promises there will be scheduled.
         await listFilesRecursive(octokit, repo, entry.path, files)
@@ -240,7 +187,7 @@ export async function loadEntries(repos: Repos): Promise<Entry[]> {
     });
 
     let files = await listFiles(octokit, repo, ".");
-    let metaFiles = await listFiles(octokit, repo, NOTEMARKS_FOLDER);
+    let metaFiles = await listFiles(octokit, repo, path_utils.NOTEMARKS_FOLDER);
 
     let entriesPromises = loadEntriesForRepoFromFilesList(octokit, repo, files, metaFiles, stagedChanges)
     let entries = await Promise.all(entriesPromises)
@@ -295,7 +242,7 @@ function loadEntriesForRepoFromFilesList(
 
   // Iterate over files and find associated meta
   for (let file of files) {
-    let metaPath = getAssociatedMetaPath(file.path)
+    let metaPath = path_utils.getAssociatedMetaPath(file.path)
     filesAndMeta.push({
       file: file,
       meta: metaFilesMap[metaPath],
@@ -320,7 +267,7 @@ async function loadEntry(
 ): Promise<Result<Entry, Error>> {
 
   // Determine entry kind
-  let entryKind = getEntryKind(file.path)
+  let entryKind = path_utils.getEntryKind(file.path)
 
   // Optionally fetch entry content
   let entryContent: Result<string, Error> | undefined = undefined
@@ -352,8 +299,8 @@ async function loadEntry(
       }
     }
 
-    let [location, filename] = splitLocationAndFilename(file.path)
-    let title = filenameToTitle(filename)
+    let [location, filename] = path_utils.splitLocationAndFilename(file.path)
+    let title = path_utils.filenameToTitle(filename)
 
     return ok({
       repoId: repo.id,
