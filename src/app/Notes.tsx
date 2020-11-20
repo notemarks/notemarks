@@ -6,8 +6,8 @@ import { Table, Tag } from 'antd';
 
 import styled from '@emotion/styled'
 
+import { Entries } from "./types";
 import { Repos } from "./repo";
-import { Entry, loadEntries} from "./octokit";
 
 const { Title } = Typography;
 
@@ -64,19 +64,11 @@ const columns: any[] = [
 
 type NotesProps = {
   repos: Repos,
+  entries: Entries,
 }
 
-function Notes({ repos }: NotesProps) {
+function Notes({ repos, entries }: NotesProps) {
 
-  let [entries, setEntries] = useState([] as Entry[])
-
-  useEffect(() => {
-    async function loadContents() {
-      let newEntries = await loadEntries(repos)
-      setEntries(newEntries)
-    }
-    loadContents();
-  }, [repos])
 
   return (
     <>

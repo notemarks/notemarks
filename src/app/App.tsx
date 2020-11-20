@@ -9,6 +9,8 @@ import { EditOutlined, SettingOutlined } from '@ant-design/icons';
 import styled from '@emotion/styled'
 
 import * as repo_utils from "./repo"
+import { Entries } from "./types";
+import { loadEntries } from "./octokit";
 import Settings from "./Settings";
 import Notes from "./Notes";
 
@@ -29,6 +31,8 @@ enum Page {
 
 
 function App() {
+
+  // *** Settings
 
   const [page, setPage] = useState(Page.Main)
   const [repos, setRepos] = useState(repo_utils.getStoredRepos());
@@ -51,6 +55,17 @@ function App() {
     setActiveRepos(newActiveRepos);
   }, [repos])
 
+  // *** Entries
+
+  let [entries, setEntries] = useState([] as Entries)
+
+  useEffect(() => {
+    async function loadContents() {
+      let newEntries = await loadEntries(repos)
+      setEntries(newEntries)
+    }
+    loadContents();
+  }, [repos])
 
   return (
     <Layout>
@@ -77,7 +92,7 @@ function App() {
           <Col md={18} xl={12}>
             {(
               page === Page.Main
-              ? <Notes repos={activeRepos}/>
+              ? <Notes repos={activeRepos} entries={entries}/>
               : <Settings repos={repos} setRepos={setRepos}/>
             )}
           </Col>

@@ -11,7 +11,7 @@ import { ok, err, okAsync, errAsync, Result, ResultAsync } from 'neverthrow'
 import * as yaml from "js-yaml"
 
 import { Repo, Repos } from "./repo";
-import { Note } from "./types"
+import { Entry, EntryKind } from "./types"
 import * as date_utils from "./date_utils"
 import { CommentOutlined } from "@ant-design/icons";
 
@@ -21,12 +21,6 @@ const NOTEMARKS_FOLDER = ".notemarks"
 // ----------------------------------------------------------------------------
 // File name / path handling utils
 // ----------------------------------------------------------------------------
-
-export enum EntryKind {
-  NoteMarkdown = "NoteMarkdown",
-  Link = "Link",
-  Document = "Document",
-}
 
 export function getEntryKind(path: string): EntryKind {
   let extension = path.split('.').pop()?.toLowerCase();
@@ -216,22 +210,6 @@ async function listFiles(octokit: Octokit, repo: Repo, path: string): Promise<Fi
 // High level entry loading
 // ----------------------------------------------------------------------------
 
-export type Entry = {
-  // General fields
-  repoId: string,
-  rawUrl: string,
-  // Fields derived from filename/path
-  location: string,
-  title: string,
-  entryKind: EntryKind,
-  // From meta data:
-  labels: string[],
-  timeCreated: Date,
-  timeUpdated: Date,
-  // From file content (optional):
-  content: string | undefined,
-}
-
 // Note: Currently MetaData is only an internal type used during loading, and its
 // fields get copied into the Entry type. Perhaps keeping it as internal type is
 // beneficial, because it hides which data is actually coming from the meta files.
@@ -387,6 +365,7 @@ async function loadEntry(
       timeCreated: metaData.timeCreated as Date,
       timeUpdated: metaData.timeUpdated as Date,
       content: entryContent?.value,
+      key: `${repo.id}:${location}:${title}`,
     })
   } else {
     return err(new Error(`Failed to fetch content of ${file.path}`))
@@ -621,8 +600,8 @@ function applyOps(ops: GitOp[], oldTree: GitGetTreeResponseData): GitCreateTreeP
       }
     }
 
-    // As mentioned in the blob post, it seems necessary to omit "tree" elements from
-    // the new tree. In contrast to what is mentioned in the blob post however, this
+    // As mentioned in the blog post, it seems necessary to omit "tree" elements from
+    // the new tree. In contrast to what is mentioned in the blog post however, this
     // did not error with a 500. Even worse, it succeeded, but it did had any "delete"
     // behavior. Files omitted in the new tree were still there, perhaps because their
     // parent tree elements were in the new tree as well. To get the desired behavior
