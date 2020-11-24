@@ -5,7 +5,7 @@ import { Table, Tag } from 'antd';
 
 import styled from '@emotion/styled'
 
-import { Entries } from "./types";
+import { Entry, Entries } from "./types";
 import { Repos } from "./repo";
 
 const { Title } = Typography;
@@ -44,6 +44,10 @@ const columns: any[] = [
     title: 'Title',
     dataIndex: 'title',
     key: 'title',
+    render: (text: string, entry: Entry) => {
+      // eslint-disable-next-line
+      return <a>{text}</a>
+    },
   },
   {
     title: "Labels",
@@ -64,9 +68,10 @@ const columns: any[] = [
 type NotesProps = {
   repos: Repos,
   entries: Entries,
+  onEnterEntry: (i: number) => void,
 }
 
-function Notes({ repos, entries }: NotesProps) {
+function Notes({ repos, entries, onEnterEntry }: NotesProps) {
 
   return (
     <>
@@ -77,6 +82,20 @@ function Notes({ repos, entries }: NotesProps) {
         columns={columns}
         pagination={false}
         //rowClassName={(record: any, index) => isHighlightRow(record.name) ? 'highlight-row' :  ''}
+        onRow={(entry, entryIndex) => {
+          return {
+            onClick: event => {
+              console.log(entry);
+              if (entryIndex != null) {
+                onEnterEntry(entryIndex);
+              }
+            },
+            // onDoubleClick: event => {}, // double click row
+            // onContextMenu: event => {}, // right button click row
+            // onMouseEnter: event => {}, // mouse enter row
+            // onMouseLeave: event => {}, // mouse leave row
+          };
+        }}
       />
       <Footer/>
     </>
