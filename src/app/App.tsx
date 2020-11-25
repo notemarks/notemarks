@@ -7,12 +7,14 @@ import { EditOutlined, SettingOutlined } from '@ant-design/icons';
 
 import styled from '@emotion/styled'
 
-import { Entries, LabelCounts } from "./types";
+import { Entry, Entries, LabelCounts } from "./types";
 import * as entry_utils from "./entry_utils"
 import * as repo_utils from "./repo"
 import { loadEntries } from "./octokit";
+
 import Settings from "./Settings";
 import Notes from "./Notes";
+import NoteView from "./NoteView";
 
 
 // const { Header, Content, Footer, Sider } = Layout;
@@ -25,8 +27,9 @@ const ContentStyled = styled(Content)`
 
 
 enum Page {
-  Main = "main",
-  Settings = "settings",
+  Main = "Main",
+  Settings = "Settings",
+  NoteView = "NoteView",
 }
 
 
@@ -36,6 +39,8 @@ function App() {
 
   const [page, setPage] = useState(Page.Main)
   const [repos, setRepos] = useState(repo_utils.getStoredRepos());
+
+  const [activeEntry, setActiveEntry] = useState(undefined as Entry | undefined)
 
   useEffect(() => {
     // console.log("Storing repos:", repos)
@@ -69,6 +74,27 @@ function App() {
     loadContents();
   }, [repos, setLabels])
 
+  // *** Render helper
+
+  const renderCenter = () => {
+    switch (page) {
+      case Page.Main:
+        return (
+          <Notes
+            repos={activeRepos}
+            entries={entries}
+            onEnterEntry={i => {
+              setPage(Page.NoteView)
+              setActiveEntry(entries[i])
+            }}
+          />
+        )
+      case Page.NoteView:
+        return <NoteView entry={activeEntry}/>
+      case Page.Settings:
+        return <Settings repos={repos} setRepos={setRepos}/>
+    }
+  }
 
   return (
     <Layout>
@@ -104,11 +130,7 @@ function App() {
             }
           </Col>
           <Col md={18} xl={12}>
-            {(
-              page === Page.Main
-              ? <Notes repos={activeRepos} entries={entries}/>
-              : <Settings repos={repos} setRepos={setRepos}/>
-            )}
+            {renderCenter()}
           </Col>
           <Col md={3} xl={6}>
           </Col>
