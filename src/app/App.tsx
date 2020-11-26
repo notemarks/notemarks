@@ -7,6 +7,8 @@ import { EditOutlined, SettingOutlined } from '@ant-design/icons';
 
 import styled from '@emotion/styled'
 
+import * as mousetrap from "mousetrap"
+
 import { Entry, Entries, LabelCounts } from "./types";
 import * as entry_utils from "./entry_utils"
 import * as repo_utils from "./repo"
@@ -15,6 +17,7 @@ import { loadEntries } from "./octokit";
 import Settings from "./Settings";
 import Notes from "./Notes";
 import NoteView from "./NoteView";
+import NoteEditor from "./NoteEditor";
 
 
 // const { Header, Content, Footer, Sider } = Layout;
@@ -25,11 +28,25 @@ const ContentStyled = styled(Content)`
   background: #FFF;
 `
 
+declare const Mousetrap: any;
+
+Mousetrap.prototype.stopCallback = function(e: KeyboardEvent, element: HTMLElement, combo: string) {
+  // https://craig.is/killing/mice
+  // console.log("stopCallback", e, element, combo);
+  if (element.tagName === 'INPUT' && e.key === "Enter") {
+    // don't fire mousetrap events for ENTER on input elements
+    return true;
+  } else {
+    // fire in all other cases
+    return false;
+  }
+}
 
 enum Page {
   Main = "Main",
   Settings = "Settings",
   NoteView = "NoteView",
+  NoteEditor = "NoteEditor",
 }
 
 
@@ -91,10 +108,38 @@ function App() {
         )
       case Page.NoteView:
         return <NoteView entry={activeEntry}/>
+      case Page.NoteEditor:
+        return <NoteEditor entry={activeEntry}/>
       case Page.Settings:
         return <Settings repos={repos} setRepos={setRepos}/>
     }
   }
+
+  // *** Keyboard shortcuts
+
+  mousetrap.bind(["command+e", "ctrl+e"], () => {
+    switch (page) {
+      case Page.NoteView: {
+        setPage(Page.NoteEditor);
+        break;
+      }
+      case Page.NoteEditor: {
+        setPage(Page.NoteView);
+        break;
+      }
+      default: {
+        console.log("switching not possible");
+        break;
+      }
+    }
+  });
+  /*
+  mousetrap.bind(["command+p", "ctrl+p"], () => {
+    if (searchInputRef != undefined) {
+      searchInputRef!.focus()
+    }
+  })
+  */
 
   return (
     <Layout>
