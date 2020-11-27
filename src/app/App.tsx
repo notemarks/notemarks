@@ -1,5 +1,5 @@
 import React from 'react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import './App.css';
 
 import { Row, Col, Layout, Menu, Tag } from 'antd';
@@ -41,12 +41,49 @@ Mousetrap.prototype.stopCallback = function(e: KeyboardEvent, element: HTMLEleme
   }
 }
 
+// ----------------------------------------------------------------------------
+// Utils
+// ----------------------------------------------------------------------------
+
+function getScrollPosition(): number {
+  return document.documentElement.scrollTop || document.body.scrollTop
+}
+
+function setScrollPosition(pos: number) {
+  document.documentElement.scrollTop = document.body.scrollTop = pos;
+}
+
+
+// ----------------------------------------------------------------------------
+// App state
+// ----------------------------------------------------------------------------
+
 enum Page {
   Main = "Main",
   Settings = "Settings",
   NoteView = "NoteView",
   NoteEditor = "NoteEditor",
 }
+
+const scrollPositions: {[index: string]: number} = {};
+
+// Mousetrap bindings are pulled out of the rendering look so that
+// in the rendering loop there is a lightweight re-attaching of the
+// keyboard hander callbacks (no repeated calls to moustrap.bind).
+const keyboardHandlers = {
+  handleSwitchEdit: () => {}
+}
+
+mousetrap.bind(["command+e", "ctrl+e"], () => {
+  keyboardHandlers.handleSwitchEdit()
+});
+/*
+mousetrap.bind(["command+p", "ctrl+p"], () => {
+  if (searchInputRef != undefined) {
+    searchInputRef!.focus()
+  }
+})
+*/
 
 
 function App() {
@@ -90,7 +127,45 @@ function App() {
     loadContents();
   }, [repos, setLabels])
 
-  // *** Render helper
+  // *** Keyboard handlers
+
+  keyboardHandlers.handleSwitchEdit = () => {
+    switch (page) {
+      case Page.NoteView: {
+        if (activeEntry != null) {
+          scrollPositions[activeEntry.key] = getScrollPosition();
+          console.log(scrollPositions)
+        }
+        setPage(Page.NoteEditor);
+        break;
+      }
+      case Page.NoteEditor: {
+        if (activeEntry != null && activeEntry.key in scrollPositions) {
+          targetScrollPosition.current = scrollPositions[activeEntry.key];
+        }
+        setPage(Page.NoteView);
+        break;
+      }
+      default: {
+        console.log("switching not possible");
+        break;
+      }
+    }
+  };
+
+  // *** Layout effects
+
+  const targetScrollPosition = useRef(undefined as number | undefined)
+
+  useLayoutEffect(() => {
+    // console.log("[layout effect] scrolling to:", targetScrollPosition.current)
+    if (targetScrollPosition.current != null) {
+      setScrollPosition(targetScrollPosition.current);
+      targetScrollPosition.current = undefined
+    }
+  })
+
+  // *** Render helpers
 
   const renderCenter = () => {
     switch (page) {
@@ -113,32 +188,6 @@ function App() {
         return <Settings repos={repos} setRepos={setRepos}/>
     }
   }
-
-  // *** Keyboard shortcuts
-
-  mousetrap.bind(["command+e", "ctrl+e"], () => {
-    switch (page) {
-      case Page.NoteView: {
-        setPage(Page.NoteEditor);
-        break;
-      }
-      case Page.NoteEditor: {
-        setPage(Page.NoteView);
-        break;
-      }
-      default: {
-        console.log("switching not possible");
-        break;
-      }
-    }
-  });
-  /*
-  mousetrap.bind(["command+p", "ctrl+p"], () => {
-    if (searchInputRef != undefined) {
-      searchInputRef!.focus()
-    }
-  })
-  */
 
   return (
     <Layout style={{height: "100%"}}>
