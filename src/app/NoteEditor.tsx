@@ -11,6 +11,14 @@ import { Entry, Entries } from "./types";
 import { Repos } from "./repo";
 
 
+const DebugBox = styled.div`
+  height: 100%;
+  /* Work-around for vertical overflow issue: https://github.com/microsoft/monaco-editor/issues/29 */
+  overflow: hidden;
+  /* background: #050; */
+`
+
+
 type NoteEditorProps = {
   entry?: Entry,
 }
@@ -25,12 +33,14 @@ function NoteEditor({ entry }: NoteEditorProps) {
     )
   } else {
     return (
-      <Editor
-        height="90vh"
-        theme="dark"
-        language="markdown"
-        value={entry.content}
-      />
+      <DebugBox>
+        <Editor
+          height="100%"
+          theme="dark"
+          language="markdown"
+          value={entry.content}
+        />
+      </DebugBox>
     );
   }
 }

@@ -1,3 +1,11 @@
+@import '~antd/dist/antd.css';
+
+/*
+It looks like all these settings have no effect, because the antd.css
+over-rules them somehow
+*/
+
+/*
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
@@ -10,4 +18,13 @@ body {
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
+}
+*/
+/*
+This is needed to style Reacts root div, see:
+https://stackoverflow.com/q/41259244/1804173
+*/
+
+#root {
+  height: 100%;
 }

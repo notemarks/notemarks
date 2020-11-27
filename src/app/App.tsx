@@ -23,7 +23,6 @@ import NoteEditor from "./NoteEditor";
 // const { Header, Content, Footer, Sider } = Layout;
 const { Content } = Layout;
 
-
 const ContentStyled = styled(Content)`
   background: #FFF;
 `
@@ -142,7 +141,7 @@ function App() {
   */
 
   return (
-    <Layout>
+    <Layout style={{height: "100%"}}>
       {/* Theoretically the menu should be wrapped in <Header> but I prefer the smaller sized menu */}
       <Row justify="center" style={{background: "#001529"}}>
         <Col md={18} xl={12}>
@@ -161,8 +160,8 @@ function App() {
           </Menu>
         </Col>
       </Row>
-      <ContentStyled>
-        <Row justify="center">
+      <ContentStyled style={{height: "100%"}}>
+        <Row justify="center" style={{height: "100%"}}>
           <Col md={3} xl={6}>
             {
               labels.map(label =>
@@ -174,7 +173,7 @@ function App() {
               )
             }
           </Col>
-          <Col md={18} xl={12}>
+          <Col md={18} xl={12} style={{height: "100%"}}>
             {renderCenter()}
           </Col>
           <Col md={3} xl={6}>
