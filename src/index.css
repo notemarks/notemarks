@@ -20,11 +20,11 @@ code {
     monospace;
 }
 */
+
 /*
-This is needed to style Reacts root div, see:
+This is needed to propagate the 100% height through the root div:
 https://stackoverflow.com/q/41259244/1804173
 */
-
 #root {
   height: 100%;
 }

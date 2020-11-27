@@ -245,6 +245,10 @@ function Settings({ repos, setRepos }: SettingsProps) {
     setRepos(newRepos);
   }
 
+  const onClearBrowserCache = () => {
+    octokit.clearBrowserCache();
+  }
+
   return (
     <>
       <StyledTitle level={4}>Repositories</StyledTitle>
@@ -281,6 +285,11 @@ function Settings({ repos, setRepos }: SettingsProps) {
           </Button>
         </Col>
       </Row>
+      <StyledTitle level={4}>Browser cache</StyledTitle>
+      <Button danger onClick={onClearBrowserCache}>
+        Clear all cache data
+      </Button>
+
     </>
   );
 }

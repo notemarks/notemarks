@@ -70,6 +70,31 @@ export async function verifyRepo(repo: Repo) {
 }
 
 // ----------------------------------------------------------------------------
+// Storage utils
+// ----------------------------------------------------------------------------
+
+export function base64EncodeUnicode(s: string): string {
+  // first we use encodeURIComponent to get percent-encoded UTF-8,
+  // then we convert the percent encodings into raw bytes which
+  // can be fed into btoa.
+  return btoa(encodeURIComponent(s).replace(/%([0-9A-F]{2})/g,
+      function toSolidBytes(match, p1) {
+          return String.fromCharCode(parseInt('0x' + p1));
+  }));
+}
+
+export function base64DecodeUnicode(s: string): string {
+  // Going backwards: from bytestream, to percent-encoding, to original string.
+  return decodeURIComponent(atob(s).split('').map(function(c) {
+      return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+  }).join(''));
+}
+
+export function clearBrowserCache() {
+  localforage.clear();
+}
+
+// ----------------------------------------------------------------------------
 // Internal cached fetching
 // ----------------------------------------------------------------------------
 
@@ -91,10 +116,21 @@ async function cachedFetch(octokit: Octokit, repo: Repo, path: string, sha: stri
       console.log(`${key} fetched successfully`)
       let content = result.value;
       //console.log(content)
+
+      // TODO: Turn these into Result errors...
       console.assert(content.data.sha === sha, "SHA mismatch")
       console.assert(content.data.encoding === "base64", "Encoding mismatch")
-      let plainContent = atob(content.data.content)
-      //console.log(plainContent)
+
+      // The following simple base64 -> string decoding has problem if the content is actually UTF-8.
+      // let plainContent = atob(content.data.content)
+
+      // TODO: How can we know that the decoded content is actually UTF-8 encoded?
+      // Perhaps we need to have a property on a note that represents "original encoding".
+      // Alternatively we could have a heuristic? How does the `file` utility does it?
+      // It would be interesting to add a markdown file with some Windows encoding.
+      let plainContent = base64DecodeUnicode(content.data.content)
+      // console.log(plainContent)
+
       await localforage.setItem(key, plainContent)
       return ok(plainContent);
     } else {
