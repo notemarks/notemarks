@@ -8,6 +8,26 @@ import styled from '@emotion/styled'
 import { Entry, Entries } from "./types";
 import { Repos } from "./repo";
 
+/*
+// ------------------------------------------------------------------------------.
+// Notes:
+// ------------------------------------------------------------------------------.
+
+Creating "onClick" callbacks from the table contents directly seems to be a bit
+tricky, because it would require to have the callback available in the `render`
+function. This (probably?) would mean that we have to attach the callback to each
+data entry directly, which is ugly because we are mixing data with behavior.
+Perhaps it would mean that instead of operating the table on the original entires,
+we have to map `Entry` to some `TableEntry` object that combines the data with the
+table specific callbacks.
+
+For now the easiest solution was to "hoist" the callback to the onClick of the
+entire row.
+
+See also Q/A here:
+https://stackoverflow.com/questions/48494045/how-to-add-dynamic-link-to-table-data
+*/
+
 const { Title } = Typography;
 
 const StyledTitle = styled(Title)`
@@ -45,6 +65,9 @@ const columns: any[] = [
     dataIndex: 'title',
     key: 'title',
     render: (text: string, entry: Entry) => {
+      // TODO: Should we make this a button?
+      // https://stackoverflow.com/a/60775925/1804173
+      // https://github.com/jsx-eslint/eslint-plugin-jsx-a11y/blob/master/docs/rules/anchor-is-valid.md
       // eslint-disable-next-line
       return <a>{text}</a>
     },

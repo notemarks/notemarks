@@ -24,6 +24,7 @@
     "dompurify": "^2.2.2",
     "js-yaml": "^3.14.0",
     "localforage": "^1.9.0",
+    "monaco-editor": "^0.21.2",
     "mousetrap": "^1.6.5",
     "neverthrow": "^2.7.1",
     "react": "^17.0.1",
