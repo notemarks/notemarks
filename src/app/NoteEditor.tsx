@@ -1,5 +1,5 @@
 import React from 'react';
-import { useRef } from 'react';
+import { useRef, useImperativeHandle, forwardRef } from 'react';
 
 import Editor from "@monaco-editor/react";
 import * as monacoEditor from 'monaco-editor/esm/vs/editor/editor.api';
@@ -11,9 +11,9 @@ import { Entry } from "./types";
 type IStandaloneCodeEditor = monacoEditor.editor.IStandaloneCodeEditor
 
 /*
-// ------------------------------------------------------------------------------.
+// ----------------------------------------------------------------------------
 // Notes:
-// ------------------------------------------------------------------------------.
+// ----------------------------------------------------------------------------
 
 There are several React Monaco Editor wrappers. I went for this one, mainly
 because it is the only one compatible with CRA/non-eject:
@@ -38,13 +38,31 @@ type NoteEditorProps = {
   entry?: Entry,
 }
 
-function NoteEditor({ entry }: NoteEditorProps) {
+export type NoteEditorRef = {
+  getEditorContent: () => string | undefined
+  getScrollPosition: () => number | undefined
+}
+
+// type T = typeof React.RefForwardingComponent.ref;
+// type RefType = ((instance: NoteEditorRef | null) => void) | React.MutableRefObject<NoteEditorRef | null> | null;
+// type RefType = React.Ref<NoteEditorRef>
+
+const NoteEditor = forwardRef(({ entry }: NoteEditorProps, ref: React.Ref<NoteEditorRef>) => {
 
   const editorRef = useRef(undefined as IStandaloneCodeEditor | undefined);
 
   const onEditorDidMount = (_: () => string, editor: IStandaloneCodeEditor) => {
     editorRef.current = editor;
   }
+
+  useImperativeHandle(ref, () => ({
+    getEditorContent: () => {
+      return editorRef.current?.getValue()
+    },
+    getScrollPosition: () => {
+      return editorRef.current?.getScrollTop()
+    },
+  }));
 
   if (entry == null) {
     return (
@@ -65,7 +83,7 @@ function NoteEditor({ entry }: NoteEditorProps) {
       </DebugBox>
     );
   }
-}
+})
 
 
 export default NoteEditor;

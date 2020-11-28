@@ -17,7 +17,7 @@ import { loadEntries } from "./octokit";
 import Settings from "./Settings";
 import Notes from "./Notes";
 import NoteView from "./NoteView";
-import NoteEditor from "./NoteEditor";
+import NoteEditor, { NoteEditorRef } from "./NoteEditor";
 
 
 // const { Header, Content, Footer, Sider } = Layout;
@@ -127,6 +127,10 @@ function App() {
     loadContents();
   }, [repos, setLabels])
 
+  // *** Refs
+
+  let editorRef = useRef<NoteEditorRef>(null);
+
   // *** Keyboard handlers
 
   keyboardHandlers.handleSwitchEdit = () => {
@@ -143,6 +147,7 @@ function App() {
         if (activeEntry != null && activeEntry.key in scrollPositions) {
           targetScrollPosition.current = scrollPositions[activeEntry.key];
         }
+        console.log("At time of switching editor scroll is:", editorRef.current?.getScrollPosition())
         setPage(Page.NoteView);
         break;
       }
@@ -183,7 +188,7 @@ function App() {
       case Page.NoteView:
         return <NoteView entry={activeEntry}/>
       case Page.NoteEditor:
-        return <NoteEditor entry={activeEntry}/>
+        return <NoteEditor entry={activeEntry} ref={editorRef}/>
       case Page.Settings:
         return <Settings repos={repos} setRepos={setRepos}/>
     }

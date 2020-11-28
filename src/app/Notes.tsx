@@ -9,9 +9,9 @@ import { Entry, Entries } from "./types";
 import { Repos } from "./repo";
 
 /*
-// ------------------------------------------------------------------------------.
+// ----------------------------------------------------------------------------
 // Notes:
-// ------------------------------------------------------------------------------.
+// ----------------------------------------------------------------------------
 
 Creating "onClick" callbacks from the table contents directly seems to be a bit
 tricky, because it would require to have the callback available in the `render`
