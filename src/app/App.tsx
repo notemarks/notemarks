@@ -223,9 +223,10 @@ function App() {
       }
       targetEditorPosition.current = null
     }
-    // console.log(document.activeElement)
-    editorRef.current?.focus()
-    // console.log(document.activeElement)
+    // https://github.com/suren-atoyan/monaco-react/issues/141
+    window.requestAnimationFrame(() => {
+      editorRef.current?.focus()
+    })
   }
 
   // *** Render helpers
