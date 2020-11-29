@@ -98,6 +98,7 @@ function App() {
   // *** Core state
 
   const [page, setPage] = useState(Page.Main)
+  const [activeEntryIdx, setActiveEntryIdx] = useState<number | undefined>(undefined)
   const [activeEntry, setActiveEntry] = useState<Entry | undefined>(undefined)
 
   // *** Settings: Repos state
@@ -138,11 +139,30 @@ function App() {
     loadContents();
   }, [repos, setLabels])
 
+  // Derived state: active entry
+  useEffect(() => {
+    if (activeEntryIdx != null) {
+      setActiveEntry(entries[activeEntryIdx])
+    }
+  }, [entries, activeEntryIdx, setActiveEntry])
+
   // *** Refs
 
   let editorRef = useRef<NoteEditorRef>(null);
 
   // *** State change helper functions
+
+  const updateEntryContent = () => {
+    if (editorRef.current != null && activeEntryIdx != null) {
+      let newContent = editorRef.current.getEditorContent();
+      let newEntries = entries.slice(0);
+      newEntries[activeEntryIdx] = {
+        ...newEntries[activeEntryIdx],
+        content: newContent,
+      }
+      setEntries(newEntries)
+    }
+  }
 
   const storeNoteViewPosition = () => {
     if (activeEntry != null) {
@@ -189,6 +209,7 @@ function App() {
       case Page.NoteEditor: {
         storeNoteEditorPosition()
         restoreNoteViewPosition()
+        updateEntryContent()
         setPage(Page.NoteView);
         break;
       }
@@ -241,7 +262,7 @@ function App() {
             onEnterEntry={i => {
               // TODO: requires useCallback?
               setPage(Page.NoteView)
-              setActiveEntry(entries[i])
+              setActiveEntryIdx(i)
             }}
           />
         )
