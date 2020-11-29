@@ -11,7 +11,9 @@ const EditorWrapper = () => {
 
   const onEditorDidMount = (_: () => string, editor: IStandaloneCodeEditor) => {
     editor.setPosition({lineNumber: 1, column: 6})
-    editor.focus()
+    window.requestAnimationFrame(() => {
+      editor.focus()
+    })
   }
 
   return (
