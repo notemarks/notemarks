@@ -275,6 +275,10 @@ function App() {
     }
   }
 
+  const sizePropsColL = { md: 3, xl: 6 };
+  const sizePropsColC = { md: 18, xl: 12 };
+  const sizePropsColR = { md: 3, xl: 6 };
+
   return (
     <Layout style={{height: "100%"}}>
       {/* Theoretically the menu should be wrapped in <Header> but I prefer the smaller sized menu */}
@@ -297,7 +301,7 @@ function App() {
       </Row>
       <ContentStyled style={{height: "100%"}}>
         <Row justify="center" style={{height: "100%"}}>
-          <Col md={3} xl={6}>
+          <Col {...sizePropsColL}>
             {
               labels.map(label =>
                 <div key={label.label}>
@@ -308,10 +312,10 @@ function App() {
               )
             }
           </Col>
-          <Col md={18} xl={12} style={{height: "100%"}}>
+          <Col {...sizePropsColC} style={{height: "100%"}}>
             {renderCenter()}
           </Col>
-          <Col md={3} xl={6}>
+          <Col {...sizePropsColR}>
           </Col>
         </Row>
       </ContentStyled>

@@ -28,3 +28,8 @@ https://stackoverflow.com/q/41259244/1804173
 #root {
   height: 100%;
 }
+
+/* Not working yet, but would be best way to avoid jumping width? */
+html {
+  overflow-y: overlay;
+}

@@ -1,7 +1,7 @@
 import React from 'react';
 
 import { Typography } from 'antd';
-import { Table, Tag } from 'antd';
+import { Table, Tag, Input } from 'antd';
 
 import styled from '@emotion/styled'
 
@@ -28,10 +28,9 @@ See also Q/A here:
 https://stackoverflow.com/questions/48494045/how-to-add-dynamic-link-to-table-data
 */
 
-const { Title } = Typography;
-
-const StyledTitle = styled(Title)`
+const StyledInput = styled(Input)`
   margin-top: 20px;
+  margin-bottom: 20px;
 `
 
 const Footer = styled.div`
@@ -98,12 +97,13 @@ function Notes({ repos, entries, onEnterEntry }: NotesProps) {
 
   return (
     <>
-      <StyledTitle level={4}>Notes</StyledTitle>
+      <StyledInput/>
       <StyledTable
         bordered
         dataSource={entries}
         columns={columns}
         pagination={false}
+        showHeader={false}
         //rowClassName={(record: any, index) => isHighlightRow(record.name) ? 'highlight-row' :  ''}
         onRow={(entry, entryIndex) => {
           return {
