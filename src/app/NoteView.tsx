@@ -54,6 +54,7 @@ function convertMarkdown(markdown: string): string {
     strikethrough: true,
     tables: true,
     tasklists: true,
+    openLinksInNewWindow: true,
   })
 
   // Apparently 'github' flavor leads to treating every line break as a visible
@@ -63,7 +64,10 @@ function convertMarkdown(markdown: string): string {
   // converter.setFlavor('github');
 
   let htmlRaw = converter.makeHtml(markdown);
-  let htmlSanitized = DOMPurify.sanitize(htmlRaw);
+  let htmlSanitized = DOMPurify.sanitize(htmlRaw, {
+    // To allow opening links in new window: https://github.com/cure53/DOMPurify/issues/317
+    ADD_ATTR: ['target']
+  });
 
   return htmlSanitized;
 }
