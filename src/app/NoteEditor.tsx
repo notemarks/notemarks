@@ -1,13 +1,16 @@
 import React from 'react';
 import { useRef, useImperativeHandle, forwardRef } from 'react';
 
+import { Row, Col } from 'antd';
+
 import Editor from "@monaco-editor/react";
 import * as monacoEditor from 'monaco-editor/esm/vs/editor/editor.api';
 
 import styled from '@emotion/styled'
 
-import * as fn from "./fn_utils";
+import { SizeProps } from "./types_view";
 import { Entry } from "./types";
+import * as fn from "./fn_utils";
 
 type IStandaloneCodeEditor = monacoEditor.editor.IStandaloneCodeEditor
 
@@ -58,11 +61,6 @@ const DebugBox = styled.div`
 `
 
 
-type NoteEditorProps = {
-  entry?: Entry,
-  onEditorDidMount: () => void,
-}
-
 export type NoteEditorRef = {
   getEditorContent: () => string | undefined
   getScrollPosition: () => number | undefined
@@ -73,7 +71,14 @@ export type NoteEditorRef = {
 }
 
 
-const NoteEditor = forwardRef(({ entry, onEditorDidMount }: NoteEditorProps, ref: React.Ref<NoteEditorRef>) => {
+type NoteEditorProps = {
+  sizeProps: SizeProps,
+  entry?: Entry,
+  onEditorDidMount: () => void,
+}
+
+
+const NoteEditor = forwardRef(({ sizeProps, entry, onEditorDidMount }: NoteEditorProps, ref: React.Ref<NoteEditorRef>) => {
 
   const editorRef = useRef(undefined as IStandaloneCodeEditor | undefined);
 
@@ -105,13 +110,15 @@ const NoteEditor = forwardRef(({ entry, onEditorDidMount }: NoteEditorProps, ref
     }
   }));
 
-  if (entry == null) {
+  const renderFallback = () => {
     return (
       <div>
         Nothing
       </div>
     )
-  } else {
+  }
+
+  const renderEntry = (entry: Entry) => {
     return (
       <DebugBox>
         <Editor
@@ -124,6 +131,16 @@ const NoteEditor = forwardRef(({ entry, onEditorDidMount }: NoteEditorProps, ref
       </DebugBox>
     );
   }
+
+  return (
+    <Row justify="center" style={{height: "100%"}}>
+      <Col {...sizeProps.l}/>
+      <Col {...sizeProps.c}>
+        {entry != null ? renderEntry(entry) : renderFallback()}
+      </Col>
+      <Col {...sizeProps.r}/>
+    </Row>
+  );
 })
 
 

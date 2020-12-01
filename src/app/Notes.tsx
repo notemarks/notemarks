@@ -1,11 +1,12 @@
 import React from 'react';
 
 import { Typography } from 'antd';
-import { Table, Tag, Input } from 'antd';
+import { Table, Tag, Input, Row, Col } from 'antd';
 
 import styled from '@emotion/styled'
 
-import { Entry, Entries } from "./types";
+import { SizeProps } from "./types_view";
+import { Entry, Entries, LabelCounts } from "./types";
 import { Repos } from "./repo";
 
 /*
@@ -88,39 +89,63 @@ const columns: any[] = [
 // ----------------------------------------------------------------------------
 
 type NotesProps = {
+  sizeProps: SizeProps,
   repos: Repos,
   entries: Entries,
+  labels: LabelCounts,
   onEnterEntry: (i: number) => void,
 }
 
-function Notes({ repos, entries, onEnterEntry }: NotesProps) {
+function Notes({ sizeProps, repos, entries, labels, onEnterEntry }: NotesProps) {
 
   return (
     <>
-      <StyledInput/>
-      <StyledTable
-        bordered
-        dataSource={entries}
-        columns={columns}
-        pagination={false}
-        showHeader={false}
-        //rowClassName={(record: any, index) => isHighlightRow(record.name) ? 'highlight-row' :  ''}
-        onRow={(entry, entryIndex) => {
-          return {
-            onClick: event => {
-              console.log(entry);
-              if (entryIndex != null) {
-                onEnterEntry(entryIndex);
-              }
-            },
-            // onDoubleClick: event => {}, // double click row
-            // onContextMenu: event => {}, // right button click row
-            // onMouseEnter: event => {}, // mouse enter row
-            // onMouseLeave: event => {}, // mouse leave row
-          };
-        }}
-      />
-      <Footer/>
+      <Row justify="center">
+        <Col {...sizeProps.l}/>
+        <Col {...sizeProps.c}>
+          <StyledInput/>
+        </Col>
+        <Col {...sizeProps.r}/>
+      </Row>
+      <Row justify="center" style={{height: "100%"}}>
+        <Col {...sizeProps.l} style={{paddingLeft: 20}}>
+          {
+            labels.map(label =>
+              <div key={label.label}>
+                <Tag >
+                  {label.label}
+                </Tag>
+              </div>
+            )
+          }
+        </Col>
+        <Col {...sizeProps.c} style={{height: "100%"}}>
+          <StyledTable
+            bordered
+            dataSource={entries}
+            columns={columns}
+            pagination={false}
+            showHeader={false}
+            //rowClassName={(record: any, index) => isHighlightRow(record.name) ? 'highlight-row' :  ''}
+            onRow={(entry, entryIndex) => {
+              return {
+                onClick: event => {
+                  console.log(entry);
+                  if (entryIndex != null) {
+                    onEnterEntry(entryIndex);
+                  }
+                },
+                // onDoubleClick: event => {}, // double click row
+                // onContextMenu: event => {}, // right button click row
+                // onMouseEnter: event => {}, // mouse enter row
+                // onMouseLeave: event => {}, // mouse leave row
+              };
+            }}
+          />
+          <Footer/>
+        </Col>
+        <Col {...sizeProps.r}/>
+      </Row>
     </>
   );
 }

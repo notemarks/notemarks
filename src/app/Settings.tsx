@@ -10,6 +10,7 @@ import { PlusOutlined, GithubOutlined, CheckCircleTwoTone, ExclamationCircleTwoT
 
 import styled from '@emotion/styled'
 
+import { SizeProps } from "./types_view";
 import { Repo, Repos, VerificationStatus, createDefaultInitializedRepo } from "./repo"
 import * as octokit from "./octokit"
 
@@ -204,11 +205,12 @@ function RepoForm({
 // ----------------------------------------------------------------------------
 
 type SettingsProps = {
+  sizeProps: SizeProps,
   repos: Repos,
   setRepos: (repos: Repos) => void,
 }
 
-function Settings({ repos, setRepos }: SettingsProps) {
+function Settings({ sizeProps, repos, setRepos }: SettingsProps) {
 
   const addRepo = useCallback(() => {
     let newRepo = createDefaultInitializedRepo(repos.length === 0 ? true : false)
@@ -250,47 +252,50 @@ function Settings({ repos, setRepos }: SettingsProps) {
   }
 
   return (
-    <>
-      <StyledTitle level={4}>Repositories</StyledTitle>
-      {/*<Collapse defaultActiveKey={[0]} onChange={callback} bordered={true}>*/}
-      {repos.map((repo, i) =>
-        <Row key={repo.id} gutter={[24, 24]}>
-          <Col span={24}>
-            <Card
-              title={Header(repo)}
-              size="small"
-              hoverable
-              //extra={<Switch checked={repo.enabled} onClick={() => toggleEnableRepo(i)}></Switch>}
-              extra={<VerificationStatusIcon status={repo.verified}/>}
-            >
-              <RepoForm
-                repo={repo}
-                onDelete={() => deleteRepo(i)}
-                onEdited={(updatedRepo) => updateRepo(i, updatedRepo)}
-                onMakeDefault={() => makeRepoDefault(i)}
-              />
-            </Card>
+    <Row justify="center" style={{height: "100%"}}>
+      <Col {...sizeProps.l}/>
+      <Col {...sizeProps.c}>
+        <StyledTitle level={4}>Repositories</StyledTitle>
+        {/*<Collapse defaultActiveKey={[0]} onChange={callback} bordered={true}>*/}
+        {repos.map((repo, i) =>
+          <Row key={repo.id} gutter={[24, 24]}>
+            <Col span={24}>
+              <Card
+                title={Header(repo)}
+                size="small"
+                hoverable
+                //extra={<Switch checked={repo.enabled} onClick={() => toggleEnableRepo(i)}></Switch>}
+                extra={<VerificationStatusIcon status={repo.verified}/>}
+              >
+                <RepoForm
+                  repo={repo}
+                  onDelete={() => deleteRepo(i)}
+                  onEdited={(updatedRepo) => updateRepo(i, updatedRepo)}
+                  onMakeDefault={() => makeRepoDefault(i)}
+                />
+              </Card>
+            </Col>
+          </Row>
+        )}
+        {/*
+        <SpacedRow>
+          <Button type="primary" shape="circle" size="large" icon={<PlusOutlined />} onClick={this.addRepo}/>
+        </SpacedRow>
+        */}
+        <Row justify="center">
+          <Col>
+            <Button type="dashed" size="large" onClick={addRepo}>
+              <PlusOutlined /> Add Repository
+            </Button>
           </Col>
         </Row>
-      )}
-      {/*
-      <SpacedRow>
-        <Button type="primary" shape="circle" size="large" icon={<PlusOutlined />} onClick={this.addRepo}/>
-      </SpacedRow>
-      */}
-      <Row justify="center">
-        <Col>
-          <Button type="dashed" size="large" onClick={addRepo}>
-            <PlusOutlined /> Add Repository
-          </Button>
-        </Col>
-      </Row>
-      <StyledTitle level={4}>Browser cache</StyledTitle>
-      <Button danger onClick={onClearBrowserCache}>
-        Clear all cache data
-      </Button>
-
-    </>
+        <StyledTitle level={4}>Browser cache</StyledTitle>
+        <Button danger onClick={onClearBrowserCache}>
+          Clear all cache data
+        </Button>
+      </Col>
+      <Col {...sizeProps.r}/>
+    </Row>
   );
 }
 

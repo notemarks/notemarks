@@ -3,10 +3,11 @@ import React from 'react';
 import showdown from "showdown";
 import DOMPurify from 'dompurify';
 
-import { Typography } from 'antd';
+import { Typography, Row, Col } from 'antd';
 
 import styled from '@emotion/styled'
 
+import { SizeProps } from "./types_view";
 import { Entry } from "./types";
 
 /*
@@ -39,6 +40,7 @@ const Footer = styled.div`
 `
 
 type NoteViewProps = {
+  sizeProps: SizeProps,
   entry?: Entry,
 }
 
@@ -66,15 +68,17 @@ function convertMarkdown(markdown: string): string {
   return htmlSanitized;
 }
 
-function NoteView({ entry }: NoteViewProps) {
+function NoteView({ sizeProps, entry }: NoteViewProps) {
 
-  if (entry == null) {
+  const renderFallback = () => {
     return (
       <div>
         Nothing
       </div>
     )
-  } else {
+  }
+
+  const renderEntry = (entry: Entry) => {
     return (
       <>
         <StyledTitle>{entry.title}</StyledTitle>
@@ -85,6 +89,16 @@ function NoteView({ entry }: NoteViewProps) {
       </>
     );
   }
+
+  return (
+    <Row justify="center" style={{height: "100%"}}>
+      <Col {...sizeProps.l}/>
+      <Col {...sizeProps.c}>
+        {entry != null ? renderEntry(entry) : renderFallback()}
+      </Col>
+      <Col {...sizeProps.r}/>
+    </Row>
+  );
 }
 
 

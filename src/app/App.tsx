@@ -252,13 +252,21 @@ function App() {
 
   // *** Render helpers
 
+  const sizeProps = {
+    l: { md: 3, xl: 6 },
+    c: { md: 18, xl: 12 },
+    r: { md: 3, xl: 6 },
+  }
+
   const renderCenter = () => {
     switch (page) {
       case Page.Main:
         return (
           <Notes
+            sizeProps={sizeProps}
             repos={activeRepos}
             entries={entries}
+            labels={labels}
             onEnterEntry={i => {
               // TODO: requires useCallback?
               setPage(Page.NoteView)
@@ -267,23 +275,19 @@ function App() {
           />
         )
       case Page.NoteView:
-        return <NoteView entry={activeEntry}/>
+        return <NoteView sizeProps={sizeProps} entry={activeEntry}/>
       case Page.NoteEditor:
-        return <NoteEditor entry={activeEntry} ref={editorRef} onEditorDidMount={onEditorDidMount}/>
+        return <NoteEditor sizeProps={sizeProps} entry={activeEntry} ref={editorRef} onEditorDidMount={onEditorDidMount}/>
       case Page.Settings:
-        return <Settings repos={repos} setRepos={setRepos}/>
+        return <Settings sizeProps={sizeProps} repos={repos} setRepos={setRepos}/>
     }
   }
-
-  const sizePropsColL = { md: 3, xl: 6 };
-  const sizePropsColC = { md: 18, xl: 12 };
-  const sizePropsColR = { md: 3, xl: 6 };
 
   return (
     <Layout style={{height: "100%"}}>
       {/* Theoretically the menu should be wrapped in <Header> but I prefer the smaller sized menu */}
       <Row justify="center" style={{background: "#001529"}}>
-        <Col md={18} xl={12}>
+        <Col {...sizeProps.c}>
           <Menu
             theme="dark"
             mode="horizontal"
@@ -300,24 +304,7 @@ function App() {
         </Col>
       </Row>
       <ContentStyled style={{height: "100%"}}>
-        <Row justify="center" style={{height: "100%"}}>
-          <Col {...sizePropsColL}>
-            {
-              labels.map(label =>
-                <div key={label.label}>
-                  <Tag >
-                    {label.label}
-                  </Tag>
-                </div>
-              )
-            }
-          </Col>
-          <Col {...sizePropsColC} style={{height: "100%"}}>
-            {renderCenter()}
-          </Col>
-          <Col {...sizePropsColR}>
-          </Col>
-        </Row>
+        {renderCenter()}
       </ContentStyled>
     </Layout>
   );
