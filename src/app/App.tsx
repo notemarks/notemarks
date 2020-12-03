@@ -131,6 +131,7 @@ function App() {
   useEffect(() => {
     async function loadContents() {
       let newEntries = await loadEntries(repos)
+      entry_utils.sortAndIndexEntries(newEntries)
       // TODO: Decide if these "double updates" are a problem.
       // See: https://stackoverflow.com/q/53574614/1804173
       setEntries(newEntries)

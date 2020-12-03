@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 
 import { Table, Tag, Input, Row, Col } from 'antd';
 import { EditOutlined, GlobalOutlined, LinkOutlined } from '@ant-design/icons';
@@ -113,12 +113,41 @@ type NotesProps = {
 
 function Notes({ sizeProps, repos, entries, labels, onEnterEntry }: NotesProps) {
 
+  const [filteredEntries, setFilteredEntries] = useState(entries);
+  const [searchTerms, setSearchTerms] = useState<string[]>([]);
+
+  useEffect(() => {
+    let newFilteredEntries = [];
+    for (let entry of entries) {
+      if (searchTerms.length === 0) {
+        newFilteredEntries.push(entry);
+      } else {
+        // Currently we match on any search term -- later could be ranked by match quality?
+        for (let searchTerm of searchTerms) {
+          if (entry.title.toLowerCase().includes(searchTerm.toLowerCase())) {
+            newFilteredEntries.push(entry);
+          }
+        }
+      }
+    }
+    setFilteredEntries(newFilteredEntries);
+  }, [entries, searchTerms])
+
+  const onChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    // TODO: Improve performance
+    // https://stackoverflow.com/a/50820219/1804173
+    // https://stackoverflow.com/a/28046731/1804173
+    window.requestAnimationFrame(() => {
+      setSearchTerms([event.target.value]);
+    })
+  }
+
   return (
     <>
       <Row justify="center">
         <Col {...sizeProps.l}/>
         <Col {...sizeProps.c}>
-          <StyledInput/>
+          <StyledInput onChange={onChange}/>
         </Col>
         <Col {...sizeProps.r}/>
       </Row>
@@ -137,7 +166,7 @@ function Notes({ sizeProps, repos, entries, labels, onEnterEntry }: NotesProps) 
         <Col {...sizeProps.c} style={{height: "100%"}}>
           <StyledTable
             bordered
-            dataSource={entries}
+            dataSource={filteredEntries}
             columns={columns}
             pagination={false}
             showHeader={false}
@@ -145,9 +174,14 @@ function Notes({ sizeProps, repos, entries, labels, onEnterEntry }: NotesProps) 
             onRow={(entry, entryIndex) => {
               return {
                 onClick: event => {
+                  // TODO: Apparently the onRow callback isn't fully typed?
+                  // console.log(entry)
+                  onEnterEntry((entry as Entry).idx!)
+                  /*
                   if (entryIndex != null) {
                     onEnterEntry(entryIndex);
                   }
+                  */
                 },
                 // onDoubleClick: event => {}, // double click row
                 // onContextMenu: event => {}, // right button click row

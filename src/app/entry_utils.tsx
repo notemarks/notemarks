@@ -23,3 +23,13 @@ export function getLabelCounts(entries: Entries): LabelCounts {
 
   return labelCounts
 }
+
+
+export function sortAndIndexEntries(entries: Entries) {
+  entries.sort((a, b) => {
+    return a.title.toLowerCase().localeCompare(b.title.toLowerCase())
+  })
+  for (let i = 0; i < entries.length; ++i) {
+    entries[i].idx = i;
+  }
+}

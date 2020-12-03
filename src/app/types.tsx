@@ -58,6 +58,9 @@ export type Entry = {
   // React specific key to use Entry in lists. Will typically be a composition of
   // repoId + location + title
   key: string,
+  // Internal index within ordered/unfiltered entries array.
+  // Allows for easier/faster lookups compared to using `key`.
+  idx?: number,
 }
 
 export type Entries = Entry[]
