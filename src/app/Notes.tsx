@@ -1,12 +1,12 @@
 import React from 'react';
 
-import { Typography } from 'antd';
 import { Table, Tag, Input, Row, Col } from 'antd';
+import { EditOutlined, GlobalOutlined, LinkOutlined } from '@ant-design/icons';
 
 import styled from '@emotion/styled'
 
 import { SizeProps } from "./types_view";
-import { Entry, Entries, LabelCounts } from "./types";
+import { Entry, Entries, EntryKind, LabelCounts } from "./types";
 import { Repos } from "./repo";
 
 /*
@@ -60,6 +60,21 @@ table > tbody > tr > td {
 `
 
 const columns: any[] = [
+  {
+    title: "Kind",
+    dataIndex: "entryKind",
+    key: "entryKind",
+    render: (entryKind: EntryKind) => {
+      switch (entryKind) {
+        case EntryKind.Link:
+          return <GlobalOutlined style={{fontSize: 14}}/>
+        case EntryKind.NoteMarkdown:
+          return <EditOutlined style={{fontSize: 14}}/>
+        case EntryKind.Document:
+          return <LinkOutlined style={{fontSize: 14}}/>
+      }
+    }
+  },
   {
     title: 'Title',
     dataIndex: 'title',
@@ -130,7 +145,6 @@ function Notes({ sizeProps, repos, entries, labels, onEnterEntry }: NotesProps) 
             onRow={(entry, entryIndex) => {
               return {
                 onClick: event => {
-                  console.log(entry);
                   if (entryIndex != null) {
                     onEnterEntry(entryIndex);
                   }
