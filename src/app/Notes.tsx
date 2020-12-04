@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 
-import { Table, Tag, Input, Row, Col } from 'antd';
+import { Table, Tag, Input, Row, Col, Tree } from 'antd';
 import { EditOutlined, GlobalOutlined, LinkOutlined } from '@ant-design/icons';
 
 import styled from '@emotion/styled'
@@ -113,6 +113,8 @@ type NotesProps = {
 
 function Notes({ sizeProps, repos, entries, labels, onEnterEntry }: NotesProps) {
 
+  // *** Entry filtering
+
   const [filteredEntries, setFilteredEntries] = useState(entries);
   const [searchTerms, setSearchTerms] = useState<string[]>([]);
 
@@ -142,6 +144,15 @@ function Notes({ sizeProps, repos, entries, labels, onEnterEntry }: NotesProps) 
     })
   }
 
+  // *** Label tree data
+
+  const treeData = labels.map(labelCount => {
+    return {
+      title: labelCount.label + " (" + labelCount.count + ")",
+      key: labelCount.label,
+    }
+  })
+
   return (
     <>
       <Row justify="center">
@@ -153,6 +164,16 @@ function Notes({ sizeProps, repos, entries, labels, onEnterEntry }: NotesProps) 
       </Row>
       <Row justify="center" style={{height: "100%"}}>
         <Col {...sizeProps.l} style={{paddingLeft: 20}}>
+          <Tree
+            treeData={treeData}
+            selectable={false}
+            titleRender={data => (
+                <Tag >
+                  {data.title}
+                </Tag>
+              )
+            }
+          />
           {
             labels.map(label =>
               <div key={label.label}>
