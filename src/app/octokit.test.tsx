@@ -1,12 +1,10 @@
 /* eslint-disable jest/no-conditional-expect */
-import * as octokit from './octokit';
-import { Repo, createDefaultInitializedRepo } from './repo';
+import * as octokit from "./octokit";
+import { Repo, createDefaultInitializedRepo } from "./repo";
 
-
-test('commitIntegrationTest', async () => {
+test("commitIntegrationTest", async () => {
   if (process.env.REACT_APP_AUTH != null) {
-
-    let repo: Repo = createDefaultInitializedRepo(true)
+    let repo: Repo = createDefaultInitializedRepo(true);
     repo.userName = "notemarks";
     repo.repoName = "DummyRepo";
     repo.token = process.env.REACT_APP_AUTH;
@@ -17,10 +15,10 @@ test('commitIntegrationTest', async () => {
           kind: "write",
           path: "some/subfolder/foo.txt",
           content: "foocontent",
-        }
-      ]
+        },
+      ];
       let result = await octokit.commit(repo, ops, "added foo.txt");
-      console.log(result)
+      console.log(result);
       expect(result.isOk()).toBe(true);
     }
     {
@@ -29,10 +27,10 @@ test('commitIntegrationTest', async () => {
           kind: "move",
           pathFrom: "some/subfolder/foo.txt",
           pathTo: "some/subfolder/bar.txt",
-        }
-      ]
+        },
+      ];
       let result = await octokit.commit(repo, ops, "moved foo.txt -> bar.txt");
-      console.log(result)
+      console.log(result);
       expect(result.isOk()).toBe(true);
     }
     {
@@ -40,10 +38,10 @@ test('commitIntegrationTest', async () => {
         {
           kind: "remove",
           path: "some/subfolder/bar.txt",
-        }
-      ]
+        },
+      ];
       let result = await octokit.commit(repo, ops, "removed bar.txt");
-      console.log(result)
+      console.log(result);
       expect(result.isOk()).toBe(true);
     }
   }

@@ -1,9 +1,8 @@
-import * as date_utils from './date_utils';
+import * as date_utils from "./date_utils";
 
-
-test('dateToString', () => {
+test("dateToString", () => {
   let dateToString = date_utils.dateToString;
-  let d: Date
+  let d: Date;
 
   d = new Date(2020, 11, 24, 18, 30, 1, 234);
   expect(dateToString(d)).toEqual("2020-12-24T18:30:01");
@@ -12,10 +11,9 @@ test('dateToString', () => {
   expect(dateToString(d)).toEqual("2020-01-01T00:00:00");
 });
 
-
-test('stringToDate', () => {
+test("stringToDate", () => {
   let stringToDate = date_utils.stringToDate;
-  let d: Date
+  let d: Date;
 
   d = new Date(2020, 11, 24, 18, 30, 1);
   expect(stringToDate("2020-12-24T18:30:01")).toEqual(d);

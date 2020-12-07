@@ -1,20 +1,18 @@
-
-import React from 'react';
-import ReactDOM from 'react-dom';
+import React from "react";
+import ReactDOM from "react-dom";
 
 import Editor from "@monaco-editor/react";
-import * as monacoEditor from 'monaco-editor/esm/vs/editor/editor.api';
+import * as monacoEditor from "monaco-editor/esm/vs/editor/editor.api";
 
-type IStandaloneCodeEditor = monacoEditor.editor.IStandaloneCodeEditor
+type IStandaloneCodeEditor = monacoEditor.editor.IStandaloneCodeEditor;
 
 const EditorWrapper = () => {
-
   const onEditorDidMount = (_: () => string, editor: IStandaloneCodeEditor) => {
-    editor.setPosition({lineNumber: 1, column: 6})
+    editor.setPosition({ lineNumber: 1, column: 6 });
     window.requestAnimationFrame(() => {
-      editor.focus()
-    })
-  }
+      editor.focus();
+    });
+  };
 
   return (
     <Editor
@@ -25,11 +23,11 @@ const EditorWrapper = () => {
       editorDidMount={onEditorDidMount}
     />
   );
-}
+};
 
 ReactDOM.render(
   <React.StrictMode>
-    <EditorWrapper/>
+    <EditorWrapper />
   </React.StrictMode>,
-  document.getElementById('root')
+  document.getElementById("root")
 );

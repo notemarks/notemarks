@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { Octokit } from '@octokit/rest';
-import { ok, err, okAsync, errAsync, Result, ResultAsync } from 'neverthrow'
+import { Octokit } from "@octokit/rest";
+import { ok, err, okAsync, errAsync, Result, ResultAsync } from "neverthrow";
 
 // ----------------------------------------------------------------------------
 // Old cached fetch
@@ -98,7 +98,6 @@ async function recursiveLoad(octokit: Octokit, repo: Repo, path: string, promise
 //type ResultAsync<T> = Promise<Result<T>>
 //type ResultAsync<T> = neverthrow.ResultAsync<T, Error>
 
-
 /*
 async function expect<T>(promise: Promise<T>): Promise<[T?, Error?]> {
   return promise
@@ -107,26 +106,24 @@ async function expect<T>(promise: Promise<T>): Promise<[T?, Error?]> {
 }
 */
 
-
 function neverthrow_test_1() {
   async function foo(): Promise<number> {
     return 42;
   }
 
   async function test(): Promise<Result<string, Error>> {
-    let result = await ResultAsync.fromPromise(foo(), () => new Error("failed"))
+    let result = await ResultAsync.fromPromise(foo(), () => new Error("failed"));
     if (result.isOk()) {
       if (result.value > 0) {
-        return okAsync("positive")
+        return okAsync("positive");
       } else {
-        return okAsync("negative")
+        return okAsync("negative");
       }
     } else {
-      return errAsync(new Error("failed"))
+      return errAsync(new Error("failed"));
     }
   }
 }
-
 
 function neverthrow_test_2() {
   async function foo(): Promise<number> {
@@ -136,35 +133,32 @@ function neverthrow_test_2() {
   async function combine(): Promise<Result<number, Error>> {
     let promiseA = foo();
     let promiseB = foo();
-    let resultA = await ResultAsync.fromPromise(promiseA, () => new Error("failed"))
-    let resultB = await ResultAsync.fromPromise(promiseB, () => new Error("failed"))
-    return (
-      resultA.isOk() && resultB.isOk() ?
-      okAsync(resultA.value + resultB.value) :
-      errAsync(new Error("failed"))
-    )
+    let resultA = await ResultAsync.fromPromise(promiseA, () => new Error("failed"));
+    let resultB = await ResultAsync.fromPromise(promiseB, () => new Error("failed"));
+    return resultA.isOk() && resultB.isOk()
+      ? okAsync(resultA.value + resultB.value)
+      : errAsync(new Error("failed"));
   }
 }
-
 
 function neverthrow_test_3() {
   type ResponseType = {
     some: {
       nested: {
-        field: number
-      }
-    },
+        field: number;
+      };
+    };
     other: {
       nested: {
-        field: number
-      }
-    }
-  }
+        field: number;
+      };
+    };
+  };
 
   async function exampleRequest(arg?: number): Promise<ResponseType> {
     return Promise.resolve({
-      some: {nested: {field: 1}},
-      other: {nested: {field: 2}},
+      some: { nested: { field: 1 } },
+      other: { nested: { field: 2 } },
     });
   }
   async function exampleRequestBad(): Promise<ResponseType> {
@@ -176,48 +170,47 @@ function neverthrow_test_3() {
   }
 
   async function requestChain1(): Promise<Result<number, string>> {
-
-    let aResult = await wrap(exampleRequest())
+    let aResult = await wrap(exampleRequest());
     if (aResult.isErr()) {
-      return err("something went wrong in request A")
+      return err("something went wrong in request A");
     }
-    let a = aResult.value.some.nested.field
+    let a = aResult.value.some.nested.field;
 
-    let bResult = await wrap(exampleRequest(a))
+    let bResult = await wrap(exampleRequest(a));
     if (bResult.isErr()) {
-      return err("something went wrong in request B")
+      return err("something went wrong in request B");
     }
-    let b = aResult.value.other.nested.field
+    let b = aResult.value.other.nested.field;
 
-    let cResult = await wrap(exampleRequest(b))
+    let cResult = await wrap(exampleRequest(b));
     if (cResult.isErr()) {
-      return err("something went wrong in request C")
+      return err("something went wrong in request C");
     }
-    let c = aResult.value.other.nested.field
+    let c = aResult.value.other.nested.field;
 
-    return ok(a + b + c)
+    return ok(a + b + c);
   }
 
   async function requestChain2() {
+    let a: number;
+    let b: number;
+    let c: number;
 
-    let a: number
-    let b: number
-    let c: number
-
-    wrap(exampleRequest()).andThen(result => {
-      a = result.some.nested.field
-      return wrap(exampleRequest(a))
-    }).andThen(result => {
-      b = result.other.nested.field
-      return wrap(exampleRequest(a + b))
-    }).map(result => {
-      c = result.other.nested.field
-      return a + b + c
-    })
+    wrap(exampleRequest())
+      .andThen((result) => {
+        a = result.some.nested.field;
+        return wrap(exampleRequest(a));
+      })
+      .andThen((result) => {
+        b = result.other.nested.field;
+        return wrap(exampleRequest(a + b));
+      })
+      .map((result) => {
+        c = result.other.nested.field;
+        return a + b + c;
+      });
   }
-
 }
-
 
 function neverthrow_test_4() {
   type ResponseType = number;
@@ -227,82 +220,67 @@ function neverthrow_test_4() {
   }
 
   type WrappedError = {
-    msg: string,
-    originalError: Error,
-  }
+    msg: string;
+    originalError: Error;
+  };
 
   function wrapPromise<T>(promise: Promise<T>, msg: string): ResultAsync<T, WrappedError> {
     return ResultAsync.fromPromise(promise, (e) => ({
       msg: msg,
-      originalError: e as Error
+      originalError: e as Error,
     }));
   }
 
   function startChain(): ResultAsync<null, WrappedError> {
-    return okAsync(null)
+    return okAsync(null);
   }
 
   function requestChain(): ResultAsync<number, WrappedError> {
-
     // predefine stuff that should be remembered across requests
-    let a: number
-    let b: number
-    let c: number
+    let a: number;
+    let b: number;
+    let c: number;
 
-    return startChain().andThen(() => {
-      return wrapPromise(
-        exampleRequest(),
-        "Something failed in request A",
-      )
-    }).andThen(result => {
-      a = result
-      return wrapPromise(
-        exampleRequest(a),
-        "Something failed in request B",
-      )
-    }).andThen(result => {
-      b = result
-      return wrapPromise(
-        exampleRequest(a + b),
-        "Something failed in request C",
-      )
-    }).andThen(result => {
-      c = result
-      return ok(a + b + c)
-    })
+    return startChain()
+      .andThen(() => {
+        return wrapPromise(exampleRequest(), "Something failed in request A");
+      })
+      .andThen((result) => {
+        a = result;
+        return wrapPromise(exampleRequest(a), "Something failed in request B");
+      })
+      .andThen((result) => {
+        b = result;
+        return wrapPromise(exampleRequest(a + b), "Something failed in request C");
+      })
+      .andThen((result) => {
+        c = result;
+        return ok(a + b + c);
+      });
   }
 
-  const requestChain2: () => ResultAsync<number, WrappedError> = () => (
-    startChain().andThen(() =>
-      wrapPromise(
-        exampleRequest(),
-        "Something failed in request A",
-      ).map(result => ({
-        a: result, // extract `a` here instead
-      }))
-    ).andThen(({a}) =>
-      wrapPromise(
-        exampleRequest(a),
-        "Something failed in request B",
-      ).map(result => ({
-        a: a,      // forward
-        b: result, // extract `b` here instead
-      }))
-    ).andThen(({a, b}) =>
-      wrapPromise(
-        exampleRequest(a + b),
-        "Something failed in request C",
-      ).map(result => ({
-        a: a,      // forward
-        b: b,      // forward
-        c: result, // extract `c` here instead
-      }))
-    ).andThen(({a, b, c}) =>
-      ok(a + b + c)
-    )
-  )
+  const requestChain2: () => ResultAsync<number, WrappedError> = () =>
+    startChain()
+      .andThen(() =>
+        wrapPromise(exampleRequest(), "Something failed in request A").map((result) => ({
+          a: result, // extract `a` here instead
+        }))
+      )
+      .andThen(({ a }) =>
+        wrapPromise(exampleRequest(a), "Something failed in request B").map((result) => ({
+          a: a, // forward
+          b: result, // extract `b` here instead
+        }))
+      )
+      .andThen(({ a, b }) =>
+        wrapPromise(exampleRequest(a + b), "Something failed in request C").map((result) => ({
+          a: a, // forward
+          b: b, // forward
+          c: result, // extract `c` here instead
+        }))
+      )
+      .andThen(({ a, b, c }) => ok(a + b + c));
 }
-
 
 // ----------------------------------------------------------------------------
 // Octokit
@@ -334,7 +312,7 @@ octokit.repos
 
 export async function experiment() {
   const auth = process.env.REACT_APP_AUTH;
-  console.log(auth)
+  console.log(auth);
 
   const octokit = new Octokit({
     auth: auth,
@@ -345,13 +323,13 @@ export async function experiment() {
     owner: "bluenote10",
     repo: "DummyRepo",
     path: "README.md",
-  })
+  });
 
-  console.log(content)
-  console.log(content.data.content)
+  console.log(content);
+  console.log(content.data.content);
 
-  let fileContent = atob(content.data.content)
-  console.log(fileContent)
+  let fileContent = atob(content.data.content);
+  console.log(fileContent);
 
   // https://octokit.github.io/rest.js/v18#repos-create-or-update-file-contents
   let commit = await octokit.repos.createOrUpdateFileContents({
@@ -364,13 +342,13 @@ export async function experiment() {
     "committer.email": "Octokit@github.com",
     "author.name": "Octokit",
     "author.email": "Octokit@github.com",
-  })
-  console.log(commit)
+  });
+  console.log(commit);
 
   let files = await octokit.repos.getContent({
     owner: "bluenote10",
     repo: "DummyRepo",
     path: ".",
-  })
-  console.log(files)
+  });
+  console.log(files);
 }

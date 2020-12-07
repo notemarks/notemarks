@@ -1,18 +1,18 @@
-import React from 'react';
-import { useRef, useImperativeHandle, forwardRef } from 'react';
+import React from "react";
+import { useRef, useImperativeHandle, forwardRef } from "react";
 
-import { Row, Col } from 'antd';
+import { Row, Col } from "antd";
 
 import Editor from "@monaco-editor/react";
-import * as monacoEditor from 'monaco-editor/esm/vs/editor/editor.api';
+import * as monacoEditor from "monaco-editor/esm/vs/editor/editor.api";
 
-import styled from '@emotion/styled'
+import styled from "@emotion/styled";
 
 import { SizeProps } from "./types_view";
 import { Entry } from "./types";
 import * as fn from "./fn_utils";
 
-type IStandaloneCodeEditor = monacoEditor.editor.IStandaloneCodeEditor
+type IStandaloneCodeEditor = monacoEditor.editor.IStandaloneCodeEditor;
 
 /*
 // ----------------------------------------------------------------------------
@@ -58,90 +58,81 @@ const DebugBox = styled.div`
   /* Work-around for vertical overflow issue: https://github.com/microsoft/monaco-editor/issues/29 */
   overflow: hidden;
   /* background: #050; */
-`
-
+`;
 
 export type NoteEditorRef = {
-  getEditorContent: () => string | undefined
-  getScrollPosition: () => number | undefined
-  setScrollPosition: (pos: number) => void
-  getCursorPosition: () => monacoEditor.Position | undefined
-  setCursorPosition: (pos: monacoEditor.Position) => void
-  focus: () => void
-}
-
+  getEditorContent: () => string | undefined;
+  getScrollPosition: () => number | undefined;
+  setScrollPosition: (pos: number) => void;
+  getCursorPosition: () => monacoEditor.Position | undefined;
+  setCursorPosition: (pos: monacoEditor.Position) => void;
+  focus: () => void;
+};
 
 type NoteEditorProps = {
-  sizeProps: SizeProps,
-  entry?: Entry,
-  onEditorDidMount: () => void,
-}
+  sizeProps: SizeProps;
+  entry?: Entry;
+  onEditorDidMount: () => void;
+};
 
+const NoteEditor = forwardRef(
+  ({ sizeProps, entry, onEditorDidMount }: NoteEditorProps, ref: React.Ref<NoteEditorRef>) => {
+    const editorRef = useRef(undefined as IStandaloneCodeEditor | undefined);
 
-const NoteEditor = forwardRef(({ sizeProps, entry, onEditorDidMount }: NoteEditorProps, ref: React.Ref<NoteEditorRef>) => {
+    const onEditorDidMountWrapper = (_: () => string, editor: IStandaloneCodeEditor) => {
+      editorRef.current = editor;
+      onEditorDidMount();
+    };
 
-  const editorRef = useRef(undefined as IStandaloneCodeEditor | undefined);
+    useImperativeHandle(ref, () => ({
+      getEditorContent: () => {
+        return editorRef.current?.getValue();
+      },
+      // https://stackoverflow.com/a/45349393/1804173
+      // https://microsoft.github.io/monaco-editor/api/interfaces/monaco.editor.icodeeditor.html
+      getScrollPosition: () => {
+        return editorRef.current?.getScrollTop();
+      },
+      setScrollPosition: (pos: number) => {
+        editorRef.current?.setScrollTop(pos);
+      },
+      getCursorPosition: () => {
+        return fn.mapNullToUndefined(editorRef.current?.getPosition());
+      },
+      setCursorPosition: (pos: monacoEditor.Position) => {
+        editorRef.current?.setPosition(pos);
+      },
+      focus: () => {
+        editorRef.current?.focus();
+      },
+    }));
 
-  const onEditorDidMountWrapper = (_: () => string, editor: IStandaloneCodeEditor) => {
-    editorRef.current = editor;
-    onEditorDidMount()
-  }
+    const renderFallback = () => {
+      return <div>Nothing</div>;
+    };
 
-  useImperativeHandle(ref, () => ({
-    getEditorContent: () => {
-      return editorRef.current?.getValue()
-    },
-    // https://stackoverflow.com/a/45349393/1804173
-    // https://microsoft.github.io/monaco-editor/api/interfaces/monaco.editor.icodeeditor.html
-    getScrollPosition: () => {
-      return editorRef.current?.getScrollTop()
-    },
-    setScrollPosition: (pos: number) => {
-      editorRef.current?.setScrollTop(pos)
-    },
-    getCursorPosition: () => {
-      return fn.mapNullToUndefined(editorRef.current?.getPosition())
-    },
-    setCursorPosition: (pos: monacoEditor.Position) => {
-      editorRef.current?.setPosition(pos)
-    },
-    focus: () => {
-      editorRef.current?.focus()
-    }
-  }));
+    const renderEntry = (entry: Entry) => {
+      return (
+        <DebugBox>
+          <Editor
+            height="100%"
+            theme="dark"
+            language="markdown"
+            value={entry.content}
+            editorDidMount={onEditorDidMountWrapper}
+          />
+        </DebugBox>
+      );
+    };
 
-  const renderFallback = () => {
     return (
-      <div>
-        Nothing
-      </div>
-    )
-  }
-
-  const renderEntry = (entry: Entry) => {
-    return (
-      <DebugBox>
-        <Editor
-          height="100%"
-          theme="dark"
-          language="markdown"
-          value={entry.content}
-          editorDidMount={onEditorDidMountWrapper}
-        />
-      </DebugBox>
+      <Row justify="center" style={{ height: "100%" }}>
+        <Col {...sizeProps.l} />
+        <Col {...sizeProps.c}>{entry != null ? renderEntry(entry) : renderFallback()}</Col>
+        <Col {...sizeProps.r} />
+      </Row>
     );
   }
-
-  return (
-    <Row justify="center" style={{height: "100%"}}>
-      <Col {...sizeProps.l}/>
-      <Col {...sizeProps.c}>
-        {entry != null ? renderEntry(entry) : renderFallback()}
-      </Col>
-      <Col {...sizeProps.r}/>
-    </Row>
-  );
-})
-
+);
 
 export default NoteEditor;

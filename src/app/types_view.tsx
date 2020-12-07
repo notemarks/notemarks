@@ -1,11 +1,10 @@
-
 export type ColSizeProps = {
-  md: number,
-  xl: number,
-}
+  md: number;
+  xl: number;
+};
 
 export type SizeProps = {
-  l: ColSizeProps,
-  c: ColSizeProps,
-  r: ColSizeProps,
-}
+  l: ColSizeProps;
+  c: ColSizeProps;
+  r: ColSizeProps;
+};

@@ -1,10 +1,9 @@
+import React from "react";
+import ReactDOM from "react-dom";
 
-import React from 'react';
-import ReactDOM from 'react-dom';
+import { Tag, Tree } from "antd";
 
-import { Tag, Tree } from 'antd';
-
-import './index.css';
+import "./index.css";
 
 const TreeComponent = () => {
   const treeData = [
@@ -28,26 +27,17 @@ const TreeComponent = () => {
           title: "nested-bar",
           key: "nested-bar",
         },
-      ]
+      ],
     },
-  ]
+  ];
   return (
-    <Tree
-      treeData={treeData}
-      selectable={false}
-      titleRender={data => (
-          <Tag >
-            {data.title}
-          </Tag>
-        )
-      }
-    />
+    <Tree treeData={treeData} selectable={false} titleRender={(data) => <Tag>{data.title}</Tag>} />
   );
-}
+};
 
 ReactDOM.render(
   <React.StrictMode>
-    <TreeComponent/>
+    <TreeComponent />
   </React.StrictMode>,
-  document.getElementById('root')
+  document.getElementById("root")
 );

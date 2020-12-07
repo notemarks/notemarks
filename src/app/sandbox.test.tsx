@@ -1,14 +1,14 @@
-const module = {}
-export default module
+const module = {};
+export default module;
 
-test('someTest', () => {
+test("someTest", () => {
   // test something here...
-  console.log("debug detail in some test")
+  console.log("debug detail in some test");
   expect(true).toEqual(true);
 });
 
-test('someOtherTest', () => {
+test("someOtherTest", () => {
   // test something here...
-  console.log("debug detail in some other test")
+  console.log("debug detail in some other test");
   expect(true).toEqual(true);
 });

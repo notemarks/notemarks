@@ -1,4 +1,3 @@
-
 /*
 For reference, these were the types used in the old implementation:
 
@@ -43,30 +42,30 @@ export enum EntryKind {
 
 export type Entry = {
   // General fields
-  repoId: string,
-  rawUrl: string,
+  repoId: string;
+  rawUrl: string;
   // Fields derived from filename/path
-  location: string,
-  title: string,
-  entryKind: EntryKind,
+  location: string;
+  title: string;
+  entryKind: EntryKind;
   // From meta data:
-  labels: Label[],
-  timeCreated: Date,
-  timeUpdated: Date,
+  labels: Label[];
+  timeCreated: Date;
+  timeUpdated: Date;
   // From file content (optional):
-  content: string | undefined,
+  content: string | undefined;
   // React specific key to use Entry in lists. Will typically be a composition of
   // repoId + location + title
-  key: string,
+  key: string;
   // Internal index within ordered/unfiltered entries array.
   // Allows for easier/faster lookups compared to using `key`.
-  idx?: number,
-}
+  idx?: number;
+};
 
-export type Entries = Entry[]
+export type Entries = Entry[];
 
 export type LabelCount = {
-  label: Label,
-  count: number,
-}
-export type LabelCounts = LabelCount[]
+  label: Label;
+  count: number;
+};
+export type LabelCounts = LabelCount[];

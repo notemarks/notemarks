@@ -1,2 +1,4 @@
 build/
+public/
 notes/
+tsconfig.json

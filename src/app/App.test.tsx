@@ -1,12 +1,11 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import React from 'react';
+import React from "react";
 
-import { render, act } from '@testing-library/react';
+import { render, act } from "@testing-library/react";
 // TODO: Find out if import from react-dom is any different?
 // import { act } from 'react-dom/test-utils';
 
-
-import App from './App';
+import App from "./App";
 
 // https://davidwcai.medium.com/react-testing-library-and-the-not-wrapped-in-act-errors-491a5629193b
 // https://kentcdodds.com/blog/fix-the-not-wrapped-in-act-warning
@@ -14,15 +13,17 @@ import App from './App';
 
 // https://stackoverflow.com/a/53449595/1804173
 // import './mocks.mock';
-window.matchMedia = window.matchMedia || function() {
-  return {
-    matches: false,
-    addListener: function() {},
-    removeListener: function() {}
+window.matchMedia =
+  window.matchMedia ||
+  function () {
+    return {
+      matches: false,
+      addListener: function () {},
+      removeListener: function () {},
+    };
   };
-};
 
-test('basic app rendering', async () => {
+test("basic app rendering", async () => {
   /*
   await act(async () => {
     render(<App />);

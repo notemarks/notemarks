@@ -1,11 +1,11 @@
-import React from 'react';
+import React from "react";
 
 import showdown from "showdown";
-import DOMPurify from 'dompurify';
+import DOMPurify from "dompurify";
 
-import { Typography, Row, Col } from 'antd';
+import { Typography, Row, Col } from "antd";
 
-import styled from '@emotion/styled'
+import styled from "@emotion/styled";
 
 import { SizeProps } from "./types_view";
 import { Entry } from "./types";
@@ -32,18 +32,17 @@ const { Title } = Typography;
 
 const StyledTitle = styled(Title)`
   margin-top: 20px;
-`
+`;
 
 const Footer = styled.div`
   margin-top: 150px;
   margin-bottom: 150px;
-`
+`;
 
 type NoteViewProps = {
-  sizeProps: SizeProps,
-  entry?: Entry,
-}
-
+  sizeProps: SizeProps;
+  entry?: Entry;
+};
 
 function convertMarkdown(markdown: string): string {
   // https://github.com/showdownjs/showdown#valid-options
@@ -55,7 +54,7 @@ function convertMarkdown(markdown: string): string {
     tables: true,
     tasklists: true,
     openLinksInNewWindow: true,
-  })
+  });
 
   // Apparently 'github' flavor leads to treating every line break as a visible
   // line break in the output, which is not necessarily desired if line breaks
@@ -66,44 +65,38 @@ function convertMarkdown(markdown: string): string {
   let htmlRaw = converter.makeHtml(markdown);
   let htmlSanitized = DOMPurify.sanitize(htmlRaw, {
     // To allow opening links in new window: https://github.com/cure53/DOMPurify/issues/317
-    ADD_ATTR: ['target']
+    ADD_ATTR: ["target"],
   });
 
   return htmlSanitized;
 }
 
 function NoteView({ sizeProps, entry }: NoteViewProps) {
-
   const renderFallback = () => {
-    return (
-      <div>
-        Nothing
-      </div>
-    )
-  }
+    return <div>Nothing</div>;
+  };
 
   const renderEntry = (entry: Entry) => {
     return (
       <>
         <StyledTitle>{entry.title}</StyledTitle>
-        <div dangerouslySetInnerHTML={{
-          __html: convertMarkdown(entry.content || "")
-        }}/>
-        <Footer/>
+        <div
+          dangerouslySetInnerHTML={{
+            __html: convertMarkdown(entry.content || ""),
+          }}
+        />
+        <Footer />
       </>
     );
-  }
+  };
 
   return (
-    <Row justify="center" style={{height: "100%"}}>
-      <Col {...sizeProps.l}/>
-      <Col {...sizeProps.c}>
-        {entry != null ? renderEntry(entry) : renderFallback()}
-      </Col>
-      <Col {...sizeProps.r}/>
+    <Row justify="center" style={{ height: "100%" }}>
+      <Col {...sizeProps.l} />
+      <Col {...sizeProps.c}>{entry != null ? renderEntry(entry) : renderFallback()}</Col>
+      <Col {...sizeProps.r} />
     </Row>
   );
 }
-
 
 export default NoteView;

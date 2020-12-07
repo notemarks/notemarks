@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 
-import { Table, Tag, Input, Row, Col, Tree } from 'antd';
-import { EditOutlined, GlobalOutlined, LinkOutlined } from '@ant-design/icons';
+import { Table, Tag, Input, Row, Col, Tree } from "antd";
+import { EditOutlined, GlobalOutlined, LinkOutlined } from "@ant-design/icons";
 
-import styled from '@emotion/styled'
+import styled from "@emotion/styled";
 
 import { SizeProps } from "./types_view";
 import { Entry, Entries, EntryKind, Label, LabelCounts } from "./types";
@@ -33,12 +33,12 @@ https://stackoverflow.com/questions/48494045/how-to-add-dynamic-link-to-table-da
 const StyledInput = styled(Input)`
   margin-top: 20px;
   margin-bottom: 20px;
-`
+`;
 
 const Footer = styled.div`
   margin-top: 150px;
   margin-bottom: 150px;
-`
+`;
 
 /*
 const StyledTable = styled(Table)`
@@ -107,15 +107,14 @@ const columns: any[] = [
 // ----------------------------------------------------------------------------
 
 type NotesProps = {
-  sizeProps: SizeProps,
-  repos: Repos,
-  entries: Entries,
-  labels: LabelCounts,
-  onEnterEntry: (i: number) => void,
-}
+  sizeProps: SizeProps;
+  repos: Repos;
+  entries: Entries;
+  labels: LabelCounts;
+  onEnterEntry: (i: number) => void;
+};
 
 function Notes({ sizeProps, repos, entries, labels, onEnterEntry }: NotesProps) {
-
   // *** Entry filtering
 
   const [filteredEntries, setFilteredEntries] = useState(entries);
@@ -137,7 +136,7 @@ function Notes({ sizeProps, repos, entries, labels, onEnterEntry }: NotesProps) 
       }
     }
     setFilteredEntries(newFilteredEntries);
-  }, [entries, searchTerms])
+  }, [entries, searchTerms]);
 
   const onChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     // TODO: Improve performance
@@ -145,26 +144,26 @@ function Notes({ sizeProps, repos, entries, labels, onEnterEntry }: NotesProps) 
     // https://stackoverflow.com/a/28046731/1804173
     window.requestAnimationFrame(() => {
       setSearchTerms([event.target.value]);
-    })
-  }
+    });
+  };
 
   useEffect(() => {
     if (entries.length > 0) {
-      setSelectedIndex(0)
+      setSelectedIndex(0);
     } else {
-      setSelectedIndex(-1)
+      setSelectedIndex(-1);
     }
-  }, [entries, searchTerms])
+  }, [entries, searchTerms]);
 
   function onKeydown(event: React.KeyboardEvent<HTMLInputElement>) {
     switch (event.key) {
       case "ArrowUp":
-        event.preventDefault()
-        setSelectedIndex(fn.computeSelectedIndex(filteredEntries.length, selectedIndex, -1))
+        event.preventDefault();
+        setSelectedIndex(fn.computeSelectedIndex(filteredEntries.length, selectedIndex, -1));
         break;
       case "ArrowDown":
-        event.preventDefault()
-        setSelectedIndex(fn.computeSelectedIndex(filteredEntries.length, selectedIndex, +1))
+        event.preventDefault();
+        setSelectedIndex(fn.computeSelectedIndex(filteredEntries.length, selectedIndex, +1));
         break;
       case "Escape":
         /*
@@ -178,7 +177,7 @@ function Notes({ sizeProps, repos, entries, labels, onEnterEntry }: NotesProps) 
         break;
       case "Enter":
         if (selectedIndex !== -1) {
-          onEnterEntry(filteredEntries[selectedIndex].idx!)
+          onEnterEntry(filteredEntries[selectedIndex].idx!);
         }
         /*
         if (state.selectedIndex != -1) {
@@ -191,49 +190,37 @@ function Notes({ sizeProps, repos, entries, labels, onEnterEntry }: NotesProps) 
 
   // *** Label tree data
 
-  const treeData = labels.map(labelCount => {
+  const treeData = labels.map((labelCount) => {
     return {
       title: labelCount.label + " (" + labelCount.count + ")",
       key: labelCount.label,
-    }
-  })
+    };
+  });
 
   return (
     <>
       <Row justify="center">
-        <Col {...sizeProps.l}/>
+        <Col {...sizeProps.l} />
         <Col {...sizeProps.c}>
-          <StyledInput onChange={onChange} onKeyDown={onKeydown} autoFocus/>
+          <StyledInput onChange={onChange} onKeyDown={onKeydown} autoFocus />
         </Col>
-        <Col {...sizeProps.r}/>
+        <Col {...sizeProps.r} />
       </Row>
-      <Row justify="center" style={{height: "100%"}}>
-        <Col {...sizeProps.l} style={{paddingLeft: 20}}>
+      <Row justify="center" style={{ height: "100%" }}>
+        <Col {...sizeProps.l} style={{ paddingLeft: 20 }}>
           <Tree
             treeData={treeData}
             selectable={false}
-            titleRender={data => (
-                <Tag >
-                  {data.title}
-                </Tag>
-              )
-            }
+            titleRender={(data) => <Tag>{data.title}</Tag>}
           />
-          {
-            labels.map(label =>
-              <div key={label.label}>
-                <Tag >
-                  {label.label}
-                </Tag>
-              </div>
-            )
-          }
+          {labels.map((label) => (
+            <div key={label.label}>
+              <Tag>{label.label}</Tag>
+            </div>
+          ))}
         </Col>
-        <Col {...sizeProps.c} style={{height: "100%"}}>
-          <CustomTable
-            entries={filteredEntries}
-            highlighted={selectedIndex}
-          />
+        <Col {...sizeProps.c} style={{ height: "100%" }}>
+          <CustomTable entries={filteredEntries} highlighted={selectedIndex} />
           {/*
           <StyledTable
             bordered
@@ -257,9 +244,9 @@ function Notes({ sizeProps, repos, entries, labels, onEnterEntry }: NotesProps) 
             }}
           />
           */}
-          <Footer/>
+          <Footer />
         </Col>
-        <Col {...sizeProps.r}/>
+        <Col {...sizeProps.r} />
       </Row>
     </>
   );
@@ -273,7 +260,7 @@ const PseudoTable = styled.div`
   font-size: 11px;
 
   .highlight-row {
-    background: #E8F6FE;  /* Antd's select color used e.g. in AutoComplete */
+    background: #e8f6fe; /* Antd's select color used e.g. in AutoComplete */
     border: 1px solid #b0e0fc;
     border-radius: 3px;
 
@@ -283,14 +270,14 @@ const PseudoTable = styled.div`
     margin-left: -1px;
     margin-right: -1px;
   }
-`
+`;
 
 const PseudoTableRow = styled.div`
   padding-top: 4px;
   padding-bottom: 4px;
   display: flex;
   vertical-align: baseline;
-`
+`;
 
 const TitleWrapper = styled.div`
   flex-grow: 1;
@@ -301,66 +288,56 @@ const TitleWrapper = styled.div`
   line-height: 22px;
   vertical-align: bottom;
   padding-left: 8px;
-`
+`;
 
 const SymbolWrapper = styled.span`
   padding-left: 8px;
   padding-right: 8px;
   height: 22px;
   line-height: 22px;
-`
+`;
 
 const LabelsWrapper = styled.span`
   vertical-align: baseline;
   flex: 0 0 50%;
-`
-
+`;
 
 type CustomTableProps = {
-  entries: Entries,
-  highlighted: number,
-}
+  entries: Entries;
+  highlighted: number;
+};
 
 function renderEntryKindSymbol(entryKind: EntryKind) {
   switch (entryKind) {
     case EntryKind.Link:
-      return <GlobalOutlined style={{fontSize: 14}}/>
+      return <GlobalOutlined style={{ fontSize: 14 }} />;
     case EntryKind.NoteMarkdown:
-      return <EditOutlined style={{fontSize: 14}}/>
+      return <EditOutlined style={{ fontSize: 14 }} />;
     case EntryKind.Document:
-      return <LinkOutlined style={{fontSize: 14}}/>
+      return <LinkOutlined style={{ fontSize: 14 }} />;
   }
 }
 
 function renderLabels(labels: Label[]) {
-  return (
-    labels.map((label, i) => (
-      <Tag key={label} color="green">{label}</Tag>
-    ))
-  )
+  return labels.map((label, i) => (
+    <Tag key={label} color="green">
+      {label}
+    </Tag>
+  ));
 }
 
 function CustomTable({ entries, highlighted }: CustomTableProps) {
-
   return (
     <PseudoTable>
-      {
-        entries.map((entry, i) => (
-          <PseudoTableRow key={entry.key} className={i === highlighted ? "highlight-row" : ""}>
-            <TitleWrapper>
-              {entry.title}
-            </TitleWrapper>
-            <SymbolWrapper>
-              {renderEntryKindSymbol(entry.entryKind)}
-            </SymbolWrapper>
-            <LabelsWrapper>
-              {renderLabels(entry.labels)}
-            </LabelsWrapper>
-          </PseudoTableRow>
-        ))
-      }
+      {entries.map((entry, i) => (
+        <PseudoTableRow key={entry.key} className={i === highlighted ? "highlight-row" : ""}>
+          <TitleWrapper>{entry.title}</TitleWrapper>
+          <SymbolWrapper>{renderEntryKindSymbol(entry.entryKind)}</SymbolWrapper>
+          <LabelsWrapper>{renderLabels(entry.labels)}</LabelsWrapper>
+        </PseudoTableRow>
+      ))}
     </PseudoTable>
-  )
+  );
 }
 
 export default Notes;
