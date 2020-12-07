@@ -7,6 +7,7 @@ import styled from '@emotion/styled'
 
 import { SizeProps } from "./types_view";
 import { Entry, Entries, EntryKind, Label, LabelCounts } from "./types";
+import * as fn from "./fn_utils";
 import { Repos } from "./repo";
 
 /*
@@ -39,6 +40,7 @@ const Footer = styled.div`
   margin-bottom: 150px;
 `
 
+/*
 const StyledTable = styled(Table)`
 table {
   font-size: 11px;
@@ -98,6 +100,7 @@ const columns: any[] = [
     )
   },
 ]
+*/
 
 // ----------------------------------------------------------------------------
 // Notes
@@ -116,6 +119,7 @@ function Notes({ sizeProps, repos, entries, labels, onEnterEntry }: NotesProps) 
   // *** Entry filtering
 
   const [filteredEntries, setFilteredEntries] = useState(entries);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
   const [searchTerms, setSearchTerms] = useState<string[]>([]);
 
   useEffect(() => {
@@ -144,6 +148,47 @@ function Notes({ sizeProps, repos, entries, labels, onEnterEntry }: NotesProps) 
     })
   }
 
+  useEffect(() => {
+    if (entries.length > 0) {
+      setSelectedIndex(0)
+    } else {
+      setSelectedIndex(-1)
+    }
+  }, [entries, searchTerms])
+
+  function onKeydown(event: React.KeyboardEvent<HTMLInputElement>) {
+    switch (event.key) {
+      case "ArrowUp":
+        event.preventDefault()
+        setSelectedIndex(fn.computeSelectedIndex(filteredEntries.length, selectedIndex, -1))
+        break;
+      case "ArrowDown":
+        event.preventDefault()
+        setSelectedIndex(fn.computeSelectedIndex(filteredEntries.length, selectedIndex, +1))
+        break;
+      case "Escape":
+        /*
+        setState({
+          active: false,
+          selectedIndex: -1,
+          value: "",
+        })
+        */
+        //refInput.blur()
+        break;
+      case "Enter":
+        if (selectedIndex !== -1) {
+          onEnterEntry(filteredEntries[selectedIndex].idx!)
+        }
+        /*
+        if (state.selectedIndex != -1) {
+          selectIndex(state.selectedIndex);
+        }
+        */
+        break;
+    }
+  }
+
   // *** Label tree data
 
   const treeData = labels.map(labelCount => {
@@ -158,7 +203,7 @@ function Notes({ sizeProps, repos, entries, labels, onEnterEntry }: NotesProps) 
       <Row justify="center">
         <Col {...sizeProps.l}/>
         <Col {...sizeProps.c}>
-          <StyledInput onChange={onChange}/>
+          <StyledInput onChange={onChange} onKeyDown={onKeydown} autoFocus/>
         </Col>
         <Col {...sizeProps.r}/>
       </Row>
@@ -187,11 +232,7 @@ function Notes({ sizeProps, repos, entries, labels, onEnterEntry }: NotesProps) 
         <Col {...sizeProps.c} style={{height: "100%"}}>
           <CustomTable
             entries={filteredEntries}
-            highlighted={
-              filteredEntries.length > 0 && filteredEntries[0].idx != null
-                ? filteredEntries[0].idx!
-                : -1
-            }
+            highlighted={selectedIndex}
           />
           {/*
           <StyledTable
@@ -235,6 +276,12 @@ const PseudoTable = styled.div`
     background: #E8F6FE;  /* Antd's select color used e.g. in AutoComplete */
     border: 1px solid #b0e0fc;
     border-radius: 3px;
+
+    /* Since we are using box-sizing: border-box, we need to counter the border with negative margins */
+    margin-top: -1px;
+    margin-bottom: -1px;
+    margin-left: -1px;
+    margin-right: -1px;
   }
 `
 
@@ -298,8 +345,8 @@ function CustomTable({ entries, highlighted }: CustomTableProps) {
   return (
     <PseudoTable>
       {
-        entries.map((entry) => (
-          <PseudoTableRow className={entry.idx === highlighted ? "highlight-row" : ""}>
+        entries.map((entry, i) => (
+          <PseudoTableRow key={entry.key} className={i === highlighted ? "highlight-row" : ""}>
             <TitleWrapper>
               {entry.title}
             </TitleWrapper>
