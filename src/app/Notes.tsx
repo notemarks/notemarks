@@ -6,7 +6,7 @@ import { EditOutlined, GlobalOutlined, LinkOutlined } from '@ant-design/icons';
 import styled from '@emotion/styled'
 
 import { SizeProps } from "./types_view";
-import { Entry, Entries, EntryKind, LabelCounts } from "./types";
+import { Entry, Entries, EntryKind, Label, LabelCounts } from "./types";
 import { Repos } from "./repo";
 
 /*
@@ -185,6 +185,15 @@ function Notes({ sizeProps, repos, entries, labels, onEnterEntry }: NotesProps) 
           }
         </Col>
         <Col {...sizeProps.c} style={{height: "100%"}}>
+          <CustomTable
+            entries={filteredEntries}
+            highlighted={
+              filteredEntries.length > 0 && filteredEntries[0].idx != null
+                ? filteredEntries[0].idx!
+                : -1
+            }
+          />
+          {/*
           <StyledTable
             bordered
             dataSource={filteredEntries}
@@ -198,11 +207,6 @@ function Notes({ sizeProps, repos, entries, labels, onEnterEntry }: NotesProps) 
                   // TODO: Apparently the onRow callback isn't fully typed?
                   // console.log(entry)
                   onEnterEntry((entry as Entry).idx!)
-                  /*
-                  if (entryIndex != null) {
-                    onEnterEntry(entryIndex);
-                  }
-                  */
                 },
                 // onDoubleClick: event => {}, // double click row
                 // onContextMenu: event => {}, // right button click row
@@ -211,6 +215,7 @@ function Notes({ sizeProps, repos, entries, labels, onEnterEntry }: NotesProps) 
               };
             }}
           />
+          */}
           <Footer/>
         </Col>
         <Col {...sizeProps.r}/>
@@ -219,5 +224,96 @@ function Notes({ sizeProps, repos, entries, labels, onEnterEntry }: NotesProps) 
   );
 }
 
+// ----------------------------------------------------------------------------
+// Custom table
+// ----------------------------------------------------------------------------
+
+const PseudoTable = styled.div`
+  font-size: 11px;
+
+  .highlight-row {
+    background: #E8F6FE;  /* Antd's select color used e.g. in AutoComplete */
+    border: 1px solid #b0e0fc;
+    border-radius: 3px;
+  }
+`
+
+const PseudoTableRow = styled.div`
+  padding-top: 4px;
+  padding-bottom: 4px;
+  display: flex;
+  vertical-align: baseline;
+`
+
+const TitleWrapper = styled.div`
+  flex-grow: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  height: 22px;
+  line-height: 22px;
+  vertical-align: bottom;
+  padding-left: 8px;
+`
+
+const SymbolWrapper = styled.span`
+  padding-left: 8px;
+  padding-right: 8px;
+  height: 22px;
+  line-height: 22px;
+`
+
+const LabelsWrapper = styled.span`
+  vertical-align: baseline;
+  flex: 0 0 50%;
+`
+
+
+type CustomTableProps = {
+  entries: Entries,
+  highlighted: number,
+}
+
+function renderEntryKindSymbol(entryKind: EntryKind) {
+  switch (entryKind) {
+    case EntryKind.Link:
+      return <GlobalOutlined style={{fontSize: 14}}/>
+    case EntryKind.NoteMarkdown:
+      return <EditOutlined style={{fontSize: 14}}/>
+    case EntryKind.Document:
+      return <LinkOutlined style={{fontSize: 14}}/>
+  }
+}
+
+function renderLabels(labels: Label[]) {
+  return (
+    labels.map((label, i) => (
+      <Tag key={label} color="green">{label}</Tag>
+    ))
+  )
+}
+
+function CustomTable({ entries, highlighted }: CustomTableProps) {
+
+  return (
+    <PseudoTable>
+      {
+        entries.map((entry) => (
+          <PseudoTableRow className={entry.idx === highlighted ? "highlight-row" : ""}>
+            <TitleWrapper>
+              {entry.title}
+            </TitleWrapper>
+            <SymbolWrapper>
+              {renderEntryKindSymbol(entry.entryKind)}
+            </SymbolWrapper>
+            <LabelsWrapper>
+              {renderLabels(entry.labels)}
+            </LabelsWrapper>
+          </PseudoTableRow>
+        ))
+      }
+    </PseudoTable>
+  )
+}
 
 export default Notes;
