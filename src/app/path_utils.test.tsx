@@ -14,6 +14,7 @@ test("filenameToTitle", () => {
   expect(filenameToTitle("my_title.md")).toEqual("my_title");
   expect(filenameToTitle("my_title....md")).toEqual("my_title...");
 
+  // Encoding of /
   expect(filenameToTitle("foo\u29F8bar")).toEqual("foo/bar");
   expect(filenameToTitle("foo\u29F8bar\u29F8baz")).toEqual("foo/bar/baz");
   expect(filenameToTitle("foo\u29F8")).toEqual("foo/");
@@ -43,6 +44,7 @@ test("titleToFilename", () => {
   expect(titleToFilename("my_title", "md")).toEqual("my_title.md");
   expect(titleToFilename("my_title...", "md")).toEqual("my_title....md");
 
+  // Encoding of /
   expect(titleToFilename("foo/bar")).toEqual("foo\u29F8bar");
   expect(titleToFilename("foo/bar/baz")).toEqual("foo\u29F8bar\u29F8baz");
   expect(titleToFilename("foo/")).toEqual("foo\u29F8");

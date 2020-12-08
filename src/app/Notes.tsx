@@ -1,14 +1,21 @@
 import React, { useEffect, useState } from "react";
 
-import { Table, Tag, Input, Row, Col, Tree } from "antd";
+import { Tag, Input, Row, Col, Tree } from "antd";
 import { EditOutlined, GlobalOutlined, LinkOutlined } from "@ant-design/icons";
 
 import styled from "@emotion/styled";
 
 import { SizeProps } from "./types_view";
-import { Entry, Entries, EntryKind, Label, LabelCounts } from "./types";
+import { Entries, EntryKind, Label, LabelCounts } from "./types";
 import * as fn from "./fn_utils";
 import { Repos } from "./repo";
+
+export function splitSearchTerms(s: string): string[] {
+  return s
+    .split(/(\s+)/)
+    .map((term) => term.trim())
+    .filter((term) => term.length > 0);
+}
 
 /*
 // ----------------------------------------------------------------------------
@@ -143,7 +150,8 @@ function Notes({ sizeProps, repos, entries, labels, onEnterEntry }: NotesProps) 
     // https://stackoverflow.com/a/50820219/1804173
     // https://stackoverflow.com/a/28046731/1804173
     window.requestAnimationFrame(() => {
-      setSearchTerms([event.target.value]);
+      console.log(splitSearchTerms(event.target.value));
+      setSearchTerms(splitSearchTerms(event.target.value));
     });
   };
 
