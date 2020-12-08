@@ -13,7 +13,7 @@ import { Repos } from "./repo";
 export function splitSearchTerms(s: string): string[] {
   return s
     .split(/(\s+)/)
-    .map((term) => term.trim())
+    .map((term) => term.trim().toLowerCase())
     .filter((term) => term.length > 0);
 }
 
@@ -134,11 +134,17 @@ function Notes({ sizeProps, repos, entries, labels, onEnterEntry }: NotesProps) 
       if (searchTerms.length === 0) {
         newFilteredEntries.push(entry);
       } else {
-        // Currently we match on any search term -- later could be ranked by match quality?
+        // Currently we require all terms to match. Is there a use case for an `OR` mode?
+        let matchesAll = true;
         for (let searchTerm of searchTerms) {
-          if (entry.title.toLowerCase().includes(searchTerm.toLowerCase())) {
-            newFilteredEntries.push(entry);
+          // Note: search terms are normalized, i.e. don't need toLowerCase().
+          // Possible performance optimization: Cache entry.title.toLowerCase()?
+          if (!entry.title.toLowerCase().includes(searchTerm)) {
+            matchesAll = false;
           }
+        }
+        if (matchesAll) {
+          newFilteredEntries.push(entry);
         }
       }
     }
@@ -150,7 +156,6 @@ function Notes({ sizeProps, repos, entries, labels, onEnterEntry }: NotesProps) 
     // https://stackoverflow.com/a/50820219/1804173
     // https://stackoverflow.com/a/28046731/1804173
     window.requestAnimationFrame(() => {
-      console.log(splitSearchTerms(event.target.value));
       setSearchTerms(splitSearchTerms(event.target.value));
     });
   };
