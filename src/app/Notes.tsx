@@ -8,6 +8,7 @@ import styled from "@emotion/styled";
 import { SizeProps } from "./types_view";
 import { Entries, EntryKind, Label, LabelCounts } from "./types";
 import * as fn from "./fn_utils";
+import { MutableRef } from "./react_utils";
 import { Repos } from "./repo";
 
 export function splitSearchTerms(s: string): string[] {
@@ -121,120 +122,134 @@ type NotesProps = {
   onEnterEntry: (i: number) => void;
 };
 
-function Notes({ sizeProps, repos, entries, labels, onEnterEntry }: NotesProps) {
-  // *** Entry filtering
+const Notes = React.forwardRef(
+  (
+    { sizeProps, repos, entries, labels, onEnterEntry }: NotesProps,
+    ref: MutableRef<HTMLInputElement>
+  ) => {
+    // *** Entry filtering
 
-  const [filteredEntries, setFilteredEntries] = useState(entries);
-  const [selectedIndex, setSelectedIndex] = useState(-1);
-  const [searchTerms, setSearchTerms] = useState<string[]>([]);
+    const [filteredEntries, setFilteredEntries] = useState(entries);
+    const [selectedIndex, setSelectedIndex] = useState(-1);
+    const [searchTerms, setSearchTerms] = useState<string[]>([]);
 
-  useEffect(() => {
-    let newFilteredEntries = [];
-    for (let entry of entries) {
-      if (searchTerms.length === 0) {
-        newFilteredEntries.push(entry);
-      } else {
-        // Currently we require all terms to match. Is there a use case for an `OR` mode?
-        let matchesAll = true;
-        for (let searchTerm of searchTerms) {
-          // Note: search terms are normalized, i.e. don't need toLowerCase().
-          // Possible performance optimization: Cache entry.title.toLowerCase()?
-          if (!entry.title.toLowerCase().includes(searchTerm)) {
-            matchesAll = false;
+    useEffect(() => {
+      let newFilteredEntries = [];
+      for (let entry of entries) {
+        if (searchTerms.length === 0) {
+          newFilteredEntries.push(entry);
+        } else {
+          // Currently we require all terms to match. Is there a use case for an `OR` mode?
+          let matchesAll = true;
+          for (let searchTerm of searchTerms) {
+            // Note: search terms are normalized, i.e. don't need toLowerCase().
+            // Possible performance optimization: Cache entry.title.toLowerCase()?
+            if (!entry.title.toLowerCase().includes(searchTerm)) {
+              matchesAll = false;
+            }
+          }
+          if (matchesAll) {
+            newFilteredEntries.push(entry);
           }
         }
-        if (matchesAll) {
-          newFilteredEntries.push(entry);
-        }
+      }
+      setFilteredEntries(newFilteredEntries);
+    }, [entries, searchTerms]);
+
+    const onChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+      // TODO: Improve performance
+      // https://stackoverflow.com/a/50820219/1804173
+      // https://stackoverflow.com/a/28046731/1804173
+      window.requestAnimationFrame(() => {
+        setSearchTerms(splitSearchTerms(event.target.value));
+      });
+    };
+
+    useEffect(() => {
+      if (entries.length > 0) {
+        setSelectedIndex(0);
+      } else {
+        setSelectedIndex(-1);
+      }
+    }, [entries, searchTerms]);
+
+    function onKeydown(event: React.KeyboardEvent<HTMLInputElement>) {
+      switch (event.key) {
+        case "ArrowUp":
+          event.preventDefault();
+          setSelectedIndex(fn.computeSelectedIndex(filteredEntries.length, selectedIndex, -1));
+          break;
+        case "ArrowDown":
+          event.preventDefault();
+          setSelectedIndex(fn.computeSelectedIndex(filteredEntries.length, selectedIndex, +1));
+          break;
+        case "Escape":
+          /*
+          setState({
+            active: false,
+            selectedIndex: -1,
+            value: "",
+          })
+          */
+          //refInput.blur()
+          break;
+        case "Enter":
+          if (selectedIndex !== -1) {
+            onEnterEntry(filteredEntries[selectedIndex].idx!);
+          }
+          break;
       }
     }
-    setFilteredEntries(newFilteredEntries);
-  }, [entries, searchTerms]);
 
-  const onChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    // TODO: Improve performance
-    // https://stackoverflow.com/a/50820219/1804173
-    // https://stackoverflow.com/a/28046731/1804173
-    window.requestAnimationFrame(() => {
-      setSearchTerms(splitSearchTerms(event.target.value));
+    // *** Label tree data
+
+    const treeData = labels.map((labelCount) => {
+      return {
+        title: labelCount.label + " (" + labelCount.count + ")",
+        key: labelCount.label,
+      };
     });
-  };
 
-  useEffect(() => {
-    if (entries.length > 0) {
-      setSelectedIndex(0);
-    } else {
-      setSelectedIndex(-1);
-    }
-  }, [entries, searchTerms]);
-
-  function onKeydown(event: React.KeyboardEvent<HTMLInputElement>) {
-    switch (event.key) {
-      case "ArrowUp":
-        event.preventDefault();
-        setSelectedIndex(fn.computeSelectedIndex(filteredEntries.length, selectedIndex, -1));
-        break;
-      case "ArrowDown":
-        event.preventDefault();
-        setSelectedIndex(fn.computeSelectedIndex(filteredEntries.length, selectedIndex, +1));
-        break;
-      case "Escape":
-        /*
-        setState({
-          active: false,
-          selectedIndex: -1,
-          value: "",
-        })
-        */
-        //refInput.blur()
-        break;
-      case "Enter":
-        if (selectedIndex !== -1) {
-          onEnterEntry(filteredEntries[selectedIndex].idx!);
-        }
-        /*
-        if (state.selectedIndex != -1) {
-          selectIndex(state.selectedIndex);
-        }
-        */
-        break;
-    }
-  }
-
-  // *** Label tree data
-
-  const treeData = labels.map((labelCount) => {
-    return {
-      title: labelCount.label + " (" + labelCount.count + ")",
-      key: labelCount.label,
-    };
-  });
-
-  return (
-    <>
-      <Row justify="center">
-        <Col {...sizeProps.l} />
-        <Col {...sizeProps.c}>
-          <StyledInput onChange={onChange} onKeyDown={onKeydown} autoFocus />
-        </Col>
-        <Col {...sizeProps.r} />
-      </Row>
-      <Row justify="center" style={{ height: "100%" }}>
-        <Col {...sizeProps.l} style={{ paddingLeft: 20 }}>
-          <Tree
-            treeData={treeData}
-            selectable={false}
-            titleRender={(data) => <Tag>{data.title}</Tag>}
-          />
-          {labels.map((label) => (
-            <div key={label.label}>
-              <Tag>{label.label}</Tag>
-            </div>
-          ))}
-        </Col>
-        <Col {...sizeProps.c} style={{ height: "100%" }}>
-          <CustomTable entries={filteredEntries} highlighted={selectedIndex} />
-          {/*
+    return (
+      <>
+        <Row justify="center">
+          <Col {...sizeProps.l} />
+          <Col {...sizeProps.c}>
+            <StyledInput
+              ref={(antdInputRef) => {
+                // Since we don't want to expose the ref as an Antd Input, but rather HTMLInputElement
+                // we need this callback to unwrap the underlying DOM element.
+                if (ref != null) {
+                  if (typeof ref === "function") {
+                    ref(fn.mapUndefinedToNull(antdInputRef?.input));
+                  } else {
+                    ref.current = fn.mapUndefinedToNull(antdInputRef?.input);
+                  }
+                }
+              }}
+              onChange={onChange}
+              onKeyDown={onKeydown}
+              autoFocus
+            />
+          </Col>
+          <Col {...sizeProps.r} />
+        </Row>
+        <Row justify="center" style={{ height: "100%" }}>
+          <Col {...sizeProps.l} style={{ paddingLeft: 20 }}>
+            <Tree
+              treeData={treeData}
+              selectable={false}
+              titleRender={(data) => <Tag>{data.title}</Tag>}
+            />
+            {labels.map((label) => (
+              <div key={label.label}>
+                <Tag>{label.label}</Tag>
+              </div>
+            ))}
+          </Col>
+          <Col {...sizeProps.c} style={{ height: "100%" }}>
+            <CustomTable entries={filteredEntries} highlighted={selectedIndex} />
+            {/*
           <StyledTable
             bordered
             dataSource={filteredEntries}
@@ -257,13 +272,14 @@ function Notes({ sizeProps, repos, entries, labels, onEnterEntry }: NotesProps) 
             }}
           />
           */}
-          <Footer />
-        </Col>
-        <Col {...sizeProps.r} />
-      </Row>
-    </>
-  );
-}
+            <Footer />
+          </Col>
+          <Col {...sizeProps.r} />
+        </Row>
+      </>
+    );
+  }
+);
 
 // ----------------------------------------------------------------------------
 // Custom table

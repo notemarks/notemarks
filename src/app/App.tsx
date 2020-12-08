@@ -81,18 +81,17 @@ const noteEditorPositions: { [index: string]: EditorPosition } = {};
 // keyboard hander callbacks (no repeated calls to moustrap.bind).
 const keyboardHandlers = {
   handleSwitchEdit: () => {},
+  handleSearch: () => {},
 };
 
 mousetrap.bind(["command+e", "ctrl+e"], () => {
   keyboardHandlers.handleSwitchEdit();
+  return false;
 });
-/*
 mousetrap.bind(["command+p", "ctrl+p"], () => {
-  if (searchInputRef != undefined) {
-    searchInputRef!.focus()
-  }
-})
-*/
+  keyboardHandlers.handleSearch();
+  return false;
+});
 
 function App() {
   // *** Core state
@@ -150,6 +149,7 @@ function App() {
   // *** Refs
 
   let editorRef = useRef<NoteEditorRef>(null);
+  let searchInputRef = useRef<HTMLInputElement>(null);
 
   // *** State change helper functions
 
@@ -220,6 +220,13 @@ function App() {
       }
     }
   };
+  keyboardHandlers.handleSearch = () => {
+    if (page !== Page.Main) {
+      setPage(Page.Main);
+    } else if (searchInputRef.current != null) {
+      searchInputRef.current.focus();
+    }
+  };
 
   // *** Layout effects
 
@@ -264,6 +271,7 @@ function App() {
       case Page.Main:
         return (
           <Notes
+            ref={searchInputRef}
             sizeProps={sizeProps}
             repos={activeRepos}
             entries={entries}
@@ -299,6 +307,7 @@ function App() {
           <Menu
             theme="dark"
             mode="horizontal"
+            selectedKeys={[page]}
             defaultSelectedKeys={[page]}
             onClick={(evt) => setPage(evt.key as Page)}
           >
