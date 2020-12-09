@@ -9,6 +9,8 @@ import * as monacoEditor from "monaco-editor/esm/vs/editor/editor.api";
 import styled from "@emotion/styled";
 
 import { SizeProps } from "./types_view";
+import { NoEntrySelected } from "./HelperComponents";
+
 import { Entry } from "./types";
 import * as fn from "./fn_utils";
 
@@ -107,10 +109,6 @@ const NoteEditor = forwardRef(
       },
     }));
 
-    const renderFallback = () => {
-      return <div>Nothing</div>;
-    };
-
     const renderEntry = (entry: Entry) => {
       return (
         <DebugBox>
@@ -128,7 +126,7 @@ const NoteEditor = forwardRef(
     return (
       <Row justify="center" style={{ height: "100%" }}>
         <Col {...sizeProps.l} />
-        <Col {...sizeProps.c}>{entry != null ? renderEntry(entry) : renderFallback()}</Col>
+        <Col {...sizeProps.c}>{entry != null ? renderEntry(entry) : <NoEntrySelected />}</Col>
         <Col {...sizeProps.r} />
       </Row>
     );

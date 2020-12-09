@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useLayoutEffect } from "react";
 import "./App.css";
 
 import { Row, Col, Layout, Menu } from "antd";
-import { EditOutlined, SettingOutlined } from "@ant-design/icons";
+import { EditOutlined, SettingOutlined, FileSearchOutlined, ReadOutlined } from "@ant-design/icons";
 
 import styled from "@emotion/styled";
 
@@ -311,12 +311,10 @@ function App() {
             defaultSelectedKeys={[page]}
             onClick={(evt) => setPage(evt.key as Page)}
           >
-            <Menu.Item key={Page.Main} icon={<EditOutlined />}>
-              Notes
-            </Menu.Item>
-            <Menu.Item key={Page.Settings} icon={<SettingOutlined />}>
-              Settings
-            </Menu.Item>
+            <Menu.Item key={Page.Main} icon={<FileSearchOutlined style={{ fontSize: 16 }} />} />
+            <Menu.Item key={Page.NoteView} icon={<ReadOutlined style={{ fontSize: 16 }} />} />
+            <Menu.Item key={Page.NoteEditor} icon={<EditOutlined style={{ fontSize: 16 }} />} />
+            <Menu.Item key={Page.Settings} icon={<SettingOutlined style={{ fontSize: 16 }} />} />
           </Menu>
         </Col>
       </Row>

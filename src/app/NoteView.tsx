@@ -8,6 +8,8 @@ import { Typography, Row, Col } from "antd";
 import styled from "@emotion/styled";
 
 import { SizeProps } from "./types_view";
+import { NoEntrySelected } from "./HelperComponents";
+
 import { Entry } from "./types";
 
 /*
@@ -72,10 +74,6 @@ function convertMarkdown(markdown: string): string {
 }
 
 function NoteView({ sizeProps, entry }: NoteViewProps) {
-  const renderFallback = () => {
-    return <div>Nothing</div>;
-  };
-
   const renderEntry = (entry: Entry) => {
     return (
       <>
@@ -93,7 +91,7 @@ function NoteView({ sizeProps, entry }: NoteViewProps) {
   return (
     <Row justify="center" style={{ height: "100%" }}>
       <Col {...sizeProps.l} />
-      <Col {...sizeProps.c}>{entry != null ? renderEntry(entry) : renderFallback()}</Col>
+      <Col {...sizeProps.c}>{entry != null ? renderEntry(entry) : <NoEntrySelected />}</Col>
       <Col {...sizeProps.r} />
     </Row>
   );
