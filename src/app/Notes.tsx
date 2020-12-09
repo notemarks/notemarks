@@ -297,7 +297,11 @@ const Notes = React.forwardRef(
             <LabelTree labels={labels} />
           </Col>
           <Col {...sizeProps.c} style={{ height: "100%" }}>
-            <CustomTable entries={filteredEntries} highlighted={selectedIndex} />
+            <CustomTable
+              entries={filteredEntries}
+              highlighted={selectedIndex}
+              onEnterEntry={onEnterEntry}
+            />
             {/*
             <StyledTable
               bordered
@@ -337,6 +341,7 @@ const Notes = React.forwardRef(
 
 const PseudoTable = styled.div`
   font-size: 11px;
+  cursor: pointer;
 
   .highlight-row {
     background: #e8f6fe; /* Antd's select color used e.g. in AutoComplete */
@@ -384,6 +389,7 @@ const LabelsWrapper = styled.span`
 type CustomTableProps = {
   entries: Entries;
   highlighted: number;
+  onEnterEntry: (i: number) => void;
 };
 
 function renderEntryKindSymbol(entryKind: EntryKind) {
@@ -405,11 +411,17 @@ function renderLabels(labels: Label[]) {
   ));
 }
 
-const CustomTable = React.memo(({ entries, highlighted }: CustomTableProps) => {
+const CustomTable = React.memo(({ entries, highlighted, onEnterEntry }: CustomTableProps) => {
   return (
     <PseudoTable>
       {entries.map((entry, i) => (
-        <PseudoTableRow key={entry.key} className={i === highlighted ? "highlight-row" : ""}>
+        <PseudoTableRow
+          key={entry.key}
+          className={i === highlighted ? "highlight-row" : ""}
+          onClick={(event) => {
+            onEnterEntry(entry.idx!);
+          }}
+        >
           <TitleWrapper>{entry.title}</TitleWrapper>
           <SymbolWrapper>{renderEntryKindSymbol(entry.entryKind)}</SymbolWrapper>
           <LabelsWrapper>{renderLabels(entry.labels)}</LabelsWrapper>
