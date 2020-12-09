@@ -3,7 +3,13 @@ import { useState, useEffect, useRef, useLayoutEffect } from "react";
 import "./App.css";
 
 import { Row, Col, Layout, Menu } from "antd";
-import { EditOutlined, SettingOutlined, FileSearchOutlined, ReadOutlined } from "@ant-design/icons";
+import {
+  EditOutlined,
+  SettingOutlined,
+  FileSearchOutlined,
+  ReadOutlined,
+  UploadOutlined,
+} from "@ant-design/icons";
 
 import styled from "@emotion/styled";
 
@@ -13,7 +19,7 @@ import * as mousetrap from "mousetrap";
 import { Entry, Entries, LabelCounts } from "./types";
 import * as entry_utils from "./entry_utils";
 import * as repo_utils from "./repo";
-import { loadEntries } from "./octokit";
+import { loadEntries, GitOp } from "./octokit";
 
 import Settings from "./Settings";
 import Notes from "./Notes";
@@ -66,6 +72,7 @@ enum Page {
   Settings = "Settings",
   NoteView = "NoteView",
   NoteEditor = "NoteEditor",
+  Commit = "Commit",
 }
 
 type EditorPosition = {
@@ -127,6 +134,8 @@ function App() {
   let [entries, setEntries] = useState([] as Entries);
   let [labels, setLabels] = useState([] as LabelCounts);
 
+  let [stagedGitOps, setStagedGitOps] = useState([] as GitOp[]);
+
   useEffect(() => {
     async function loadContents() {
       let newEntries = await loadEntries(repos);
@@ -156,12 +165,23 @@ function App() {
   const updateEntryContent = () => {
     if (editorRef.current != null && activeEntryIdx != null) {
       let newContent = editorRef.current.getEditorContent();
-      let newEntries = entries.slice(0);
-      newEntries[activeEntryIdx] = {
-        ...newEntries[activeEntryIdx],
-        content: newContent,
-      };
-      setEntries(newEntries);
+      if (newContent != null && newContent !== entries[activeEntryIdx].content) {
+        let newEntries = entries.slice(0);
+        newEntries[activeEntryIdx] = {
+          ...newEntries[activeEntryIdx],
+          content: newContent,
+        };
+        setEntries(newEntries);
+
+        setStagedGitOps((gitOps) => [
+          ...gitOps,
+          {
+            kind: "write",
+            path: newEntries[activeEntryIdx].location + newEntries[activeEntryIdx].title,
+            content: newContent!,
+          },
+        ]);
+      }
     }
   };
 
@@ -315,6 +335,11 @@ function App() {
             <Menu.Item key={Page.NoteView} icon={<ReadOutlined style={{ fontSize: 16 }} />} />
             <Menu.Item key={Page.NoteEditor} icon={<EditOutlined style={{ fontSize: 16 }} />} />
             <Menu.Item key={Page.Settings} icon={<SettingOutlined style={{ fontSize: 16 }} />} />
+            <Menu.Item
+              key={Page.Commit}
+              icon={<UploadOutlined style={{ fontSize: 16 }} />}
+              disabled={stagedGitOps.length === 0}
+            />
           </Menu>
         </Col>
       </Row>
