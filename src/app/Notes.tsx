@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 
-import { Tag, Input, Row, Col, Tree } from "antd";
-import { EditOutlined, GlobalOutlined, LinkOutlined } from "@ant-design/icons";
+import { Tag, Input, Row, Col, Tree, Button } from "antd";
+import { EditOutlined, GlobalOutlined, LinkOutlined, DownOutlined } from "@ant-design/icons";
 
 import styled from "@emotion/styled";
 
@@ -16,6 +16,29 @@ export function splitSearchTerms(s: string): string[] {
     .split(/(\s+)/)
     .map((term) => term.trim().toLowerCase())
     .filter((term) => term.length > 0);
+}
+
+export function filterEntries(entries: Entries, searchTerms: string[]): Entries {
+  let filteredEntries = [];
+  for (let entry of entries) {
+    if (searchTerms.length === 0) {
+      filteredEntries.push(entry);
+    } else {
+      // Currently we require all terms to match. Is there a use case for an `OR` mode?
+      let matchesAll = true;
+      for (let searchTerm of searchTerms) {
+        // Note: search terms are normalized, i.e. don't need toLowerCase().
+        // Possible performance optimization: Cache entry.title.toLowerCase()?
+        if (!entry.title.toLowerCase().includes(searchTerm)) {
+          matchesAll = false;
+        }
+      }
+      if (matchesAll) {
+        filteredEntries.push(entry);
+      }
+    }
+  }
+  return filteredEntries;
 }
 
 /*
@@ -46,6 +69,10 @@ const StyledInput = styled(Input)`
 const Footer = styled.div`
   margin-top: 150px;
   margin-bottom: 150px;
+`;
+
+const ExpandButton = styled(Button)`
+  margin-top: 20px;
 `;
 
 /*
@@ -130,31 +157,54 @@ const Notes = React.forwardRef(
     // *** Entry filtering
 
     const [filteredEntries, setFilteredEntries] = useState(entries);
+    const [searchStats, setSearchStats] = useState({ totalMatchingEntries: entries.length });
+    const [numVisibleEntries, setNumVisibleEntries] = useState(20);
     const [selectedIndex, setSelectedIndex] = useState(-1);
     const [searchTerms, setSearchTerms] = useState<string[]>([]);
 
     useEffect(() => {
-      let newFilteredEntries = [];
-      for (let entry of entries) {
-        if (searchTerms.length === 0) {
-          newFilteredEntries.push(entry);
-        } else {
-          // Currently we require all terms to match. Is there a use case for an `OR` mode?
-          let matchesAll = true;
-          for (let searchTerm of searchTerms) {
-            // Note: search terms are normalized, i.e. don't need toLowerCase().
-            // Possible performance optimization: Cache entry.title.toLowerCase()?
-            if (!entry.title.toLowerCase().includes(searchTerm)) {
-              matchesAll = false;
-            }
-          }
-          if (matchesAll) {
-            newFilteredEntries.push(entry);
-          }
-        }
+      let newFilteredEntries = filterEntries(entries, searchTerms);
+      setSearchStats({ totalMatchingEntries: newFilteredEntries.length });
+      setFilteredEntries(newFilteredEntries.slice(0, numVisibleEntries));
+    }, [entries, numVisibleEntries, searchTerms]);
+
+    // Note that it is probably necessary to keep this separate from the entry filtering effect above.
+    // Issues with merging the two:
+    // - We don't want to make selectedIndex a dependency. Otherwise key up/down would
+    //   mean to refilter the entries which is unnecessary/slow.
+    // - This suggest to use the setSelectedIndex(oldIndex => ...) update form, which
+    //   seems to work on first glance. However this is a weird case where we need
+    //   both the oldEntries and the oldSelectedIndex at once, and I don't see how
+    //   we can actually read them **both**.
+    // HOWEVER: We also don't have access to the old entries is this way either!
+    useEffect(() => {
+      if (entries.length > 0) {
+        setSelectedIndex(0);
+      } else {
+        setSelectedIndex(-1);
       }
-      setFilteredEntries(newFilteredEntries);
     }, [entries, searchTerms]);
+
+    /*
+    // Note: For now the filteredEntries are computed asynchronously.
+    // This leads to the double rendering of the component when the
+    // search terms change. See e.g.:
+    // https://stackoverflow.com/questions/56028913/usememo-vs-useeffect-usestate
+    // In theory we could simplify it to:
+    const filteredEntries = React.useMemo(() => filterEntries(entries, searchTerms), [
+      entries,
+      searchTerms,
+    ]);
+    // However, using `useEffect` could be beneficial because:
+    // 1. If we want to do full text search, we probably need an async approach anyway,
+    //    due to the overhead. When using `useMemo` would could keep the computation
+    //    of "title filtered" synchronous, but we would have to merge the results of
+    //    the synchrnously filtered with the results of the asynchronously filtered
+    //    somehow, which would lead to a double rendering anyway.
+    // 2. Using `React.memo` on the JSX components that don't change (actually nothing
+    //    in the VDOM changes when the searchTerms change) should make the first
+    //    re-rendering fast.
+    */
 
     const onChange = (event: React.ChangeEvent<HTMLInputElement>) => {
       // TODO: Improve performance
@@ -164,14 +214,6 @@ const Notes = React.forwardRef(
         setSearchTerms(splitSearchTerms(event.target.value));
       });
     };
-
-    useEffect(() => {
-      if (entries.length > 0) {
-        setSelectedIndex(0);
-      } else {
-        setSelectedIndex(-1);
-      }
-    }, [entries, searchTerms]);
 
     function onKeydown(event: React.KeyboardEvent<HTMLInputElement>) {
       switch (event.key) {
@@ -201,14 +243,30 @@ const Notes = React.forwardRef(
       }
     }
 
-    // *** Label tree data
-
-    const treeData = labels.map((labelCount) => {
-      return {
-        title: labelCount.label + " (" + labelCount.count + ")",
-        key: labelCount.label,
-      };
-    });
+    // *** render help
+    const renderExpandButton = () => {
+      if (searchStats.totalMatchingEntries > filteredEntries.length) {
+        return (
+          <Row justify="center">
+            <ExpandButton
+              type="dashed"
+              shape="circle"
+              onClick={(event) => {
+                setNumVisibleEntries((n) =>
+                  n + 10 <= searchStats.totalMatchingEntries
+                    ? n + 10
+                    : searchStats.totalMatchingEntries
+                );
+              }}
+            >
+              <DownOutlined />
+            </ExpandButton>
+          </Row>
+        );
+      } else {
+        return null;
+      }
+    };
 
     return (
       <>
@@ -236,42 +294,34 @@ const Notes = React.forwardRef(
         </Row>
         <Row justify="center" style={{ height: "100%" }}>
           <Col {...sizeProps.l} style={{ paddingLeft: 20 }}>
-            <Tree
-              treeData={treeData}
-              selectable={false}
-              titleRender={(data) => <Tag>{data.title}</Tag>}
-            />
-            {labels.map((label) => (
-              <div key={label.label}>
-                <Tag>{label.label}</Tag>
-              </div>
-            ))}
+            <LabelTree labels={labels} />
           </Col>
           <Col {...sizeProps.c} style={{ height: "100%" }}>
             <CustomTable entries={filteredEntries} highlighted={selectedIndex} />
             {/*
-          <StyledTable
-            bordered
-            dataSource={filteredEntries}
-            columns={columns}
-            pagination={false}
-            showHeader={false}
-            //rowClassName={(record: any, index) => isHighlightRow(record.name) ? 'highlight-row' :  ''}
-            onRow={(entry, entryIndex) => {
-              return {
-                onClick: event => {
-                  // TODO: Apparently the onRow callback isn't fully typed?
-                  // console.log(entry)
-                  onEnterEntry((entry as Entry).idx!)
-                },
-                // onDoubleClick: event => {}, // double click row
-                // onContextMenu: event => {}, // right button click row
-                // onMouseEnter: event => {}, // mouse enter row
-                // onMouseLeave: event => {}, // mouse leave row
-              };
-            }}
-          />
-          */}
+            <StyledTable
+              bordered
+              dataSource={filteredEntries}
+              columns={columns}
+              pagination={false}
+              showHeader={false}
+              //rowClassName={(record: any, index) => isHighlightRow(record.name) ? 'highlight-row' :  ''}
+              onRow={(entry, entryIndex) => {
+                return {
+                  onClick: event => {
+                    // TODO: Apparently the onRow callback isn't fully typed?
+                    // console.log(entry)
+                    onEnterEntry((entry as Entry).idx!)
+                  },
+                  // onDoubleClick: event => {}, // double click row
+                  // onContextMenu: event => {}, // right button click row
+                  // onMouseEnter: event => {}, // mouse enter row
+                  // onMouseLeave: event => {}, // mouse leave row
+                };
+              }}
+            />
+            */}
+            {renderExpandButton()}
             <Footer />
           </Col>
           <Col {...sizeProps.r} />
@@ -355,7 +405,7 @@ function renderLabels(labels: Label[]) {
   ));
 }
 
-function CustomTable({ entries, highlighted }: CustomTableProps) {
+const CustomTable = React.memo(({ entries, highlighted }: CustomTableProps) => {
   return (
     <PseudoTable>
       {entries.map((entry, i) => (
@@ -367,6 +417,36 @@ function CustomTable({ entries, highlighted }: CustomTableProps) {
       ))}
     </PseudoTable>
   );
-}
+});
+
+// ----------------------------------------------------------------------------
+// Label tree
+// ----------------------------------------------------------------------------
+
+type LabelTreeProps = {
+  labels: LabelCounts;
+};
+
+const LabelTree = React.memo(({ labels }: LabelTreeProps) => {
+  // *** Label tree data
+
+  const treeData = labels.map((labelCount) => {
+    return {
+      title: labelCount.label + " (" + labelCount.count + ")",
+      key: labelCount.label,
+    };
+  });
+
+  return (
+    <Tree treeData={treeData} selectable={false} titleRender={(data) => <Tag>{data.title}</Tag>} />
+    /*
+    {labels.map((label) => (
+      <div key={label.label}>
+        <Tag>{label.label}</Tag>
+      </div>
+    ))}
+    */
+  );
+});
 
 export default Notes;

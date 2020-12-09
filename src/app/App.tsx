@@ -2,7 +2,7 @@ import React from "react";
 import { useState, useEffect, useRef, useLayoutEffect } from "react";
 import "./App.css";
 
-import { Row, Col, Layout, Menu, Tag } from "antd";
+import { Row, Col, Layout, Menu } from "antd";
 import { EditOutlined, SettingOutlined } from "@ant-design/icons";
 
 import styled from "@emotion/styled";
