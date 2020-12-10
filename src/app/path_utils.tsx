@@ -21,13 +21,28 @@ export function getAssociatedMetaPath(path: string): string {
   return `${NOTEMARKS_FOLDER}/${path}.yaml`;
 }
 
-export function splitLocationAndFilename(path: string): [string, string] {
+export function splitLocationFilename(path: string): [string, string] {
   let idxLastSlash = path.lastIndexOf("/");
   if (idxLastSlash === -1) {
     return ["", path];
   } else {
     return [path.substring(0, idxLastSlash), path.substring(idxLastSlash + 1)];
   }
+}
+
+export function splitTitleExtension(filename: string) {
+  let idxLastDot = filename.lastIndexOf(".");
+  if (idxLastDot === -1) {
+    return [unescapeTitle(filename), ""];
+  } else {
+    return [unescapeTitle(filename.substring(0, idxLastDot)), filename.substring(idxLastDot + 1)];
+  }
+}
+
+export function splitLocationTitleExtension(path: string): [string, string, string] {
+  let [location, filename] = splitLocationFilename(path);
+  let [title, extension] = splitTitleExtension(filename);
+  return [location, title, extension];
 }
 
 // ----------------------------------------------------------------------------
@@ -50,7 +65,7 @@ Therefore the closest replacement is U+29F9 BIG REVERSE SOLIDUS.
 - https://en.wikipedia.org/wiki/Filename#Reserved_characters_and_words
 */
 
-function unescapeTitle(s: string): string {
+export function unescapeTitle(s: string): string {
   let result = "";
   let escaped = false;
   for (let i = 0; i < s.length; ++i) {
@@ -88,7 +103,7 @@ function unescapeTitle(s: string): string {
   */
 }
 
-function escapeTitle(s: string): string {
+export function escapeTitle(s: string): string {
   // Rule to get the conversion order right:
   // Characters appearing on the right hand side must never appear on the
   // left hand sind in a later replacement.
@@ -98,28 +113,14 @@ function escapeTitle(s: string): string {
     .replace(/\//gu, "\u{29F8}");
 }
 
-export function filenameToTitle(filename: string) {
-  let idxLastDot = filename.lastIndexOf(".");
-  if (idxLastDot === -1) {
-    return unescapeTitle(filename);
-  } else {
-    return unescapeTitle(filename.substring(0, idxLastDot));
-  }
-}
-
-export function titleToFilename(title: string, extension?: string) {
-  let titleEscaped = escapeTitle(title);
-  if (extension != null && extension.length > 0) {
-    return `${titleEscaped}.${extension}`;
-  } else {
-    return titleEscaped;
-  }
-}
-
 // ----------------------------------------------------------------------------
 // Higher level helpers on Entry
 // ----------------------------------------------------------------------------
 
 export function getPath(entry: Entry): string {
-  return `${entry.location}/${titleToFilename(entry.title)}`;
+  let s = `${entry.location}/${escapeTitle(entry.title)}`;
+  if (entry.extension !== "") {
+    s += "." + entry.extension;
+  }
+  return s;
 }

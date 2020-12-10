@@ -357,14 +357,14 @@ async function loadEntry(
       }
     }
 
-    let [location, filename] = path_utils.splitLocationAndFilename(file.path);
-    let title = path_utils.filenameToTitle(filename);
+    let [location, title, extension] = path_utils.splitLocationTitleExtension(file.path);
 
     return ok({
       repoId: repo.id,
       rawUrl: file.rawUrl,
       location: location,
       title: title,
+      extension: extension,
       entryKind: entryKind,
       labels: metaData.labels as string[],
       timeCreated: metaData.timeCreated as Date,

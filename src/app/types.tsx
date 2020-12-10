@@ -47,6 +47,7 @@ export type Entry = {
   // Fields derived from filename/path
   location: string;
   title: string;
+  extension: string;
   entryKind: EntryKind;
   // From meta data:
   labels: Label[];
