@@ -23,10 +23,11 @@ import * as git_ops from "./git_ops";
 import type { GitOp } from "./git_ops";
 import { loadEntries } from "./octokit";
 
-import Settings from "./Settings";
 import Notes from "./Notes";
 import NoteView from "./NoteView";
 import NoteEditor, { NoteEditorRef } from "./NoteEditor";
+import PrepareCommit from "./PrepareCommit";
+import Settings from "./Settings";
 
 // const { Header, Content, Footer, Sider } = Layout;
 const { Content } = Layout;
@@ -314,6 +315,8 @@ function App() {
             onEditorDidMount={onEditorDidMount}
           />
         );
+      case Page.Commit:
+        return <PrepareCommit sizeProps={sizeProps} ops={stagedGitOps} />;
       case Page.Settings:
         return <Settings sizeProps={sizeProps} repos={repos} setRepos={setRepos} />;
     }

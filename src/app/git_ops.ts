@@ -67,7 +67,31 @@ to the existing/old SHA.
 
 What about modeling it with only Delete + Write, but make the `content`
 field a type union of either a new string content, or a reference
-to an existing path?
+to an existing path? Looks like a lot of the case handling would
+go into handling the two cases of the type union?
+
+Alternatively: We could model it purely with Delete + Write (content
+based) as an intermediate model to build up the operation chain.
+This would then require a finalization step that converts the
+intermediate representation into the actualy Delete + Write + Moves
+git ops. This step would require the `originalEntries` as an input,
+and within these original entries, we could identify if any of the
+Writes actually writes exactly the same content. In this case
+the Write can be transformed into a Move w.r.t. the original
+entry path. Perhaps we could even store the original SHA directly
+in the entries.
+
+The only downside of that would be:
+- The app would need to store all original entires in memory, i.e.,
+  memory duplication with resepect to the total contents size.
+- If given wrong `originalEntries` there could be a chance of data
+  corruption/loss. For instance, if we pass in the current entries
+  instead of the original entires, the algorithm would basically
+  convert a normal update into a `Move A => A` because the content
+  seems to match. We would thus not commit the new content, because
+  the git commit would just reference the old content. Of course
+  we could detect that a `Move A => A` indicates that something
+  is fishy, but perhaps there are more subtle issues.
 */
 export function appendNormalized(ops: GitOps, newOp: GitOp): GitOps {
   let newOps = [] as GitOps;
