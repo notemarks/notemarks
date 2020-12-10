@@ -14,12 +14,14 @@ import {
 import styled from "@emotion/styled";
 
 import * as monacoEditor from "monaco-editor/esm/vs/editor/editor.api";
-import * as mousetrap from "mousetrap";
+import mousetrap from "mousetrap";
 
 import { Entry, Entries, LabelCounts } from "./types";
 import * as entry_utils from "./entry_utils";
 import * as repo_utils from "./repo";
-import { loadEntries, GitOp } from "./octokit";
+import * as git_ops from "./git_ops";
+import type { GitOp } from "./git_ops";
+import { loadEntries } from "./octokit";
 
 import Settings from "./Settings";
 import Notes from "./Notes";
@@ -173,14 +175,12 @@ function App() {
         };
         setEntries(newEntries);
 
-        setStagedGitOps((gitOps) => [
-          ...gitOps,
-          {
-            kind: "write",
-            path: newEntries[activeEntryIdx].location + newEntries[activeEntryIdx].title,
-            content: newContent!,
-          },
-        ]);
+        setStagedGitOps((gitOps) =>
+          git_ops.appendNormalized(
+            gitOps,
+            git_ops.createGitOpUpdateContent(newEntries[activeEntryIdx])
+          )
+        );
       }
     }
   };

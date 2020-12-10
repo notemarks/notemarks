@@ -1,5 +1,6 @@
 /* eslint-disable jest/no-conditional-expect */
 import * as octokit from "./octokit";
+import { GitOps, GitOpKind } from "./git_ops";
 import { Repo, createDefaultInitializedRepo } from "./repo";
 
 test("commitIntegrationTest", async () => {
@@ -10,9 +11,9 @@ test("commitIntegrationTest", async () => {
     repo.token = process.env.REACT_APP_AUTH;
 
     {
-      let ops: octokit.GitOp[] = [
+      let ops: GitOps = [
         {
-          kind: "write",
+          kind: GitOpKind.Write,
           path: "some/subfolder/foo.txt",
           content: "foocontent",
         },
@@ -22,9 +23,9 @@ test("commitIntegrationTest", async () => {
       expect(result.isOk()).toBe(true);
     }
     {
-      let ops: octokit.GitOp[] = [
+      let ops: GitOps = [
         {
-          kind: "move",
+          kind: GitOpKind.Move,
           pathFrom: "some/subfolder/foo.txt",
           pathTo: "some/subfolder/bar.txt",
         },
@@ -34,9 +35,9 @@ test("commitIntegrationTest", async () => {
       expect(result.isOk()).toBe(true);
     }
     {
-      let ops: octokit.GitOp[] = [
+      let ops: GitOps = [
         {
-          kind: "remove",
+          kind: GitOpKind.Remove,
           path: "some/subfolder/bar.txt",
         },
       ];

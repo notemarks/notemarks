@@ -1,6 +1,10 @@
-import { EntryKind } from "./types";
+import { Entry, EntryKind } from "./types";
 
 export const NOTEMARKS_FOLDER = ".notemarks";
+
+// ----------------------------------------------------------------------------
+// General path helper
+// ----------------------------------------------------------------------------
 
 export function getEntryKind(path: string): EntryKind {
   let extension = path.split(".").pop()?.toLowerCase();
@@ -25,6 +29,10 @@ export function splitLocationAndFilename(path: string): [string, string] {
     return [path.substring(0, idxLastSlash), path.substring(idxLastSlash + 1)];
   }
 }
+
+// ----------------------------------------------------------------------------
+// Encoding/decoding of title <-> filename
+// ----------------------------------------------------------------------------
 
 /*
 Notes on encoding:
@@ -81,6 +89,9 @@ function unescapeTitle(s: string): string {
 }
 
 function escapeTitle(s: string): string {
+  // Rule to get the conversion order right:
+  // Characters appearing on the right hand side must never appear on the
+  // left hand sind in a later replacement.
   return s
     .replace(/\u{29F9}/gu, "\u{29F9}\u{29F9}")
     .replace(/\u{29F8}/gu, "\u{29F9}\u{29F8}")
@@ -103,4 +114,12 @@ export function titleToFilename(title: string, extension?: string) {
   } else {
     return titleEscaped;
   }
+}
+
+// ----------------------------------------------------------------------------
+// Higher level helpers on Entry
+// ----------------------------------------------------------------------------
+
+export function getPath(entry: Entry): string {
+  return `${entry.location}/${titleToFilename(entry.title)}`;
 }

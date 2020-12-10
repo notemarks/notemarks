@@ -13,6 +13,7 @@ import { ok, err, okAsync, errAsync, Result, ResultAsync } from "neverthrow";
 import * as yaml from "js-yaml";
 
 import { Repo, Repos } from "./repo";
+import { GitOp } from "./git_ops";
 import { Entry, EntryKind } from "./types";
 import * as date_utils from "./date_utils";
 import * as path_utils from "./path_utils";
@@ -427,23 +428,6 @@ function parseMetaData(content: string): Result<MetaData, Error> {
 // ----------------------------------------------------------------------------
 
 // http://www.levibotelho.com/development/commit-a-file-with-the-github-api/
-
-export type GitOpWriteFile = {
-  kind: "write";
-  path: string;
-  content: string;
-};
-export type GitOpRemoveFile = {
-  kind: "remove";
-  path: string;
-};
-export type GitOpMoveFile = {
-  kind: "move";
-  pathFrom: string;
-  pathTo: string;
-};
-
-export type GitOp = GitOpWriteFile | GitOpRemoveFile | GitOpMoveFile;
 
 type GitCreateTreeParamsTree = {
   path?: string;

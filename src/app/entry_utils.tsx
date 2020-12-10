@@ -1,5 +1,5 @@
 import { EntryKind, Entries, Label, LabelCounts } from "./types";
-import * as fn_utils from "./fn_utils";
+import * as fn from "./fn_utils";
 
 export function getLabelCounts(entries: Entries): LabelCounts {
   let counts: { [index: string]: number } = {};
@@ -9,7 +9,7 @@ export function getLabelCounts(entries: Entries): LabelCounts {
     }
   }
 
-  let labelCounts = fn_utils.mapEntries(counts, (k: Label, v: number) => ({
+  let labelCounts = fn.mapEntries(counts, (k: Label, v: number) => ({
     label: k,
     count: v,
   }));
