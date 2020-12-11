@@ -1,4 +1,5 @@
 import { Entry } from "./types";
+import { Repo } from "./repo";
 import * as path_utils from "./path_utils";
 
 export enum GitOpKind {
@@ -25,6 +26,8 @@ export type GitOpMoveFile = {
 export type GitOp = GitOpWriteFile | GitOpRemoveFile | GitOpMoveFile;
 
 export type GitOps = GitOp[];
+
+export type MultiRepoGitOps = { [id: string]: GitOps };
 
 /*
 TODO: What a headache... There must be a more elegant way to model this?!
@@ -195,4 +198,32 @@ export function createGitOpUpdateContent(entry: Entry): GitOpWriteFile {
     path: path_utils.getPath(entry),
     content: entry.content!,
   };
+}
+
+export function appendUpdateEntry(ops: MultiRepoGitOps, entry: Entry): MultiRepoGitOps {
+  let newOps = { ...ops };
+
+  let newOp = createGitOpUpdateContent(entry);
+
+  if (newOps.hasOwnProperty(entry.repoId)) {
+    newOps[entry.repoId] = appendNormalized(newOps[entry.repoId], newOp);
+  } else {
+    newOps[entry.repoId] = [newOp];
+  }
+
+  return newOps;
+}
+
+export function mapMultiRepoGitOps<T>(
+  ops: MultiRepoGitOps,
+  f: (repoId: string, op: GitOp) => T
+): T[] {
+  let result = [] as T[];
+  let repoIds = Object.keys(ops);
+  for (let repoId of repoIds) {
+    for (let op of ops[repoId]) {
+      result.push(f(repoId, op));
+    }
+  }
+  return result;
 }

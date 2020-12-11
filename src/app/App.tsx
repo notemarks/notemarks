@@ -20,7 +20,7 @@ import { Entry, Entries, LabelCounts } from "./types";
 import * as entry_utils from "./entry_utils";
 import * as repo_utils from "./repo";
 import * as git_ops from "./git_ops";
-import type { GitOp } from "./git_ops";
+import type { MultiRepoGitOps } from "./git_ops";
 import { loadEntries } from "./octokit";
 
 import Notes from "./Notes";
@@ -137,7 +137,7 @@ function App() {
   let [entries, setEntries] = useState([] as Entries);
   let [labels, setLabels] = useState([] as LabelCounts);
 
-  let [stagedGitOps, setStagedGitOps] = useState([] as GitOp[]);
+  let [stagedGitOps, setStagedGitOps] = useState({} as MultiRepoGitOps);
 
   useEffect(() => {
     async function loadContents() {
@@ -176,12 +176,7 @@ function App() {
         };
         setEntries(newEntries);
 
-        setStagedGitOps((gitOps) =>
-          git_ops.appendNormalized(
-            gitOps,
-            git_ops.createGitOpUpdateContent(newEntries[activeEntryIdx])
-          )
-        );
+        setStagedGitOps((gitOps) => git_ops.appendUpdateEntry(gitOps, newEntries[activeEntryIdx]));
       }
     }
   };
@@ -341,7 +336,7 @@ function App() {
             <Menu.Item
               key={Page.Commit}
               icon={<UploadOutlined style={{ fontSize: 16 }} />}
-              disabled={stagedGitOps.length === 0}
+              disabled={Object.keys(stagedGitOps).length === 0}
             />
           </Menu>
         </Col>

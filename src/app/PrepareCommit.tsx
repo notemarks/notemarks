@@ -6,23 +6,21 @@ import styled from "@emotion/styled";
 
 import { SizeProps } from "./types_view";
 
-import { GitOpKind } from "./git_ops";
-import type { GitOp, GitOps } from "./git_ops";
+import { GitOpKind, mapMultiRepoGitOps } from "./git_ops";
+import type { GitOp, MultiRepoGitOps } from "./git_ops";
 
-function prepareCommitMessage(ops: GitOps): string {
-  return ops
-    .map((op) => {
-      switch (op.kind) {
-        case GitOpKind.Write:
-          return `- written file ${op.path}`;
-        case GitOpKind.Remove:
-          return `- removed file ${op.path}`;
-        case GitOpKind.Move:
-          return `- moved file from ${op.pathFrom} to ${op.pathTo}`;
-      }
-      return "";
-    })
-    .join("\n");
+function prepareCommitMessage(ops: MultiRepoGitOps): string {
+  return mapMultiRepoGitOps(ops, (repoId, op) => {
+    switch (op.kind) {
+      case GitOpKind.Write:
+        return `- written file ${op.path}`;
+      case GitOpKind.Remove:
+        return `- removed file ${op.path}`;
+      case GitOpKind.Move:
+        return `- moved file from ${op.pathFrom} to ${op.pathTo}`;
+    }
+    return "";
+  }).join("\n");
 }
 
 /*
@@ -45,28 +43,29 @@ const Footer = styled.div`
 
 type NoteViewProps = {
   sizeProps: SizeProps;
-  ops: GitOps;
+  ops: MultiRepoGitOps;
 };
 
 function PrepareCommit({ sizeProps, ops }: NoteViewProps) {
-  const renderOp = (op: GitOp) => {
+  const renderOp = (repoId: string, op: GitOp) => {
     switch (op.kind) {
       case GitOpKind.Write:
         return (
           <div>
-            Write file <Text code>{op.path}</Text>
+            Write file <Text code>{op.path}</Text> in repo {repoId}
           </div>
         );
       case GitOpKind.Remove:
         return (
           <div>
-            Remove file <Text code>{op.path}</Text>
+            Remove file <Text code>{op.path}</Text> in repo {repoId}
           </div>
         );
       case GitOpKind.Move:
         return (
           <div>
-            Move file from <Text code>{op.pathFrom}</Text> to <Text code>{op.pathTo}</Text>
+            Move file from <Text code>{op.pathFrom}</Text> to <Text code>{op.pathTo}</Text> in repo{" "}
+            {repoId}
           </div>
         );
     }
@@ -78,12 +77,12 @@ function PrepareCommit({ sizeProps, ops }: NoteViewProps) {
         <StyledTitle level={4}>Staged changes</StyledTitle>
         <List
           bordered
-          dataSource={ops}
-          renderItem={(item: GitOp) => <List.Item>{renderOp(item)}</List.Item>}
+          dataSource={mapMultiRepoGitOps(ops, (repoId, op) => ({ repoId, op }))}
+          renderItem={({ repoId, op }) => <List.Item>{renderOp(repoId, op)}</List.Item>}
         />
         <StyledTitle level={4}>Commit message</StyledTitle>
         <TextArea rows={4} defaultValue={prepareCommitMessage(ops)} />
-        <Button type="primary" style={{ marginTop: "20px" }}>
+        <Button type="primary" style={{ marginTop: "20px" }} onClick={onCommit}>
           Commit
         </Button>
         <Footer />
@@ -91,11 +90,15 @@ function PrepareCommit({ sizeProps, ops }: NoteViewProps) {
     );
   };
 
+  const onCommit = () => {
+    console.log("Committing");
+  };
+
   return (
     <Row justify="center" style={{ height: "100%" }}>
       <Col {...sizeProps.l} />
       <Col {...sizeProps.c}>
-        {ops.length > 0 ? (
+        {Object.keys(ops).length > 0 ? (
           renderOps()
         ) : (
           <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Nothing to commit" />
