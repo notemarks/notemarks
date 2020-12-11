@@ -219,11 +219,13 @@ function Settings({ sizeProps, repos, setRepos }: SettingsProps) {
     setRepos([...repos, newRepo]);
   }, [repos, setRepos]);
 
+  /*
   const toggleEnableRepo = (i: number) => {
     let newRepos = [...repos];
     newRepos[i].enabled = !newRepos[i].enabled;
     setRepos(newRepos);
   };
+  */
 
   const deleteRepo = (i: number) => {
     let newRepos = [...repos];
@@ -260,7 +262,7 @@ function Settings({ sizeProps, repos, setRepos }: SettingsProps) {
         <StyledTitle level={4}>Repositories</StyledTitle>
         {/*<Collapse defaultActiveKey={[0]} onChange={callback} bordered={true}>*/}
         {repos.map((repo, i) => (
-          <Row key={repo.id} gutter={[24, 24]}>
+          <Row key={repo.key} gutter={[24, 24]}>
             <Col span={24}>
               <Card
                 title={Header(repo)}

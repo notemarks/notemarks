@@ -1,3 +1,5 @@
+import { Repo } from "./repo";
+
 /*
 For reference, these were the types used in the old implementation:
 
@@ -40,9 +42,29 @@ export enum EntryKind {
   Document = "Document",
 }
 
+/*
+Design questions regarding Entry fields
+---------------------------------------
+
+Should the entry store a `repoId` or a full `repo` reference?
+
+At first, I only stored a `repoId` within the entries, relying on lookup
+of the full repo data if needed. However, this raises the question what
+to do when the user edits the repo settings, and an entry refers either
+to a non-existing repo id, or also to a repo different from the one it
+was loaded from? Properly maintaining such a foreign key relationship
+seems painful.
+
+So what about de-normalizing the repo into the entry? The fact that an
+entry exists actually proves that the repo it was loaded from was at
+least valid at the time of loading. If the user now edits the repos
+page, the attached repo and the "settings repo" could be different,
+but when the next "entry reload" runs, the newly loaded entries get
+the modified repo attached. Should be fine.
+*/
 export type Entry = {
   // General fields
-  repoId: string;
+  repo: Repo;
   rawUrl: string;
   // Fields derived from filename/path
   location: string;

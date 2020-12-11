@@ -1,5 +1,5 @@
 import { Entry } from "./types";
-import { Repo } from "./repo";
+import { getRepoId } from "./repo";
 import * as path_utils from "./path_utils";
 
 export enum GitOpKind {
@@ -205,10 +205,11 @@ export function appendUpdateEntry(ops: MultiRepoGitOps, entry: Entry): MultiRepo
 
   let newOp = createGitOpUpdateContent(entry);
 
-  if (newOps.hasOwnProperty(entry.repoId)) {
-    newOps[entry.repoId] = appendNormalized(newOps[entry.repoId], newOp);
+  let repoId = getRepoId(entry.repo);
+  if (newOps.hasOwnProperty(repoId)) {
+    newOps[repoId] = appendNormalized(newOps[repoId], newOp);
   } else {
-    newOps[entry.repoId] = [newOp];
+    newOps[repoId] = [newOp];
   }
 
   return newOps;

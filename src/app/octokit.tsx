@@ -360,7 +360,7 @@ async function loadEntry(
     let [location, title, extension] = path_utils.splitLocationTitleExtension(file.path);
 
     return ok({
-      repoId: repo.id,
+      repo: repo,
       rawUrl: file.rawUrl,
       location: location,
       title: title,
@@ -370,7 +370,7 @@ async function loadEntry(
       timeCreated: metaData.timeCreated as Date,
       timeUpdated: metaData.timeUpdated as Date,
       content: entryContent?.value,
-      key: `${repo.id}:${location}:${title}`,
+      key: `${repo.key}:${location}:${title}`,
     });
   } else {
     return err(new Error(`Failed to fetch content of ${file.path}`));

@@ -7,8 +7,26 @@ export enum VerificationStatus {
   inProgress,
 }
 
+/*
+Design questions
+----------------
+
+What kind of ID mechanism should repos have?
+
+At first I was using an `id` field containing a randomly generated UUID.
+The main motivation for this was to have an internal field that is guaranteed
+to be different for different repos. However this has the drawback that
+when deleting and re-adding the same repository (i.e. same user/repo data),
+the repo would have gotten a new UUID. Would this be a problem?
+
+Solution: The role of that ID was purely for React list handling.
+Let's rename it to `key` to make its role more clear.
+Use getRepoId function below to actually compute a more semantically
+meaningful identifier where needed.
+
+*/
 export type Repo = {
-  id: string;
+  key: string;
   name: string;
   userName: string;
   repoName: string;
@@ -35,7 +53,7 @@ export function setStoredRepos(repos: Repos) {
 
 export function createDefaultInitializedRepo(isFirst: boolean): Repo {
   return {
-    id: uuidv4(),
+    key: uuidv4(),
     name: "",
     userName: "",
     repoName: "",
@@ -44,4 +62,9 @@ export function createDefaultInitializedRepo(isFirst: boolean): Repo {
     default: isFirst ? true : false,
     verified: VerificationStatus.unknown,
   };
+}
+
+export function getRepoId(repo: Repo): string {
+  // In GitHub world, this should provide a unique identifier.
+  return `github_${repo.userName}_${repo.repoName}`;
 }
