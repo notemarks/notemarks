@@ -1,5 +1,5 @@
 import { Entry } from "./types";
-import { getRepoId } from "./repo";
+import { Repo, getRepoId } from "./repo";
 import * as path_utils from "./path_utils";
 
 export enum GitOpKind {
@@ -27,7 +27,7 @@ export type GitOp = GitOpWriteFile | GitOpRemoveFile | GitOpMoveFile;
 
 export type GitOps = GitOp[];
 
-export type MultiRepoGitOps = { [id: string]: GitOps };
+export type MultiRepoGitOps = { [id: string]: { repo: Repo; ops: GitOps } };
 
 /*
 TODO: What a headache... There must be a more elegant way to model this?!
@@ -207,24 +207,39 @@ export function appendUpdateEntry(ops: MultiRepoGitOps, entry: Entry): MultiRepo
 
   let repoId = getRepoId(entry.repo);
   if (newOps.hasOwnProperty(repoId)) {
-    newOps[repoId] = appendNormalized(newOps[repoId], newOp);
+    newOps[repoId].ops = appendNormalized(newOps[repoId].ops, newOp);
   } else {
-    newOps[repoId] = [newOp];
+    newOps[repoId] = {
+      repo: entry.repo,
+      ops: [newOp],
+    };
   }
 
   return newOps;
 }
 
-export function mapMultiRepoGitOps<T>(
+export function mapMultiRepoGitOpsFlat<T>(
   ops: MultiRepoGitOps,
-  f: (repoId: string, op: GitOp) => T
+  f: (repo: Repo, op: GitOp) => T
 ): T[] {
   let result = [] as T[];
   let repoIds = Object.keys(ops);
   for (let repoId of repoIds) {
-    for (let op of ops[repoId]) {
-      result.push(f(repoId, op));
+    for (let op of ops[repoId].ops) {
+      result.push(f(ops[repoId].repo, op));
     }
+  }
+  return result;
+}
+
+export function mapMultiRepoGitOpsGrouped<T>(
+  ops: MultiRepoGitOps,
+  f: (repo: Repo, op: GitOps) => T
+): T[] {
+  let result = [] as T[];
+  let repoIds = Object.keys(ops);
+  for (let repoId of repoIds) {
+    result.push(f(ops[repoId].repo, ops[repoId].ops));
   }
   return result;
 }

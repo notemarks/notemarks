@@ -1,16 +1,19 @@
-import React from "react";
+import React, { useRef } from "react";
 
 import { Typography, Row, Col, Button, List, Input, Empty } from "antd";
+import { TextAreaRef } from "antd/lib/input/TextArea";
 
 import styled from "@emotion/styled";
 
 import { SizeProps } from "./types_view";
 
-import { GitOpKind, mapMultiRepoGitOps } from "./git_ops";
+import { Repo } from "./repo";
+import { GitOpKind, mapMultiRepoGitOpsFlat, mapMultiRepoGitOpsGrouped } from "./git_ops";
 import type { GitOp, MultiRepoGitOps } from "./git_ops";
+import * as octokit from "./octokit";
 
 function prepareCommitMessage(ops: MultiRepoGitOps): string {
-  return mapMultiRepoGitOps(ops, (repoId, op) => {
+  return mapMultiRepoGitOpsFlat(ops, (repoId, op) => {
     switch (op.kind) {
       case GitOpKind.Write:
         return `- written file ${op.path}`;
@@ -47,25 +50,28 @@ type NoteViewProps = {
 };
 
 function PrepareCommit({ sizeProps, ops }: NoteViewProps) {
-  const renderOp = (repoId: string, op: GitOp) => {
+  // refs
+  let textAreaRef = useRef<TextAreaRef>(null);
+
+  const renderOp = (repo: Repo, op: GitOp) => {
     switch (op.kind) {
       case GitOpKind.Write:
         return (
           <div>
-            Write file <Text code>{op.path}</Text> in repo {repoId}
+            Write file <Text code>{op.path}</Text> in repo {repo.name}
           </div>
         );
       case GitOpKind.Remove:
         return (
           <div>
-            Remove file <Text code>{op.path}</Text> in repo {repoId}
+            Remove file <Text code>{op.path}</Text> in repo {repo.name}
           </div>
         );
       case GitOpKind.Move:
         return (
           <div>
             Move file from <Text code>{op.pathFrom}</Text> to <Text code>{op.pathTo}</Text> in repo{" "}
-            {repoId}
+            {repo.name}
           </div>
         );
     }
@@ -77,11 +83,11 @@ function PrepareCommit({ sizeProps, ops }: NoteViewProps) {
         <StyledTitle level={4}>Staged changes</StyledTitle>
         <List
           bordered
-          dataSource={mapMultiRepoGitOps(ops, (repoId, op) => ({ repoId, op }))}
-          renderItem={({ repoId, op }) => <List.Item>{renderOp(repoId, op)}</List.Item>}
+          dataSource={mapMultiRepoGitOpsFlat(ops, (repo, op) => ({ repo, op }))}
+          renderItem={({ repo, op }) => <List.Item>{renderOp(repo, op)}</List.Item>}
         />
         <StyledTitle level={4}>Commit message</StyledTitle>
-        <TextArea rows={4} defaultValue={prepareCommitMessage(ops)} />
+        <TextArea ref={textAreaRef} rows={4} defaultValue={prepareCommitMessage(ops)} />
         <Button type="primary" style={{ marginTop: "20px" }} onClick={onCommit}>
           Commit
         </Button>
@@ -91,7 +97,15 @@ function PrepareCommit({ sizeProps, ops }: NoteViewProps) {
   };
 
   const onCommit = () => {
-    console.log("Committing");
+    let commitMsg = "";
+    if (textAreaRef.current != null && textAreaRef.current.value != null) {
+      //console.log(textAreaRef.current);
+      commitMsg = textAreaRef.current.value;
+    }
+    console.log(commitMsg);
+    mapMultiRepoGitOpsGrouped(ops, (repo, ops) => {
+      octokit.commit(repo, ops, commitMsg);
+    });
   };
 
   return (
