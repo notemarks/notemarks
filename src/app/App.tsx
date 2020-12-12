@@ -1,5 +1,4 @@
-import React from "react";
-import { useState, useEffect, useRef, useLayoutEffect } from "react";
+import React, { useState, useEffect, useRef, useLayoutEffect, useCallback } from "react";
 import "./App.css";
 
 import { Row, Col, Layout, Menu } from "antd";
@@ -9,7 +8,11 @@ import {
   FileSearchOutlined,
   ReadOutlined,
   UploadOutlined,
+  ReloadOutlined,
+  PlusOutlined,
+  LoadingOutlined,
 } from "@ant-design/icons";
+import { MenuInfo } from "rc-menu/lib/interface";
 
 import styled from "@emotion/styled";
 
@@ -74,11 +77,15 @@ function setScrollPosition(pos: number) {
 // ----------------------------------------------------------------------------
 
 enum Page {
+  // Real pages
   Main = "Main",
   Settings = "Settings",
   NoteView = "NoteView",
   NoteEditor = "NoteEditor",
   Commit = "Commit",
+  // Pseudo pages
+  Reload = "Reload",
+  Add = "Add",
 }
 
 type EditorPosition = {
@@ -118,6 +125,7 @@ function App() {
 
   async function reloadEntries(newRepos: Repos) {
     console.log("Reloading entries");
+    setIsReloading(true);
     let newActiveRepos = repo_utils.filterActiveRepos(newRepos);
     let newEntries = await loadEntries(newActiveRepos);
     entry_utils.sortAndIndexEntries(newEntries);
@@ -125,11 +133,13 @@ function App() {
     // See: https://stackoverflow.com/q/53574614/1804173
     setEntries(newEntries);
     setLabels(entry_utils.getLabelCounts(newEntries));
+    setIsReloading(false);
   }
 
   // *** Settings: Repos state
 
   const [repos, setRepos] = useState([] as Repos);
+  const [isReloading, setIsReloading] = useState(false);
 
   // Effect to store repo changes to local storage.
   // Note that it is slightly awkward that we re-store the repos data
@@ -248,6 +258,22 @@ function App() {
     }
   };
 
+  const onClickPage = useCallback(
+    (menuInfo: MenuInfo) => {
+      let clickedPage = menuInfo.key as Page;
+      switch (clickedPage) {
+        case Page.Reload:
+          if (!isReloading) {
+            reloadEntries(repos);
+          }
+          break;
+        default:
+          setPage(clickedPage);
+      }
+    },
+    [repos, isReloading]
+  );
+
   // *** Layout effects
 
   const targetBodyPosition = useRef<number | null>(null);
@@ -325,13 +351,7 @@ function App() {
       {/* Theoretically the menu should be wrapped in <Header> but I prefer the smaller sized menu */}
       <Row justify="center" style={{ background: "#001529" }}>
         <Col {...sizeProps.c}>
-          <Menu
-            theme="dark"
-            mode="horizontal"
-            selectedKeys={[page]}
-            defaultSelectedKeys={[page]}
-            onClick={(evt) => setPage(evt.key as Page)}
-          >
+          <Menu theme="dark" mode="horizontal" selectedKeys={[page]} onClick={onClickPage}>
             <Menu.Item key={Page.Main} icon={<FileSearchOutlined style={{ fontSize: 16 }} />} />
             <Menu.Item key={Page.NoteView} icon={<ReadOutlined style={{ fontSize: 16 }} />} />
             <Menu.Item key={Page.NoteEditor} icon={<EditOutlined style={{ fontSize: 16 }} />} />
@@ -341,6 +361,17 @@ function App() {
               icon={<UploadOutlined style={{ fontSize: 16 }} />}
               disabled={Object.keys(stagedGitOps).length === 0}
             />
+            <Menu.Item
+              key={Page.Reload}
+              icon={
+                !isReloading ? (
+                  <ReloadOutlined style={{ fontSize: 16 }} />
+                ) : (
+                  <LoadingOutlined style={{ fontSize: 16 }} />
+                )
+              }
+            />
+            <Menu.Item key={Page.Add} icon={<PlusOutlined style={{ fontSize: 16 }} />} />
           </Menu>
         </Col>
       </Row>
