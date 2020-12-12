@@ -23,3 +23,9 @@ export function useTraceUpdate(props: { [k: string]: any }) {
     prev.current = props;
   });
 }
+
+export function useEffectOnce(func: () => void) {
+  // https://stackoverflow.com/a/56767883/1804173
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(func, []);
+}

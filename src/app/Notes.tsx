@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 
-import { Tag, Input, Row, Col, Tree, Button } from "antd";
+import { Tag, Input, Row, Col, Tree, Button, Empty } from "antd";
 import { EditOutlined, GlobalOutlined, LinkOutlined, DownOutlined } from "@ant-design/icons";
 
 import styled from "@emotion/styled";
@@ -9,7 +9,6 @@ import { SizeProps } from "./types_view";
 import { Entries, EntryKind, Label, LabelCounts } from "./types";
 import * as fn from "./fn_utils";
 import { MutableRef } from "./react_utils";
-import { Repos } from "./repo";
 
 export function splitSearchTerms(s: string): string[] {
   return s
@@ -143,17 +142,13 @@ const columns: any[] = [
 
 type NotesProps = {
   sizeProps: SizeProps;
-  repos: Repos;
   entries: Entries;
   labels: LabelCounts;
   onEnterEntry: (i: number) => void;
 };
 
 const Notes = React.forwardRef(
-  (
-    { sizeProps, repos, entries, labels, onEnterEntry }: NotesProps,
-    ref: MutableRef<HTMLInputElement>
-  ) => {
+  ({ sizeProps, entries, labels, onEnterEntry }: NotesProps, ref: MutableRef<HTMLInputElement>) => {
     // *** Entry filtering
 
     const [filteredEntries, setFilteredEntries] = useState(entries);
@@ -412,23 +407,27 @@ function renderLabels(labels: Label[]) {
 }
 
 const CustomTable = React.memo(({ entries, highlighted, onEnterEntry }: CustomTableProps) => {
-  return (
-    <PseudoTable>
-      {entries.map((entry, i) => (
-        <PseudoTableRow
-          key={entry.key}
-          className={i === highlighted ? "highlight-row" : ""}
-          onClick={(event) => {
-            onEnterEntry(entry.idx!);
-          }}
-        >
-          <TitleWrapper>{entry.title}</TitleWrapper>
-          <SymbolWrapper>{renderEntryKindSymbol(entry.entryKind)}</SymbolWrapper>
-          <LabelsWrapper>{renderLabels(entry.labels)}</LabelsWrapper>
-        </PseudoTableRow>
-      ))}
-    </PseudoTable>
-  );
+  if (entries.length === 0) {
+    return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No entries" />;
+  } else {
+    return (
+      <PseudoTable>
+        {entries.map((entry, i) => (
+          <PseudoTableRow
+            key={entry.key}
+            className={i === highlighted ? "highlight-row" : ""}
+            onClick={(event) => {
+              onEnterEntry(entry.idx!);
+            }}
+          >
+            <TitleWrapper>{entry.title}</TitleWrapper>
+            <SymbolWrapper>{renderEntryKindSymbol(entry.entryKind)}</SymbolWrapper>
+            <LabelsWrapper>{renderLabels(entry.labels)}</LabelsWrapper>
+          </PseudoTableRow>
+        ))}
+      </PseudoTable>
+    );
+  }
 });
 
 // ----------------------------------------------------------------------------

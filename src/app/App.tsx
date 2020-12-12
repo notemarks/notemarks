@@ -16,9 +16,12 @@ import styled from "@emotion/styled";
 import * as monacoEditor from "monaco-editor/esm/vs/editor/editor.api";
 import mousetrap from "mousetrap";
 
+import { useEffectOnce } from "./react_utils";
+
 import { Entry, Entries, LabelCounts } from "./types";
 import * as entry_utils from "./entry_utils";
 import * as repo_utils from "./repo";
+import type { Repos } from "./repo";
 import * as git_ops from "./git_ops";
 import type { MultiRepoGitOps } from "./git_ops";
 import { loadEntries } from "./octokit";
@@ -104,33 +107,45 @@ mousetrap.bind(["command+p", "ctrl+p"], () => {
 });
 
 function App() {
-  // *** Core state
+  console.log("Rendering: App");
 
-  const [page, setPage] = useState(Page.Main);
-  const [activeEntryIdx, setActiveEntryIdx] = useState<number | undefined>(undefined);
-  const [activeEntry, setActiveEntry] = useState<Entry | undefined>(undefined);
+  useEffectOnce(() => {
+    let initRepos = repo_utils.getStoredRepos();
+    console.log("Initially loaded repos:", initRepos);
+    setRepos(initRepos);
+    reloadEntries(initRepos);
+  });
+
+  async function reloadEntries(newRepos: Repos) {
+    console.log("Reloading entries");
+    let newActiveRepos = repo_utils.filterActiveRepos(newRepos);
+    let newEntries = await loadEntries(newActiveRepos);
+    entry_utils.sortAndIndexEntries(newEntries);
+    // TODO: Decide if these "double updates" are a problem.
+    // See: https://stackoverflow.com/q/53574614/1804173
+    setEntries(newEntries);
+    setLabels(entry_utils.getLabelCounts(newEntries));
+  }
 
   // *** Settings: Repos state
 
-  const [repos, setRepos] = useState(repo_utils.getStoredRepos());
+  const [repos, setRepos] = useState([] as Repos);
 
+  // Effect to store repo changes to local storage.
+  // Note that it is slightly awkward that we re-store the repos data
+  // after the initial loading, because it uses setRepos. But on first
+  // glance that shouldn't cause trouble and is better then reloading
+  // the repo data as an argument to useState in every re-render.
   useEffect(() => {
     // console.log("Storing repos:", repos)
     repo_utils.setStoredRepos(repos);
   }, [repos]);
 
-  // Derived state: Active repos
-  const [activeRepos, setActiveRepos] = useState([] as repo_utils.Repo[]);
+  // *** Main state
 
-  useEffect(() => {
-    let newActiveRepos = [];
-    for (let repo of repos) {
-      if (repo.enabled && repo.verified) {
-        newActiveRepos.push(repo);
-      }
-    }
-    setActiveRepos(newActiveRepos);
-  }, [repos]);
+  const [page, setPage] = useState(Page.Main);
+  const [activeEntryIdx, setActiveEntryIdx] = useState<number | undefined>(undefined);
+  const [activeEntry, setActiveEntry] = useState<Entry | undefined>(undefined);
 
   // *** Entries state
 
@@ -139,19 +154,8 @@ function App() {
 
   let [stagedGitOps, setStagedGitOps] = useState({} as MultiRepoGitOps);
 
-  useEffect(() => {
-    async function loadContents() {
-      let newEntries = await loadEntries(repos);
-      entry_utils.sortAndIndexEntries(newEntries);
-      // TODO: Decide if these "double updates" are a problem.
-      // See: https://stackoverflow.com/q/53574614/1804173
-      setEntries(newEntries);
-      setLabels(entry_utils.getLabelCounts(newEntries));
-    }
-    loadContents();
-  }, [repos, setLabels]);
-
   // Derived state: active entry
+  // TODO: Should we turn that into a simple getActiveEntry getter? Any need for having it as state?
   useEffect(() => {
     if (activeEntryIdx != null) {
       setActiveEntry(entries[activeEntryIdx]);
@@ -289,7 +293,6 @@ function App() {
           <Notes
             ref={searchInputRef}
             sizeProps={sizeProps}
-            repos={activeRepos}
             entries={entries}
             labels={labels}
             onEnterEntry={(i) => {

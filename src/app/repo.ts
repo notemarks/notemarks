@@ -38,18 +38,9 @@ export type Repo = {
 
 export type Repos = Repo[];
 
-export function getStoredRepos(): Repos {
-  let reposEntry = window.localStorage.getItem("repos");
-  if (reposEntry != null) {
-    return JSON.parse(reposEntry) as Repos;
-  } else {
-    return [createDefaultInitializedRepo(true)];
-  }
-}
-
-export function setStoredRepos(repos: Repos) {
-  window.localStorage.setItem("repos", JSON.stringify(repos));
-}
+// ----------------------------------------------------------------------------
+// Construction / Helpers
+// ----------------------------------------------------------------------------
 
 export function createDefaultInitializedRepo(isFirst: boolean): Repo {
   return {
@@ -67,4 +58,25 @@ export function createDefaultInitializedRepo(isFirst: boolean): Repo {
 export function getRepoId(repo: Repo): string {
   // In GitHub world, this should provide a unique identifier.
   return `github_${repo.userName}_${repo.repoName}`;
+}
+
+export function filterActiveRepos(repos: Repos): Repos {
+  return repos.filter((repo) => repo.enabled && repo.verified);
+}
+
+// ----------------------------------------------------------------------------
+// Storage I/O
+// ----------------------------------------------------------------------------
+
+export function getStoredRepos(): Repos {
+  let reposEntry = window.localStorage.getItem("repos");
+  if (reposEntry != null) {
+    return JSON.parse(reposEntry) as Repos;
+  } else {
+    return [createDefaultInitializedRepo(true)];
+  }
+}
+
+export function setStoredRepos(repos: Repos) {
+  window.localStorage.setItem("repos", JSON.stringify(repos));
 }
