@@ -375,7 +375,7 @@ function App() {
           </Menu>
         </Col>
       </Row>
-      <ContentStyled style={{ height: "100%" }}>{renderCenter()}</ContentStyled>
+      <ContentStyled>{renderCenter()}</ContentStyled>
     </Layout>
   );
 }

@@ -5,6 +5,8 @@ import { EditOutlined, GlobalOutlined, LinkOutlined, DownOutlined } from "@ant-d
 
 import styled from "@emotion/styled";
 
+import { ScrollContent } from "./HelperComponents";
+
 import { SizeProps } from "./types_view";
 import { Entries, EntryKind, Label, LabelCounts } from "./types";
 import * as fn from "./fn_utils";
@@ -60,14 +62,25 @@ See also Q/A here:
 https://stackoverflow.com/questions/48494045/how-to-add-dynamic-link-to-table-data
 */
 
+const Container = styled.div`
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+`;
+
+const StretchRow = styled(Row)`
+  flex-grow: 1;
+  height: 100%;
+`;
+
 const StyledInput = styled(Input)`
   margin-top: 20px;
   margin-bottom: 20px;
 `;
 
 const Footer = styled.div`
-  margin-top: 150px;
-  margin-bottom: 150px;
+  margin-top: 20px;
+  margin-bottom: 20px;
 `;
 
 const ExpandButton = styled(Button)`
@@ -242,29 +255,32 @@ const Notes = React.forwardRef(
     const renderExpandButton = () => {
       if (searchStats.totalMatchingEntries > filteredEntries.length) {
         return (
-          <Row justify="center">
-            <ExpandButton
-              type="dashed"
-              shape="circle"
-              onClick={(event) => {
-                setNumVisibleEntries((n) =>
-                  n + 10 <= searchStats.totalMatchingEntries
-                    ? n + 10
-                    : searchStats.totalMatchingEntries
-                );
-              }}
-            >
-              <DownOutlined />
-            </ExpandButton>
-          </Row>
+          <>
+            <Row justify="center">
+              <ExpandButton
+                type="dashed"
+                shape="circle"
+                onClick={(event) => {
+                  setNumVisibleEntries((n) =>
+                    n + 10 <= searchStats.totalMatchingEntries
+                      ? n + 10
+                      : searchStats.totalMatchingEntries
+                  );
+                }}
+              >
+                <DownOutlined />
+              </ExpandButton>
+            </Row>
+            <Footer />
+          </>
         );
       } else {
-        return null;
+        return <Footer />;
       }
     };
 
     return (
-      <>
+      <Container>
         <Row justify="center">
           <Col {...sizeProps.l} />
           <Col {...sizeProps.c}>
@@ -287,16 +303,21 @@ const Notes = React.forwardRef(
           </Col>
           <Col {...sizeProps.r} />
         </Row>
-        <Row justify="center" style={{ height: "100%" }}>
+        <StretchRow justify="center">
           <Col {...sizeProps.l} style={{ paddingLeft: 20 }}>
-            <LabelTree labels={labels} />
+            <ScrollContent>
+              <LabelTree labels={labels} />
+            </ScrollContent>
           </Col>
-          <Col {...sizeProps.c} style={{ height: "100%" }}>
-            <CustomTable
-              entries={filteredEntries}
-              highlighted={selectedIndex}
-              onEnterEntry={onEnterEntry}
-            />
+          <Col {...sizeProps.c}>
+            <ScrollContent>
+              <CustomTable
+                entries={filteredEntries}
+                highlighted={selectedIndex}
+                onEnterEntry={onEnterEntry}
+              />
+              {renderExpandButton()}
+            </ScrollContent>
             {/*
             <StyledTable
               bordered
@@ -320,12 +341,10 @@ const Notes = React.forwardRef(
               }}
             />
             */}
-            {renderExpandButton()}
-            <Footer />
           </Col>
           <Col {...sizeProps.r} />
-        </Row>
-      </>
+        </StretchRow>
+      </Container>
     );
   }
 );
@@ -340,14 +359,17 @@ const PseudoTable = styled.div`
 
   .highlight-row {
     background: #e8f6fe; /* Antd's select color used e.g. in AutoComplete */
-    border: 1px solid #b0e0fc;
+
+    /* Implement highlight border via box shadow to avoid messing with box sizes (see alternative below) */
     border-radius: 3px;
+    box-shadow: 0px 0px 0px 1px #b0e0fc;
 
     /* Since we are using box-sizing: border-box, we need to counter the border with negative margins */
-    margin-top: -1px;
-    margin-bottom: -1px;
-    margin-left: -1px;
-    margin-right: -1px;
+    //border: 1px solid #b0e0fc;
+    //margin-top: -1px;
+    //margin-bottom: -1px;
+    //margin-left: -1px;
+    //margin-right: -1px;
   }
 `;
 
