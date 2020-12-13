@@ -118,6 +118,15 @@ const NoteEditor = forwardRef(
             language="markdown"
             value={entry.content}
             editorDidMount={onEditorDidMountWrapper}
+            options={{
+              fontSize: 12,
+              cursorBlinking: "smooth",
+              wordWrap: "on",
+              wordWrapColumn: 100,
+              minimap: {
+                enabled: false,
+              },
+            }}
           />
         </DebugBox>
       );
