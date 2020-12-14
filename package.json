@@ -38,6 +38,7 @@
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
+    "release": "react-scripts build && cp -ar build/. ../NotemarksWeb/docs/",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "fmt-check": "npx prettier --check .",
@@ -63,5 +64,7 @@
   },
   "devDependencies": {
     "prettier": "2.2.1"
-  }
+  },
+  "homepage": "https://notemarks.github.io/notemarks-web/"
+
 }

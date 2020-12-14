@@ -1,6 +1,6 @@
 import React, { useRef } from "react";
 
-import { Typography, Row, Button, List, Input, Empty, Modal } from "antd";
+import { Typography, Button, List, Input, Empty, Modal } from "antd";
 import { TextAreaRef } from "antd/lib/input/TextArea";
 
 import styled from "@emotion/styled";
