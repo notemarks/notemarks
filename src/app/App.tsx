@@ -36,7 +36,6 @@ import NoteEditor, { NoteEditorRef } from "./NoteEditor";
 import PrepareCommit from "./PrepareCommit";
 import Settings from "./Settings";
 
-// const { Header, Content, Footer, Sider } = Layout;
 const { Content } = Layout;
 
 const ContentStyled = styled(Content)`
@@ -59,6 +58,11 @@ Mousetrap.prototype.stopCallback = function (
     // fire in all other cases
     return false;
   }
+};
+
+// https://stackoverflow.com/a/821227/1804173
+window.onbeforeunload = function () {
+  return "Are you sure you want to navigate away? Uncommitted modifications will be lost.";
 };
 
 // ----------------------------------------------------------------------------
@@ -113,6 +117,10 @@ mousetrap.bind(["command+p", "ctrl+p"], () => {
   keyboardHandlers.handleSearch();
   return false;
 });
+
+// ----------------------------------------------------------------------------
+// App
+// ----------------------------------------------------------------------------
 
 function App() {
   console.log("Rendering: App");
@@ -339,7 +347,15 @@ function App() {
           <NoteEditor entry={activeEntry} ref={editorRef} onEditorDidMount={onEditorDidMount} />
         );
       case Page.Commit:
-        return <PrepareCommit ops={stagedGitOps} />;
+        return (
+          <PrepareCommit
+            ops={stagedGitOps}
+            onSuccessfulCommit={() => {
+              setPage(Page.Main);
+              setStagedGitOps({});
+            }}
+          />
+        );
       case Page.Settings:
         return <Settings repos={repos} setRepos={setRepos} />;
     }

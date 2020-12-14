@@ -44,11 +44,12 @@ const Footer = styled.div`
   margin-bottom: 150px;
 `;
 
-type NoteViewProps = {
+type PrepareCommitProps = {
   ops: MultiRepoGitOps;
+  onSuccessfulCommit: () => void;
 };
 
-function PrepareCommit({ ops }: NoteViewProps) {
+function PrepareCommit({ ops, onSuccessfulCommit }: PrepareCommitProps) {
   // refs
   let textAreaRef = useRef<TextAreaRef>(null);
 
@@ -125,11 +126,12 @@ function PrepareCommit({ ops }: NoteViewProps) {
           title: "Success",
           content: "Changes committed successfully",
         });
-        // TODO: We need a callback into the main App to mark changes as committed.
-        // In fact, we should probably trigger a refresh to properly update the git
-        // hashes of all files. However, what if the changes don't appear immediately
-        // in a refresh? Perhaps it is even better to consider the local state as
-        // ground truth for the repo state.
+        // We need a callback into the main App to mark changes as committed.
+        // In fact, the question is whether we shoudl rather trigger a refresh to properly
+        // update the git hashes of all files. However, what if the changes don't appear
+        // immediately in a refresh? Delay the refresh? Perhaps it is even better to consider
+        // the local state as ground truth for the repo state.
+        onSuccessfulCommit();
       } else {
         Modal.error({
           title: "Failure",
@@ -140,17 +142,15 @@ function PrepareCommit({ ops }: NoteViewProps) {
   };
 
   return (
-    <Row justify="center" style={{ height: "100%" }}>
-      <UiRow
-        center={
-          Object.keys(ops).length > 0 ? (
-            renderOps()
-          ) : (
-            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Nothing to commit" />
-          )
-        }
-      />
-    </Row>
+    <UiRow
+      center={
+        Object.keys(ops).length > 0 ? (
+          renderOps()
+        ) : (
+          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Nothing to commit" />
+        )
+      }
+    />
   );
 }
 
