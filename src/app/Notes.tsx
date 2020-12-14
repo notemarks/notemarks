@@ -437,7 +437,7 @@ type LabelTreeProps = {
 
 const ResponsiveTree = styled(Tree)`
   // This follows the breakpoint that ensures the left hand side is at least 200px
-  @media not all and (min-width: 992px) {
+  @media not all and (min-width: 768px) {
     display: none;
   }
 `;

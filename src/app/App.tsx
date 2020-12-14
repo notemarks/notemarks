@@ -230,21 +230,33 @@ function App() {
 
   // *** Keyboard handlers
 
-  keyboardHandlers.handleSwitchEdit = () => {
-    switch (page) {
-      case Page.NoteView: {
+  const prepareSwitchFrom = (pageFrom: Page) => {
+    switch (pageFrom) {
+      case Page.NoteView:
         storeNoteViewPosition();
         restoreNoteEditorPosition();
-        setPage(Page.NoteEditor);
         break;
-      }
-      case Page.NoteEditor: {
+      case Page.NoteEditor:
         storeNoteEditorPosition();
         restoreNoteViewPosition();
         updateEntryContent();
-        setPage(Page.NoteView);
+        break;
+      default: {
         break;
       }
+    }
+  };
+
+  keyboardHandlers.handleSwitchEdit = () => {
+    switch (page) {
+      case Page.NoteView:
+        prepareSwitchFrom(page);
+        setPage(Page.NoteEditor);
+        break;
+      case Page.NoteEditor:
+        prepareSwitchFrom(page);
+        setPage(Page.NoteView);
+        break;
       default: {
         console.log("Switching not possible");
         break;
@@ -259,21 +271,20 @@ function App() {
     }
   };
 
-  const onClickPage = useCallback(
-    (menuInfo: MenuInfo) => {
-      let clickedPage = menuInfo.key as Page;
-      switch (clickedPage) {
-        case Page.Reload:
-          if (!isReloading) {
-            reloadEntries(repos);
-          }
-          break;
-        default:
-          setPage(clickedPage);
-      }
-    },
-    [repos, isReloading]
-  );
+  // Probably not much sense to useCallback here, because it has too many dependencies?
+  const onClickMenu = (menuInfo: MenuInfo) => {
+    let clickedPage = menuInfo.key as Page;
+    switch (clickedPage) {
+      case Page.Reload:
+        if (!isReloading) {
+          reloadEntries(repos);
+        }
+        break;
+      default:
+        prepareSwitchFrom(page);
+        setPage(clickedPage);
+    }
+  };
 
   // *** Layout effects
 
@@ -352,7 +363,7 @@ function App() {
       {/* Theoretically the menu should be wrapped in <Header> but I prefer the smaller sized menu */}
       <UiRow
         center={
-          <Menu theme="dark" mode="horizontal" selectedKeys={[page]} onClick={onClickPage}>
+          <Menu theme="dark" mode="horizontal" selectedKeys={[page]} onClick={onClickMenu}>
             <Menu.Item key={Page.Main} icon={<FileSearchOutlined style={{ fontSize: 16 }} />} />
             <Menu.Item key={Page.NoteView} icon={<ReadOutlined style={{ fontSize: 16 }} />} />
             <Menu.Item key={Page.NoteEditor} icon={<EditOutlined style={{ fontSize: 16 }} />} />
