@@ -3,12 +3,13 @@ import React from "react";
 import showdown from "showdown";
 import DOMPurify from "dompurify";
 
-import { Typography, Row, Col } from "antd";
+import { Typography } from "antd";
 
 import styled from "@emotion/styled";
 
 import { SizeProps } from "./types_view";
 import { NoEntrySelected } from "./HelperComponents";
+import { UiRow } from "./UiRow";
 
 import { Entry } from "./types";
 
@@ -89,11 +90,10 @@ function NoteView({ sizeProps, entry }: NoteViewProps) {
   };
 
   return (
-    <Row justify="center" style={{ height: "100%" }}>
-      <Col {...sizeProps.l} />
-      <Col {...sizeProps.c}>{entry != null ? renderEntry(entry) : <NoEntrySelected />}</Col>
-      <Col {...sizeProps.r} />
-    </Row>
+    <UiRow
+      center={entry != null ? renderEntry(entry) : <NoEntrySelected />}
+      style={{ height: "100%" }}
+    />
   );
 }
 

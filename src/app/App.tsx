@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useLayoutEffect, useCallback } from "react";
 import "./App.css";
 
-import { Row, Col, Layout, Menu } from "antd";
+import { Layout, Menu } from "antd";
 import {
   EditOutlined,
   SettingOutlined,
@@ -20,6 +20,7 @@ import * as monacoEditor from "monaco-editor/esm/vs/editor/editor.api";
 import mousetrap from "mousetrap";
 
 import { useEffectOnce } from "./react_utils";
+import { UiRow } from "./UiRow";
 
 import { Entry, Entries, LabelCounts } from "./types";
 import * as entry_utils from "./entry_utils";
@@ -349,8 +350,8 @@ function App() {
   return (
     <Layout style={{ height: "100%" }}>
       {/* Theoretically the menu should be wrapped in <Header> but I prefer the smaller sized menu */}
-      <Row justify="center" style={{ background: "#001529" }}>
-        <Col {...sizeProps.c}>
+      <UiRow
+        center={
           <Menu theme="dark" mode="horizontal" selectedKeys={[page]} onClick={onClickPage}>
             <Menu.Item key={Page.Main} icon={<FileSearchOutlined style={{ fontSize: 16 }} />} />
             <Menu.Item key={Page.NoteView} icon={<ReadOutlined style={{ fontSize: 16 }} />} />
@@ -373,8 +374,9 @@ function App() {
             />
             <Menu.Item key={Page.Add} icon={<PlusOutlined style={{ fontSize: 16 }} />} />
           </Menu>
-        </Col>
-      </Row>
+        }
+        style={{ background: "#001529" }}
+      />
       <ContentStyled>{renderCenter()}</ContentStyled>
     </Layout>
   );

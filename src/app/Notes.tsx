@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
 
-import { Tag, Input, Row, Col, Tree, Button, Empty } from "antd";
+import { Tag, Input, Row, Tree, Button, Empty } from "antd";
 import { EditOutlined, GlobalOutlined, LinkOutlined, DownOutlined } from "@ant-design/icons";
 
 import styled from "@emotion/styled";
 
 import { ScrollContent } from "./HelperComponents";
+import { UiRow } from "./UiRow";
 
 import { SizeProps } from "./types_view";
 import { Entries, EntryKind, Label, LabelCounts } from "./types";
@@ -68,7 +69,7 @@ const Container = styled.div`
   flex-direction: column;
 `;
 
-const StretchRow = styled(Row)`
+const StretchedUiRow = styled(UiRow)`
   flex-grow: 1;
   height: 100%;
 `;
@@ -281,9 +282,8 @@ const Notes = React.forwardRef(
 
     return (
       <Container>
-        <Row justify="center">
-          <Col {...sizeProps.l} />
-          <Col {...sizeProps.c}>
+        <UiRow
+          center={
             <StyledInput
               ref={(antdInputRef) => {
                 // Since we don't want to expose the ref as an Antd Input, but rather HTMLInputElement
@@ -300,16 +300,15 @@ const Notes = React.forwardRef(
               onKeyDown={onKeydown}
               autoFocus
             />
-          </Col>
-          <Col {...sizeProps.r} />
-        </Row>
-        <StretchRow justify="center">
-          <Col {...sizeProps.l} style={{ paddingLeft: 20 }}>
+          }
+        />
+        <StretchedUiRow
+          left={
             <ScrollContent>
               <LabelTree labels={labels} />
             </ScrollContent>
-          </Col>
-          <Col {...sizeProps.c}>
+          }
+          center={
             <ScrollContent>
               <CustomTable
                 entries={filteredEntries}
@@ -318,32 +317,8 @@ const Notes = React.forwardRef(
               />
               {renderExpandButton()}
             </ScrollContent>
-            {/*
-            <StyledTable
-              bordered
-              dataSource={filteredEntries}
-              columns={columns}
-              pagination={false}
-              showHeader={false}
-              //rowClassName={(record: any, index) => isHighlightRow(record.name) ? 'highlight-row' :  ''}
-              onRow={(entry, entryIndex) => {
-                return {
-                  onClick: event => {
-                    // TODO: Apparently the onRow callback isn't fully typed?
-                    // console.log(entry)
-                    onEnterEntry((entry as Entry).idx!)
-                  },
-                  // onDoubleClick: event => {}, // double click row
-                  // onContextMenu: event => {}, // right button click row
-                  // onMouseEnter: event => {}, // mouse enter row
-                  // onMouseLeave: event => {}, // mouse leave row
-                };
-              }}
-            />
-            */}
-          </Col>
-          <Col {...sizeProps.r} />
-        </StretchRow>
+          }
+        />
       </Container>
     );
   }
@@ -460,6 +435,14 @@ type LabelTreeProps = {
   labels: LabelCounts;
 };
 
+const ResponsiveTree = styled(Tree)`
+  // In theory the breakpoint should be 1170 (if it really follows Boostrap breakpoints)
+  // Trial and error has shown that 1197 is more like it...
+  @media not all and (min-width: 1197px) {
+    display: none;
+  }
+`;
+
 const LabelTree = React.memo(({ labels }: LabelTreeProps) => {
   // *** Label tree data
 
@@ -471,7 +454,11 @@ const LabelTree = React.memo(({ labels }: LabelTreeProps) => {
   });
 
   return (
-    <Tree treeData={treeData} selectable={false} titleRender={(data) => <Tag>{data.title}</Tag>} />
+    <ResponsiveTree
+      treeData={treeData}
+      selectable={false}
+      titleRender={(data) => <Tag>{data.title}</Tag>}
+    />
     /*
     {labels.map((label) => (
       <div key={label.label}>

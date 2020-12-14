@@ -1,8 +1,6 @@
 import React from "react";
 import { useRef, useImperativeHandle, forwardRef } from "react";
 
-import { Row, Col } from "antd";
-
 import Editor from "@monaco-editor/react";
 import * as monacoEditor from "monaco-editor/esm/vs/editor/editor.api";
 
@@ -10,6 +8,7 @@ import styled from "@emotion/styled";
 
 import { SizeProps } from "./types_view";
 import { NoEntrySelected } from "./HelperComponents";
+import { UiRow } from "./UiRow";
 
 import { Entry } from "./types";
 import * as fn from "./fn_utils";
@@ -133,11 +132,10 @@ const NoteEditor = forwardRef(
     };
 
     return (
-      <Row justify="center" style={{ height: "100%" }}>
-        <Col {...sizeProps.l} />
-        <Col {...sizeProps.c}>{entry != null ? renderEntry(entry) : <NoEntrySelected />}</Col>
-        <Col {...sizeProps.r} />
-      </Row>
+      <UiRow
+        center={entry != null ? renderEntry(entry) : <NoEntrySelected />}
+        style={{ height: "100%" }}
+      />
     );
   }
 );
