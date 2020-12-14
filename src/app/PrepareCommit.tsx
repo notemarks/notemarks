@@ -1,11 +1,11 @@
 import React, { useRef } from "react";
 
-import { Typography, Row, Col, Button, List, Input, Empty, Modal } from "antd";
+import { Typography, Row, Button, List, Input, Empty, Modal } from "antd";
 import { TextAreaRef } from "antd/lib/input/TextArea";
 
 import styled from "@emotion/styled";
 
-import { SizeProps } from "./types_view";
+import { UiRow } from "./UiRow";
 
 import { Repo } from "./repo";
 import { GitOpKind, mapMultiRepoGitOpsFlat, mapMultiRepoGitOpsGrouped } from "./git_ops";
@@ -45,11 +45,10 @@ const Footer = styled.div`
 `;
 
 type NoteViewProps = {
-  sizeProps: SizeProps;
   ops: MultiRepoGitOps;
 };
 
-function PrepareCommit({ sizeProps, ops }: NoteViewProps) {
+function PrepareCommit({ ops }: NoteViewProps) {
   // refs
   let textAreaRef = useRef<TextAreaRef>(null);
 
@@ -142,15 +141,15 @@ function PrepareCommit({ sizeProps, ops }: NoteViewProps) {
 
   return (
     <Row justify="center" style={{ height: "100%" }}>
-      <Col {...sizeProps.l} />
-      <Col {...sizeProps.c}>
-        {Object.keys(ops).length > 0 ? (
-          renderOps()
-        ) : (
-          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Nothing to commit" />
-        )}
-      </Col>
-      <Col {...sizeProps.r} />
+      <UiRow
+        center={
+          Object.keys(ops).length > 0 ? (
+            renderOps()
+          ) : (
+            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Nothing to commit" />
+          )
+        }
+      />
     </Row>
   );
 }

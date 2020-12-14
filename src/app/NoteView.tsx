@@ -7,7 +7,6 @@ import { Typography } from "antd";
 
 import styled from "@emotion/styled";
 
-import { SizeProps } from "./types_view";
 import { NoEntrySelected } from "./HelperComponents";
 import { UiRow } from "./UiRow";
 
@@ -43,7 +42,6 @@ const Footer = styled.div`
 `;
 
 type NoteViewProps = {
-  sizeProps: SizeProps;
   entry?: Entry;
 };
 
@@ -74,7 +72,7 @@ function convertMarkdown(markdown: string): string {
   return htmlSanitized;
 }
 
-function NoteView({ sizeProps, entry }: NoteViewProps) {
+function NoteView({ entry }: NoteViewProps) {
   const renderEntry = (entry: Entry) => {
     return (
       <>

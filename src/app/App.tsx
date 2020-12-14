@@ -317,20 +317,12 @@ function App() {
   };
 
   // *** Render helpers
-
-  const sizeProps = {
-    l: { md: 3, xl: 6 },
-    c: { md: 18, xl: 12 },
-    r: { md: 3, xl: 6 },
-  };
-
   const renderCenter = () => {
     switch (page) {
       case Page.Main:
         return (
           <Notes
             ref={searchInputRef}
-            sizeProps={sizeProps}
             entries={entries}
             labels={labels}
             onEnterEntry={(i) => {
@@ -341,20 +333,15 @@ function App() {
           />
         );
       case Page.NoteView:
-        return <NoteView sizeProps={sizeProps} entry={activeEntry} />;
+        return <NoteView entry={activeEntry} />;
       case Page.NoteEditor:
         return (
-          <NoteEditor
-            sizeProps={sizeProps}
-            entry={activeEntry}
-            ref={editorRef}
-            onEditorDidMount={onEditorDidMount}
-          />
+          <NoteEditor entry={activeEntry} ref={editorRef} onEditorDidMount={onEditorDidMount} />
         );
       case Page.Commit:
-        return <PrepareCommit sizeProps={sizeProps} ops={stagedGitOps} />;
+        return <PrepareCommit ops={stagedGitOps} />;
       case Page.Settings:
-        return <Settings sizeProps={sizeProps} repos={repos} setRepos={setRepos} />;
+        return <Settings repos={repos} setRepos={setRepos} />;
     }
   };
 

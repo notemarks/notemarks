@@ -8,7 +8,6 @@ import styled from "@emotion/styled";
 import { ScrollContent } from "./HelperComponents";
 import { UiRow } from "./UiRow";
 
-import { SizeProps } from "./types_view";
 import { Entries, EntryKind, Label, LabelCounts } from "./types";
 import * as fn from "./fn_utils";
 import { MutableRef } from "./react_utils";
@@ -155,14 +154,13 @@ const columns: any[] = [
 // ----------------------------------------------------------------------------
 
 type NotesProps = {
-  sizeProps: SizeProps;
   entries: Entries;
   labels: LabelCounts;
   onEnterEntry: (i: number) => void;
 };
 
 const Notes = React.forwardRef(
-  ({ sizeProps, entries, labels, onEnterEntry }: NotesProps, ref: MutableRef<HTMLInputElement>) => {
+  ({ entries, labels, onEnterEntry }: NotesProps, ref: MutableRef<HTMLInputElement>) => {
     // *** Entry filtering
 
     const [filteredEntries, setFilteredEntries] = useState(entries);

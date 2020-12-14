@@ -16,7 +16,6 @@ import {
 
 import styled from "@emotion/styled";
 
-import { SizeProps } from "./types_view";
 import { UiRow } from "./UiRow";
 
 import { Repo, Repos, VerificationStatus, createDefaultInitializedRepo } from "./repo";
@@ -210,12 +209,11 @@ function RepoForm({
 // ----------------------------------------------------------------------------
 
 type SettingsProps = {
-  sizeProps: SizeProps;
   repos: Repos;
   setRepos: (repos: Repos) => void;
 };
 
-function Settings({ sizeProps, repos, setRepos }: SettingsProps) {
+function Settings({ repos, setRepos }: SettingsProps) {
   const addRepo = useCallback(() => {
     let newRepo = createDefaultInitializedRepo(repos.length === 0 ? true : false);
     setRepos([...repos, newRepo]);

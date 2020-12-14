@@ -6,7 +6,6 @@ import * as monacoEditor from "monaco-editor/esm/vs/editor/editor.api";
 
 import styled from "@emotion/styled";
 
-import { SizeProps } from "./types_view";
 import { NoEntrySelected } from "./HelperComponents";
 import { UiRow } from "./UiRow";
 
@@ -71,13 +70,12 @@ export type NoteEditorRef = {
 };
 
 type NoteEditorProps = {
-  sizeProps: SizeProps;
   entry?: Entry;
   onEditorDidMount: () => void;
 };
 
 const NoteEditor = forwardRef(
-  ({ sizeProps, entry, onEditorDidMount }: NoteEditorProps, ref: React.Ref<NoteEditorRef>) => {
+  ({ entry, onEditorDidMount }: NoteEditorProps, ref: React.Ref<NoteEditorRef>) => {
     const editorRef = useRef(undefined as IStandaloneCodeEditor | undefined);
 
     const onEditorDidMountWrapper = (_: () => string, editor: IStandaloneCodeEditor) => {
