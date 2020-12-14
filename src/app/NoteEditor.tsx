@@ -125,6 +125,9 @@ const NoteEditor = forwardRef(
               minimap: {
                 enabled: false,
               },
+              // Doesn't seem to have an effect?
+              // Reference: https://stackoverflow.com/questions/47017753/monaco-editor-dynamically-resizable
+              // automaticLayout: true,
             }}
           />
         </DebugBox>

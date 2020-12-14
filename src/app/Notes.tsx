@@ -436,9 +436,8 @@ type LabelTreeProps = {
 };
 
 const ResponsiveTree = styled(Tree)`
-  // In theory the breakpoint should be 1170 (if it really follows Boostrap breakpoints)
-  // Trial and error has shown that 1197 is more like it...
-  @media not all and (min-width: 1197px) {
+  // This follows the breakpoint that ensures the left hand side is at least 200px
+  @media not all and (min-width: 992px) {
     display: none;
   }
 `;

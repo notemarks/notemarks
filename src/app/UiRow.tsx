@@ -2,47 +2,70 @@ import React from "react";
 
 import styled from "@emotion/styled";
 
-const breakpoints: { [index: string]: number } = {
-  sm: 0,
-  md: 1000,
-  xl: 1400,
-};
+// In general recommended breakpoints from Bootstrap are
+// 576px, 768px, 992px, 1200px
+// https://getbootstrap.com/docs/4.0/layout/overview/#responsive-breakpoints
 
-const mq = Object.keys(breakpoints)
-  .map((key) => [key, breakpoints[key]] as [string, number])
-  .reduce((prev, [key, breakpoint]) => {
-    prev[key] = `@media (min-width: ${breakpoint}px)`;
-    return prev;
-  }, {} as { [index: string]: string });
+// Also see my alternative impl at: https://stackoverflow.com/a/65281378/1804173
+const mq = {
+  xs: "@media (max-width: 576px)",
+  sm: "@media (min-width: 576px)",
+  md: "@media (min-width: 768px)",
+  lg: "@media (min-width: 992px)",
+  xl: "@media (min-width: 1200px)",
+};
 
 const RowContainer = styled.div`
   display: flex;
 `;
 
 const ColL = styled.div`
+  ${mq["xs"]} {
+    flex: 0 0 16px;
+    min-width: 16px;
+  }
   ${mq["sm"]} {
-    display: none;
+    flex: 0 0 16px;
+    min-width: 16px;
+  }
+  ${mq["lg"]} {
+    flex: 1 0 200px;
+    min-width: 200px;
   }
   ${mq["md"]} {
     flex: 1 0 200px;
-    display: block;
+    min-width: 200px;
   }
 `;
 const ColC = styled.div`
+  ${mq["xs"]} {
+    flex: 1 1 576px;
+  }
   ${mq["sm"]} {
-    flex: 1 0 800px;
+    flex: 1 1 576px;
+  }
+  ${mq["md"]} {
+    flex: 1 1 768px;
+  }
+  ${mq["lg"]} {
+    flex: 1 1 992px;
   }
   ${mq["xl"]} {
-    flex: 0 0 1000px;
+    flex: 0 1 1200px;
   }
 `;
 const ColR = styled.div`
+  ${mq["xs"]} {
+    flex: 0 0 16px;
+    min-width: 16px;
+  }
   ${mq["sm"]} {
-    display: none;
+    flex: 0 0 16px;
+    min-width: 16px;
   }
   ${mq["xl"]} {
     flex: 2 0 200px;
-    display: block;
+    min-width: 200px;
   }
 `;
 
