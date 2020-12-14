@@ -1,6 +1,6 @@
 import React, { useRef } from "react";
 
-import { Typography, Row, Col, Button, List, Input, Empty } from "antd";
+import { Typography, Row, Col, Button, List, Input, Empty, Modal } from "antd";
 import { TextAreaRef } from "antd/lib/input/TextArea";
 
 import styled from "@emotion/styled";
@@ -96,16 +96,48 @@ function PrepareCommit({ sizeProps, ops }: NoteViewProps) {
     );
   };
 
-  const onCommit = () => {
+  const onCommit = async () => {
     let commitMsg = "";
     if (textAreaRef.current != null && textAreaRef.current.value != null) {
-      //console.log(textAreaRef.current);
+      // console.log(textAreaRef.current);
       commitMsg = textAreaRef.current.value;
     }
-    console.log(commitMsg);
-    mapMultiRepoGitOpsGrouped(ops, (repo, ops) => {
-      octokit.commit(repo, ops, commitMsg);
-    });
+    // Temporary workaround for https://github.com/ant-design/ant-design/issues/28332
+    if (textAreaRef.current != null && (textAreaRef.current as any)?.state?.value != null) {
+      console.log(textAreaRef.current);
+      let value = (textAreaRef.current as any)?.state?.value;
+      if (typeof value === "string") {
+        commitMsg = value;
+      }
+    }
+    if (commitMsg.trim().length === 0) {
+      Modal.error({
+        title: "Illegal commit message",
+        content: "Commit message must not be empty",
+      });
+    } else {
+      let allResultPromises = mapMultiRepoGitOpsGrouped(ops, (repo, ops) => {
+        return octokit.commit(repo, ops, commitMsg);
+      });
+      let allResults = await Promise.all(allResultPromises);
+      let allSuccessful = allResults.length === allResults.filter((result) => result.isOk()).length;
+      if (allSuccessful) {
+        Modal.success({
+          title: "Success",
+          content: "Changes committed successfully",
+        });
+        // TODO: We need a callback into the main App to mark changes as committed.
+        // In fact, we should probably trigger a refresh to properly update the git
+        // hashes of all files. However, what if the changes don't appear immediately
+        // in a refresh? Perhaps it is even better to consider the local state as
+        // ground truth for the repo state.
+      } else {
+        Modal.error({
+          title: "Failure",
+          content: "Failed to commit some changes. Do you have access to the repository?",
+        });
+      }
+    }
   };
 
   return (
