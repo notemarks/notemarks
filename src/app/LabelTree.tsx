@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef } from "react";
 
 import { Tree } from "antd";
 import { DataNode } from "rc-tree/lib/interface";
@@ -24,6 +24,14 @@ const ResponsiveTree = styled(Tree)`
 
 const FilterStatusWrapper = styled.span`
   position: relative;
+
+  .included {
+    background: hsl(141, 53%, 53%);
+  }
+
+  .excluded {
+    background: hsl(348, 86%, 61%);
+  }
 `;
 
 const FilterStatus = styled.span`
@@ -34,8 +42,8 @@ const FilterStatus = styled.span`
   height: 1rem;
   border-radius: 4px;
 
-  background-color: #e2ebf5;
-  transition: all 1s linear;
+  background: #e2ebf5;
+  transition: all 0.2s linear;
 `;
 
 const LabelCount = styled.span`
@@ -51,29 +59,40 @@ const LabelCount = styled.span`
   overflow: visible;
 `;
 
-function renderLabel(label: Label): DataNode {
-  /*
-  let children =
-    labelCount.label !== "foo" && labelCount.label !== "bar" && labelCount.label[0] === "g"
-      ? [renderLabel({ label: "foo", count: 10 }), renderLabel({ label: "bar", count: 20 })]
-      : [];
-  */
+type RefMap = { [fullName: string]: { element: HTMLElement | null; state: number } };
 
+function renderLabel(
+  label: Label,
+  refMap: RefMap,
+  onClick: (label: Label, selected: boolean) => void
+): DataNode {
   return {
     title: (
       <>
         <FilterStatusWrapper>
-          <FilterStatus />
+          <FilterStatus
+            ref={(ref) => {
+              refMap[label.fullName] = { element: ref, state: 0 };
+            }}
+          />
         </FilterStatusWrapper>
-        <DefaultTag>
+        <DefaultTag
+          onClick={(event) => {
+            onClick(label, true);
+            event.preventDefault();
+          }}
+          onContextMenu={(event) => {
+            onClick(label, false);
+            event.preventDefault();
+          }}
+        >
           {label.baseName}
           <LabelCount>{label.count}</LabelCount>
         </DefaultTag>
       </>
     ),
     key: label.fullName,
-    selectable: false,
-    children: label.children.map((subLabel) => renderLabel(subLabel)),
+    children: label.children.map((subLabel) => renderLabel(subLabel, refMap, onClick)),
   };
 }
 
@@ -84,9 +103,44 @@ type LabelTreeProps = {
 export const LabelTree = React.memo(({ labels }: LabelTreeProps) => {
   // *** Label tree data
 
-  const treeData = labels.map((labelCount) => renderLabel(labelCount));
+  let labelTagRefs = useRef({} as RefMap);
 
-  return <ResponsiveTree treeData={treeData} selectable={false} />;
+  function onClick(label: Label, selected: boolean) {
+    let ref = labelTagRefs.current[label.fullName];
+    if (ref != null && ref.element != null) {
+      if (selected) {
+        if (ref.state < 0) {
+          ref.element.classList.remove("excluded");
+          ref.element.classList.add("included");
+          ref.state = 1;
+        } else if (ref.state === 0) {
+          ref.element.classList.add("included");
+          ref.state = 1;
+        } else {
+          ref.element.classList.remove("included");
+          ref.state = 0;
+        }
+      } else {
+        if (ref.state > 0) {
+          ref.element.classList.remove("included");
+          ref.element.classList.add("excluded");
+          ref.state = -1;
+        } else if (ref.state === 0) {
+          ref.element.classList.add("excluded");
+          ref.state = -1;
+        } else {
+          ref.element.classList.remove("excluded");
+          ref.state = 0;
+        }
+      }
+    }
+  }
+
+  const treeData = labels.map((labelCount) =>
+    renderLabel(labelCount, labelTagRefs.current, onClick)
+  );
+
+  return <ResponsiveTree treeData={treeData} selectable={false} checkable={false} />;
 });
 
 export default LabelTree;

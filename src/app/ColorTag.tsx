@@ -22,4 +22,7 @@ export const DefaultTag = styled(Tag)`
   color: whitesmoke;
   background: #464648;
   border-color: #111;
+
+  // To prevent double click selection: https://stackoverflow.com/a/7018415/1804173
+  user-select: none;
 `;
