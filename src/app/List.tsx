@@ -11,6 +11,7 @@ import { LabelTree } from "./LabelTree";
 import { DefaultTag } from "./ColorTag";
 
 import { Entries, EntryKind, Label, Labels } from "./types";
+import { doesLabelMatchLabels } from "./label_utils";
 import * as fn from "./fn_utils";
 import { MutableRef } from "./react_utils";
 
@@ -21,10 +22,10 @@ export function splitSearchTerms(s: string): string[] {
     .filter((term) => term.length > 0);
 }
 
-type LabelFilter = { label: Label; state: number };
-type LabelFilters = LabelFilter[];
+export type LabelFilter = { label: Label; state: number };
+export type LabelFilters = LabelFilter[];
 
-export function titleMatchesSearchTerms(title: string, searchTerms: string[]): boolean {
+export function checkMatchingTitle(title: string, searchTerms: string[]): boolean {
   // Currently we require all terms to match. Is there a use case for an `OR` mode?
   let matchesAll = true;
   for (let searchTerm of searchTerms) {
@@ -37,22 +38,21 @@ export function titleMatchesSearchTerms(title: string, searchTerms: string[]): b
   return matchesAll;
 }
 
-export function labelsMatchFilterLabels(labels: string[], labelFilters: LabelFilters): boolean {
-  let matchesAll = true;
-  for (let labelFilter of labelFilters) {
-    let matchesAny = false;
-    for (let label of labels) {
-      if (label.startsWith(labelFilter.label.fullName)) {
-        // TODO proper condition
-        matchesAny = true;
-      }
-    }
-    // TODO exclusions
-    if (!matchesAny) {
-      matchesAll = false;
-    }
-  }
-  return matchesAll;
+export function checkMatchingLabels(labels: string[], labelFilters: LabelFilters): boolean {
+  let requiredLabels = labelFilters
+    .filter((filter) => filter.state > 0)
+    .map((filter) => filter.label.fullName);
+  let forbiddenLabels = labelFilters
+    .filter((filter) => filter.state < 0)
+    .map((filter) => filter.label.fullName);
+
+  let allRequired = requiredLabels.every((requiredLabel) =>
+    doesLabelMatchLabels(requiredLabel, labels)
+  );
+  let anyForbidden = forbiddenLabels.some((forbiddenLabel) =>
+    doesLabelMatchLabels(forbiddenLabel, labels)
+  );
+  return allRequired && !anyForbidden;
 }
 
 export function filterEntries(
@@ -62,9 +62,9 @@ export function filterEntries(
 ): Entries {
   let filteredEntries = [];
   for (let entry of entries) {
-    let searchTermsMatch = titleMatchesSearchTerms(entry.title, searchTerms);
-    let filterLabelsMatch = labelsMatchFilterLabels(entry.labels, labelFilters);
-    if (searchTermsMatch && filterLabelsMatch) {
+    let matchingTitle = checkMatchingTitle(entry.title, searchTerms);
+    let matchingLabels = checkMatchingLabels(entry.labels, labelFilters);
+    if (matchingTitle && matchingLabels) {
       filteredEntries.push(entry);
     }
   }
@@ -195,16 +195,14 @@ const columns: any[] = [
 // Notes
 // ----------------------------------------------------------------------------
 
-type NotesProps = {
+type ListProps = {
   entries: Entries;
   labels: Labels;
   onEnterEntry: (i: number) => void;
 };
 
-const Notes = React.forwardRef(
-  ({ entries, labels, onEnterEntry }: NotesProps, ref: MutableRef<HTMLInputElement>) => {
-    // *** Entry filtering
-
+const List = React.forwardRef(
+  ({ entries, labels, onEnterEntry }: ListProps, ref: MutableRef<HTMLInputElement>) => {
     const [filteredEntries, setFilteredEntries] = useState(entries);
     const [searchStats, setSearchStats] = useState({ totalMatchingEntries: entries.length });
     const [numVisibleEntries, setNumVisibleEntries] = useState(20);
@@ -473,4 +471,4 @@ const CustomTable = React.memo(({ entries, highlighted, onEnterEntry }: CustomTa
   }
 });
 
-export default Notes;
+export default List;

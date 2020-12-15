@@ -1,6 +1,43 @@
 import { Entries, Label, Labels } from "./types";
 import * as fn from "./fn_utils";
 
+export function newLabel(fullName: string): Label {
+  return {
+    fullName,
+    baseName: getBaseName(fullName),
+    count: 0,
+    children: [],
+    priority: 0,
+  };
+}
+
+export function getBaseName(fullName: string): string {
+  let components = fullName.split("/");
+  return components[components.length - 1];
+}
+
+export function matchesOrIsSublabel(queryLabel: string, referenceLabel: string): boolean {
+  if (queryLabel === referenceLabel) {
+    return true;
+  } else {
+    let queryComponents = queryLabel.split("/");
+    let referenceComponents = referenceLabel.split("/");
+    if (queryComponents.length > referenceComponents.length) {
+      return false;
+    }
+    for (let i = 0; i < queryComponents.length; ++i) {
+      if (queryComponents[i] !== referenceComponents[i]) {
+        return false;
+      }
+    }
+    return true;
+  }
+}
+
+export function doesLabelMatchLabels(queryLabel: string, labels: string[]): boolean {
+  return labels.some((referenceLabel) => matchesOrIsSublabel(queryLabel, referenceLabel));
+}
+
 export function iterateSubLabels(
   label: string,
   func: (baseName: string, fullName: string, parents: string[]) => void
@@ -13,6 +50,10 @@ export function iterateSubLabels(
     func(baseName, fullName, location);
   }
 }
+
+// ----------------------------------------------------------------------------
+// Helper for extractLabels
+// ----------------------------------------------------------------------------
 
 export type Stats = {
   count: number;

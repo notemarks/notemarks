@@ -1,6 +1,7 @@
 import { Labels, Entry, EntryKind } from "./types";
 import { VerificationStatus } from "./repo";
 import {
+  matchesOrIsSublabel,
   extractStatsMap,
   convertStatsMapToLabelArray,
   extractLabels,
@@ -32,6 +33,22 @@ function createDummyEntry(labels: string[]): Entry {
     key: `${date}`,
   };
 }
+
+// ----------------------------------------------------------------------------
+// matchesOrIsSublabel
+// ----------------------------------------------------------------------------
+
+test("matchesOrIsSublabel", () => {
+  expect(matchesOrIsSublabel("foo", "bar")).toEqual(false);
+  expect(matchesOrIsSublabel("foo", "foobar")).toEqual(false);
+  expect(matchesOrIsSublabel("foo", "bar/foo")).toEqual(false);
+  expect(matchesOrIsSublabel("foo/bar", "foo")).toEqual(false);
+
+  expect(matchesOrIsSublabel("foo", "foo")).toEqual(true);
+  expect(matchesOrIsSublabel("foo", "foo/bar")).toEqual(true);
+  expect(matchesOrIsSublabel("foo/bar", "foo/bar")).toEqual(true);
+  expect(matchesOrIsSublabel("foo/bar", "foo/bar/baz")).toEqual(true);
+});
 
 // ----------------------------------------------------------------------------
 // extractStatsMap
