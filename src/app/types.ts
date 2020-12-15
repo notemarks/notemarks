@@ -34,8 +34,6 @@ export type LabelCounts = LabelCount[]
 
 */
 
-export type Label = string;
-
 export enum EntryKind {
   NoteMarkdown = "NoteMarkdown",
   Link = "Link",
@@ -72,7 +70,7 @@ export type Entry = {
   extension: string;
   entryKind: EntryKind;
   // From meta data:
-  labels: Label[];
+  labels: string[];
   timeCreated: Date;
   timeUpdated: Date;
   // From file content (optional):
@@ -87,8 +85,12 @@ export type Entry = {
 
 export type Entries = Entry[];
 
-export type LabelCount = {
-  label: Label;
+export type Label = {
+  baseName: string;
+  fullName: string;
   count: number;
+  children: Labels;
+  priority: number;
 };
-export type LabelCounts = LabelCount[];
+
+export type Labels = Label[];

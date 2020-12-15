@@ -22,8 +22,9 @@ import mousetrap from "mousetrap";
 import { useEffectOnce } from "./react_utils";
 import { UiRow } from "./UiRow";
 
-import { Entry, Entries, LabelCounts } from "./types";
+import { Entry, Entries, Labels } from "./types";
 import * as entry_utils from "./entry_utils";
+import * as label_utils from "./label_utils";
 import * as repo_utils from "./repo";
 import type { Repos } from "./repo";
 import * as git_ops from "./git_ops";
@@ -141,7 +142,7 @@ function App() {
     // TODO: Decide if these "double updates" are a problem.
     // See: https://stackoverflow.com/q/53574614/1804173
     setEntries(newEntries);
-    setLabels(entry_utils.getLabelCounts(newEntries));
+    setLabels(label_utils.extractLabels(newEntries));
     setIsReloading(false);
   }
 
@@ -169,7 +170,7 @@ function App() {
   // *** Entries state
 
   let [entries, setEntries] = useState([] as Entries);
-  let [labels, setLabels] = useState([] as LabelCounts);
+  let [labels, setLabels] = useState([] as Labels);
 
   let [stagedGitOps, setStagedGitOps] = useState({} as MultiRepoGitOps);
 

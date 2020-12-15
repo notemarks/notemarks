@@ -1,4 +1,3 @@
-/* eslint-disable jest/no-conditional-expect */
 import * as fn_utils from "./fn_utils";
 
 test("mapEntries", () => {

@@ -10,7 +10,7 @@ import { UiRow } from "./UiRow";
 import { LabelTree } from "./LabelTree";
 import { DefaultTag } from "./ColorTag";
 
-import { Entries, EntryKind, Label, LabelCounts } from "./types";
+import { Entries, EntryKind, Labels } from "./types";
 import * as fn from "./fn_utils";
 import { MutableRef } from "./react_utils";
 
@@ -157,7 +157,7 @@ const columns: any[] = [
 
 type NotesProps = {
   entries: Entries;
-  labels: LabelCounts;
+  labels: Labels;
   onEnterEntry: (i: number) => void;
 };
 
@@ -395,7 +395,7 @@ function renderEntryKindSymbol(entryKind: EntryKind) {
   }
 }
 
-function renderLabels(labels: Label[]) {
+function renderLabels(labels: string[]) {
   return labels.map((label, i) => <DefaultTag key={label}>{label}</DefaultTag>);
 }
 

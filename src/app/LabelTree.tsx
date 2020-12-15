@@ -7,7 +7,7 @@ import styled from "@emotion/styled";
 
 import { DefaultTag } from "./ColorTag";
 
-import { LabelCount, LabelCounts } from "./types";
+import { Label, Labels } from "./types";
 
 /*
 // ----------------------------------------------------------------------------
@@ -38,7 +38,7 @@ const FilterStatus = styled.span`
   transition: all 1s linear;
 `;
 
-const LabelCountEl = styled.span`
+const LabelCount = styled.span`
   position: relative;
   bottom: -0.25em;
   margin-left: 0.3rem;
@@ -51,11 +51,13 @@ const LabelCountEl = styled.span`
   overflow: visible;
 `;
 
-function renderLabel(labelCount: LabelCount): DataNode {
+function renderLabel(label: Label): DataNode {
+  /*
   let children =
     labelCount.label !== "foo" && labelCount.label !== "bar" && labelCount.label[0] === "g"
       ? [renderLabel({ label: "foo", count: 10 }), renderLabel({ label: "bar", count: 20 })]
       : [];
+  */
 
   return {
     title: (
@@ -64,19 +66,19 @@ function renderLabel(labelCount: LabelCount): DataNode {
           <FilterStatus />
         </FilterStatusWrapper>
         <DefaultTag>
-          {labelCount.label}
-          <LabelCountEl>{labelCount.count}</LabelCountEl>
+          {label.baseName}
+          <LabelCount>{label.count}</LabelCount>
         </DefaultTag>
       </>
     ),
-    key: labelCount.label,
+    key: label.fullName,
     selectable: false,
-    children: children,
+    children: label.children.map((subLabel) => renderLabel(subLabel)),
   };
 }
 
 type LabelTreeProps = {
-  labels: LabelCounts;
+  labels: Labels;
 };
 
 export const LabelTree = React.memo(({ labels }: LabelTreeProps) => {
