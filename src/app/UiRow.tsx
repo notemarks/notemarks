@@ -28,10 +28,6 @@ const ColL = styled.div`
     flex: 0 0 16px;
     min-width: 16px;
   }
-  ${mq["lg"]} {
-    flex: 1 0 200px;
-    min-width: 200px;
-  }
   ${mq["md"]} {
     flex: 1 0 200px;
     min-width: 200px;

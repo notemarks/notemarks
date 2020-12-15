@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from "react";
 
-import { Tag, Input, Row, Tree, Button, Empty } from "antd";
+import { Input, Row, Button, Empty } from "antd";
 import { EditOutlined, GlobalOutlined, LinkOutlined, DownOutlined } from "@ant-design/icons";
 
 import styled from "@emotion/styled";
 
 import { ScrollContent } from "./HelperComponents";
 import { UiRow } from "./UiRow";
+import { LabelTree } from "./LabelTree";
+import { DefaultTag } from "./ColorTag";
 
 import { Entries, EntryKind, Label, LabelCounts } from "./types";
 import * as fn from "./fn_utils";
@@ -394,11 +396,7 @@ function renderEntryKindSymbol(entryKind: EntryKind) {
 }
 
 function renderLabels(labels: Label[]) {
-  return labels.map((label, i) => (
-    <Tag key={label} color="green">
-      {label}
-    </Tag>
-  ));
+  return labels.map((label, i) => <DefaultTag key={label}>{label}</DefaultTag>);
 }
 
 const CustomTable = React.memo(({ entries, highlighted, onEnterEntry }: CustomTableProps) => {
@@ -423,47 +421,6 @@ const CustomTable = React.memo(({ entries, highlighted, onEnterEntry }: CustomTa
       </PseudoTable>
     );
   }
-});
-
-// ----------------------------------------------------------------------------
-// Label tree
-// ----------------------------------------------------------------------------
-
-type LabelTreeProps = {
-  labels: LabelCounts;
-};
-
-const ResponsiveTree = styled(Tree)`
-  // This follows the breakpoint that ensures the left hand side is at least 200px
-  @media not all and (min-width: 768px) {
-    display: none;
-  }
-`;
-
-const LabelTree = React.memo(({ labels }: LabelTreeProps) => {
-  // *** Label tree data
-
-  const treeData = labels.map((labelCount) => {
-    return {
-      title: labelCount.label + " (" + labelCount.count + ")",
-      key: labelCount.label,
-    };
-  });
-
-  return (
-    <ResponsiveTree
-      treeData={treeData}
-      selectable={false}
-      titleRender={(data) => <Tag>{data.title}</Tag>}
-    />
-    /*
-    {labels.map((label) => (
-      <div key={label.label}>
-        <Tag>{label.label}</Tag>
-      </div>
-    ))}
-    */
-  );
 });
 
 export default Notes;
