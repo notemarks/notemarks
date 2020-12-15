@@ -72,7 +72,9 @@ function renderLabel(
         <FilterStatusWrapper>
           <FilterStatus
             ref={(ref) => {
-              refMap[label.fullName] = { element: ref, state: 0 };
+              // Note that if there is already an existing ref with state, we have to
+              // take over its state so that the initialized state here matches the DOM.
+              refMap[label.fullName] = { element: ref, state: refMap[label.fullName]?.state || 0 };
             }}
           />
         </FilterStatusWrapper>
@@ -98,39 +100,47 @@ function renderLabel(
 
 type LabelTreeProps = {
   labels: Labels;
+  onSetLabelFilter: (label: Label, state: number) => void;
 };
 
-export const LabelTree = React.memo(({ labels }: LabelTreeProps) => {
-  // *** Label tree data
+export const LabelTree = React.memo(({ labels, onSetLabelFilter }: LabelTreeProps) => {
+  // console.log("Rendering: LabelTree");
 
   let labelTagRefs = useRef({} as RefMap);
 
   function onClick(label: Label, selected: boolean) {
     let ref = labelTagRefs.current[label.fullName];
+    // console.log(ref);
     if (ref != null && ref.element != null) {
       if (selected) {
         if (ref.state < 0) {
           ref.element.classList.remove("excluded");
           ref.element.classList.add("included");
           ref.state = 1;
+          onSetLabelFilter(label, 1);
         } else if (ref.state === 0) {
           ref.element.classList.add("included");
           ref.state = 1;
+          onSetLabelFilter(label, 1);
         } else {
           ref.element.classList.remove("included");
           ref.state = 0;
+          onSetLabelFilter(label, 0);
         }
       } else {
         if (ref.state > 0) {
           ref.element.classList.remove("included");
           ref.element.classList.add("excluded");
           ref.state = -1;
+          onSetLabelFilter(label, -1);
         } else if (ref.state === 0) {
           ref.element.classList.add("excluded");
           ref.state = -1;
+          onSetLabelFilter(label, -1);
         } else {
           ref.element.classList.remove("excluded");
           ref.state = 0;
+          onSetLabelFilter(label, 0);
         }
       }
     }

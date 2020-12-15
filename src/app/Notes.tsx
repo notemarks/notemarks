@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 
 import { Input, Row, Button, Empty } from "antd";
 import { EditOutlined, GlobalOutlined, LinkOutlined, DownOutlined } from "@ant-design/icons";
@@ -10,7 +10,7 @@ import { UiRow } from "./UiRow";
 import { LabelTree } from "./LabelTree";
 import { DefaultTag } from "./ColorTag";
 
-import { Entries, EntryKind, Labels } from "./types";
+import { Entries, EntryKind, Label, Labels } from "./types";
 import * as fn from "./fn_utils";
 import { MutableRef } from "./react_utils";
 
@@ -21,27 +21,67 @@ export function splitSearchTerms(s: string): string[] {
     .filter((term) => term.length > 0);
 }
 
-export function filterEntries(entries: Entries, searchTerms: string[]): Entries {
+type LabelFilter = { label: Label; state: number };
+type LabelFilters = LabelFilter[];
+
+export function titleMatchesSearchTerms(title: string, searchTerms: string[]): boolean {
+  // Currently we require all terms to match. Is there a use case for an `OR` mode?
+  let matchesAll = true;
+  for (let searchTerm of searchTerms) {
+    // Note: search terms are normalized, i.e. don't need toLowerCase().
+    // Possible performance optimization: Cache entry.title.toLowerCase()?
+    if (!title.toLowerCase().includes(searchTerm)) {
+      matchesAll = false;
+    }
+  }
+  return matchesAll;
+}
+
+export function labelsMatchFilterLabels(labels: string[], labelFilters: LabelFilters): boolean {
+  let matchesAll = true;
+  for (let labelFilter of labelFilters) {
+    let matchesAny = false;
+    for (let label of labels) {
+      if (label.startsWith(labelFilter.label.fullName)) {
+        // TODO proper condition
+        matchesAny = true;
+      }
+    }
+    // TODO exclusions
+    if (!matchesAny) {
+      matchesAll = false;
+    }
+  }
+  return matchesAll;
+}
+
+export function filterEntries(
+  entries: Entries,
+  searchTerms: string[],
+  labelFilters: LabelFilters
+): Entries {
   let filteredEntries = [];
   for (let entry of entries) {
-    if (searchTerms.length === 0) {
+    let searchTermsMatch = titleMatchesSearchTerms(entry.title, searchTerms);
+    let filterLabelsMatch = labelsMatchFilterLabels(entry.labels, labelFilters);
+    if (searchTermsMatch && filterLabelsMatch) {
       filteredEntries.push(entry);
-    } else {
-      // Currently we require all terms to match. Is there a use case for an `OR` mode?
-      let matchesAll = true;
-      for (let searchTerm of searchTerms) {
-        // Note: search terms are normalized, i.e. don't need toLowerCase().
-        // Possible performance optimization: Cache entry.title.toLowerCase()?
-        if (!entry.title.toLowerCase().includes(searchTerm)) {
-          matchesAll = false;
-        }
-      }
-      if (matchesAll) {
-        filteredEntries.push(entry);
-      }
     }
   }
   return filteredEntries;
+}
+
+function computeNewLabelFilters(oldFilters: LabelFilters, newLabel: Label, newState: number) {
+  let newFilters: LabelFilters = oldFilters.filter(
+    (oldFilter) => newLabel.fullName !== oldFilter.label.fullName
+  );
+  if (newState !== 0) {
+    newFilters.push({
+      label: newLabel,
+      state: newState,
+    });
+  }
+  return newFilters;
 }
 
 /*
@@ -169,13 +209,15 @@ const Notes = React.forwardRef(
     const [searchStats, setSearchStats] = useState({ totalMatchingEntries: entries.length });
     const [numVisibleEntries, setNumVisibleEntries] = useState(20);
     const [selectedIndex, setSelectedIndex] = useState(-1);
+
     const [searchTerms, setSearchTerms] = useState<string[]>([]);
+    const [labelFilters, setLabelFilters] = useState<LabelFilters>([]);
 
     useEffect(() => {
-      let newFilteredEntries = filterEntries(entries, searchTerms);
+      let newFilteredEntries = filterEntries(entries, searchTerms, labelFilters);
       setSearchStats({ totalMatchingEntries: newFilteredEntries.length });
       setFilteredEntries(newFilteredEntries.slice(0, numVisibleEntries));
-    }, [entries, numVisibleEntries, searchTerms]);
+    }, [entries, numVisibleEntries, searchTerms, labelFilters]);
 
     // Note that it is probably necessary to keep this separate from the entry filtering effect above.
     // Issues with merging the two:
@@ -252,7 +294,8 @@ const Notes = React.forwardRef(
       }
     }
 
-    // *** render help
+    // *** render helper
+
     const renderExpandButton = () => {
       if (searchStats.totalMatchingEntries > filteredEntries.length) {
         return (
@@ -280,6 +323,13 @@ const Notes = React.forwardRef(
       }
     };
 
+    const onSetLabelFilter = useCallback(
+      (label, state) => {
+        setLabelFilters((labelFilters) => computeNewLabelFilters(labelFilters, label, state));
+      },
+      [setLabelFilters]
+    );
+
     return (
       <Container>
         <UiRow
@@ -305,7 +355,7 @@ const Notes = React.forwardRef(
         <StretchedUiRow
           left={
             <ScrollContent>
-              <LabelTree labels={labels} />
+              <LabelTree labels={labels} onSetLabelFilter={onSetLabelFilter} />
             </ScrollContent>
           }
           center={
