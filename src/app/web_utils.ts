@@ -20,14 +20,24 @@ function getYouTubeTitle(text: string) {
   }
 }
 
-// inspired by: https://gist.github.com/jbinto/119c3f0e5735ab73faaa
+export const fetchBody = async (url: string) => {
+  const response = await fetch(url);
+  const html = await response.text();
+  return html;
+};
+
+export const fetchBodyProxied = async (url: string) => {
+  // TODO: Eventually we should really run our own proxy.
+  let urlProxied = `https://cors-anywhere.herokuapp.com/${url
+    .replace("http://", "")
+    .replace("https://", "")}`;
+  return fetchBody(urlProxied);
+};
+
+// Inspired by: https://gist.github.com/jbinto/119c3f0e5735ab73faaa
 export const getTitle = async (url: string) => {
   try {
-    if (!(url.startsWith("http:") || url.startsWith("https:"))) {
-      url = "http://" + url;
-    }
-    const response = await fetch(url);
-    const html = await response.text();
+    const html = await fetchBodyProxied(url);
 
     let domain = getDomain(url);
 
