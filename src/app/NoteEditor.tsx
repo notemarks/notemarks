@@ -11,6 +11,8 @@ import { UiRow } from "./UiRow";
 
 import { Entry } from "./types";
 import * as fn from "./fn_utils";
+import * as clipboard_utils from "./clipboard_utils";
+import * as web_utils from "./web_utils";
 
 type IStandaloneCodeEditor = monacoEditor.editor.IStandaloneCodeEditor;
 
@@ -50,8 +52,52 @@ In retrospect: Since there is a editorDidMount callback anyway that gets the
 editor instance, and we need to bubble the callback up to the main app e.g.
 for cursor restoring, we might as well drop the forwardRef mechanism and
 pass that ref up via the callback manually?
-
 */
+
+async function handlePasteLink(editor: monacoEditor.editor.ICodeEditor) {
+  let clipboardText = await clipboard_utils.getClipboardText();
+  console.log("clipboard text:", clipboardText);
+  if (clipboardText == null) {
+    // We cannot get the clipboard text. At least try to run the paste command
+    // to get the clipboard content into the editor without any processing.
+    document.execCommand("paste");
+    return;
+  }
+
+  // try to request a title from clipboard text
+  let title = await web_utils.getTitle(clipboardText);
+
+  console.log("title is:", title);
+  if (title === undefined) {
+    title = "";
+  }
+
+  var selection = editor.getSelection();
+  // console.log(selection);
+  if (selection !== null) {
+    var range = new monacoEditor.Range(
+      selection.startLineNumber,
+      selection.startColumn,
+      selection.endLineNumber,
+      selection.endColumn
+    );
+    var id = { major: 1, minor: 1 };
+    var text = `[${title}](${clipboardText})`;
+    var op = {
+      identifier: id,
+      range: range,
+      text: text,
+      forceMoveMarkers: true,
+    };
+    let newSelection = new monacoEditor.Selection(
+      selection.startLineNumber,
+      selection.startColumn + 1 + title.length,
+      selection.startLineNumber,
+      selection.startColumn + 1
+    );
+    editor.executeEdits("paste-link", [op], [newSelection]);
+  }
+}
 
 const DebugBox = styled.div`
   height: 100%;
@@ -78,7 +124,26 @@ const NoteEditor = forwardRef(
   ({ entry, onEditorDidMount }: NoteEditorProps, ref: React.Ref<NoteEditorRef>) => {
     const editorRef = useRef(undefined as IStandaloneCodeEditor | undefined);
 
+    // https://microsoft.github.io/monaco-editor/playground.html#interacting-with-the-editor-adding-an-action-to-an-editor-instance
     const onEditorDidMountWrapper = (_: () => string, editor: IStandaloneCodeEditor) => {
+      editor.addAction({
+        // An unique identifier of the contributed action.
+        id: "link-paste",
+        // A label of the action that will be presented to the user.
+        label: "Link paste",
+        // An optional array of keybindings for the action.
+        keybindings: [
+          monacoEditor.KeyMod.CtrlCmd | monacoEditor.KeyMod.Shift | monacoEditor.KeyCode.KEY_V,
+        ],
+        contextMenuGroupId: "navigation",
+        contextMenuOrder: 1.5,
+        // Method that will be executed when the action is triggered.
+        // @param editor The editor instance is passed in as a convenience
+        run: function (editor) {
+          handlePasteLink(editor);
+        },
+      });
+
       editorRef.current = editor;
       onEditorDidMount();
     };

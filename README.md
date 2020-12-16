@@ -9,14 +9,15 @@
 
 - Easy search: Title + easy label search via inclusion/exclusion
 
-
 - Paste links with title
+
 
 ## Planned features
 
 ### Short term
 
 - Rename/Move entries + label editing
+- Add dialog
 - GitHub credential encryption
 - Login mechanism
 - Embedding images via paste
@@ -31,6 +32,14 @@
 - Priority system for labels to allow for custom sorting
 - Dynamically update label counts in tree view depending on selection
 - Full text search, perhaps with fuzziness
+- "Unlabeled" Label
+- Labels inferred from file location
+- Modifyable label colors
+- Time as a label for publications
+- .notemarksignore file
+- Multiple note rendering styles
+- More per-note preferences like Markdown flavor, encryption
+- Note encryption
 
 ### Longer term
 
