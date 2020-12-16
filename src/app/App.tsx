@@ -31,7 +31,7 @@ import * as git_ops from "./git_ops";
 import type { MultiRepoGitOps } from "./git_ops";
 import { loadEntries } from "./octokit";
 
-import Notes from "./List";
+import List from "./List";
 import NoteView from "./NoteView";
 import NoteEditor, { NoteEditorRef } from "./NoteEditor";
 import PrepareCommit from "./PrepareCommit";
@@ -330,7 +330,7 @@ function App() {
     switch (page) {
       case Page.Main:
         return (
-          <Notes
+          <List
             ref={searchInputRef}
             entries={entries}
             labels={labels}
