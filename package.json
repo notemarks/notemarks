@@ -65,6 +65,6 @@
   "devDependencies": {
     "prettier": "2.2.1"
   },
-  "homepage": "https://notemarks.github.io/notemarks-web/"
+  "homepage": "./"
 
 }
