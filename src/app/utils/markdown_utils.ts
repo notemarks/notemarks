@@ -27,3 +27,19 @@ export function convertMarkdown(markdown: string): string {
 
   return htmlSanitized;
 }
+
+export function extractLinks(html: string): string[] {
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const htmlLinks = doc.querySelectorAll("a");
+
+  const links = [] as string[];
+
+  htmlLinks.forEach((htmlLink) => {
+    let href = htmlLink.getAttribute("href");
+    if (href != null) {
+      links.push(href);
+    }
+  });
+
+  return links;
+}

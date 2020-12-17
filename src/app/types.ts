@@ -41,6 +41,12 @@ export enum EntryKind {
 }
 
 /*
+export type NoteContent {
+
+}
+*/
+
+/*
 Design questions regarding Entry fields
 ---------------------------------------
 
