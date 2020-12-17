@@ -462,7 +462,7 @@ const CustomTable = React.memo(({ entries, highlighted, onEnterEntry }: CustomTa
             }}
           >
             <TitleWrapper>{entry.title}</TitleWrapper>
-            <SymbolWrapper>{renderEntryKindSymbol(entry.entryKind)}</SymbolWrapper>
+            <SymbolWrapper>{renderEntryKindSymbol(entry.content.kind)}</SymbolWrapper>
             <LabelsWrapper>{renderLabels(entry.labels)}</LabelsWrapper>
           </PseudoTableRow>
         ))}

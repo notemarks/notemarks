@@ -21,8 +21,8 @@ const entryKindNumericValues = {
 
 export function sortAndIndexEntries(entries: Entries) {
   entries.sort((a, b) => {
-    if (a.entryKind !== b.entryKind) {
-      return entryKindNumericValues[a.entryKind] - entryKindNumericValues[b.entryKind];
+    if (a.content.kind !== b.content.kind) {
+      return entryKindNumericValues[a.content.kind] - entryKindNumericValues[b.content.kind];
     } else {
       return a.title.toLowerCase().localeCompare(b.title.toLowerCase());
     }

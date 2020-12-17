@@ -57,7 +57,6 @@ export type Entry = {
   // General fields
   repo: Repo;
   // Common props
-  entryKind: EntryKind;
   title: string;
   priority: number;
   labels: string[];

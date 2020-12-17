@@ -21,7 +21,6 @@ function createDummyEntry(labels: string[]): Entry {
       default: true,
       verified: VerificationStatus.unknown,
     },
-    entryKind: EntryKind.NoteMarkdown,
     title: "title",
     priority: 0,
     labels: labels,

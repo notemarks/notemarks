@@ -386,7 +386,6 @@ async function loadEntry(
 
     return ok({
       repo: repo,
-      entryKind: entryKind,
       title: title,
       priority: 0,
       labels: metaData.labels,
