@@ -6,14 +6,17 @@ export const NOTEMARKS_FOLDER = ".notemarks";
 // General path helper
 // ----------------------------------------------------------------------------
 
-export function getEntryKind(path: string): EntryKind {
+export enum FileKind {
+  NoteMarkdown = "NoteMarkdown",
+  Document = "Document",
+}
+
+export function getFileKind(path: string): FileKind {
   let extension = path.split(".").pop()?.toLowerCase();
   if (extension === "md") {
-    return EntryKind.NoteMarkdown;
-  } else if (extension === "desktop") {
-    return EntryKind.Link;
+    return FileKind.NoteMarkdown;
   } else {
-    return EntryKind.Document;
+    return FileKind.Document;
   }
 }
 

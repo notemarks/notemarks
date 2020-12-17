@@ -16,6 +16,7 @@ import { Repo, Repos } from "./repo";
 import { GitOp } from "./git_ops";
 import { Content, Entry, EntryKind } from "./types";
 import * as date_utils from "./utils/date_utils";
+import { FileKind } from "./utils/path_utils";
 import * as path_utils from "./utils/path_utils";
 
 // ----------------------------------------------------------------------------
@@ -325,12 +326,12 @@ async function loadEntry(
   meta: File | undefined,
   stagedChanges: StagedChange[]
 ): Promise<Result<Entry, Error>> {
-  // Determine entry kind
-  let entryKind = path_utils.getEntryKind(file.path);
+  // Determine file kind
+  let fileKind = path_utils.getFileKind(file.path);
 
   // Optionally fetch entry content
   let entryContent: Result<string, Error> | undefined = undefined;
-  if (entryKind !== EntryKind.Document) {
+  if (fileKind !== FileKind.Document) {
     entryContent = await cachedFetch(octokit, repo, file.path, file.sha);
   }
 
@@ -360,27 +361,27 @@ async function loadEntry(
     let [location, title, extension] = path_utils.splitLocationTitleExtension(file.path);
 
     let content: Content;
-    if (entryKind === EntryKind.Link) {
-      // TODO: We need a special FileKind here to skip this case...
-      return err(new Error("Cannot handle link"));
-    } else if (entryKind === EntryKind.Document) {
+    // Regarding double enum conversion
+    // https://stackoverflow.com/a/42623905/1804173
+    // https://stackoverflow.com/questions/55377365/what-does-keyof-typeof-mean-in-typescript
+    if (fileKind === FileKind.NoteMarkdown) {
       content = {
-        kind: entryKind,
-        location: location,
-        extension: extension,
-        timeCreated: metaData.timeCreated as Date,
-        timeUpdated: metaData.timeUpdated as Date,
-        rawUrl: file.rawUrl,
-      };
-    } else {
-      content = {
-        kind: entryKind,
+        kind: (fileKind as keyof typeof FileKind) as EntryKind.NoteMarkdown,
         location: location,
         extension: extension,
         timeCreated: metaData.timeCreated as Date,
         timeUpdated: metaData.timeUpdated as Date,
         rawUrl: file.rawUrl,
         text: entryContent?.value || "",
+      };
+    } else {
+      content = {
+        kind: (fileKind as keyof typeof FileKind) as EntryKind.Document,
+        location: location,
+        extension: extension,
+        timeCreated: metaData.timeCreated as Date,
+        timeUpdated: metaData.timeUpdated as Date,
+        rawUrl: file.rawUrl,
       };
     }
 
