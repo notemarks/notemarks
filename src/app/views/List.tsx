@@ -5,15 +5,15 @@ import { EditOutlined, GlobalOutlined, LinkOutlined, DownOutlined } from "@ant-d
 
 import styled from "@emotion/styled";
 
-import { ScrollContent } from "./HelperComponents";
-import { UiRow } from "./UiRow";
-import { LabelTree } from "./LabelTree";
-import { DefaultTag } from "./ColorTag";
+import { ScrollContent } from "../components/HelperComponents";
+import { UiRow } from "../components/UiRow";
+import { LabelTree } from "../components/LabelTree";
+import { DefaultTag } from "../components/ColorTag";
 
-import { Entries, EntryKind, Label, Labels } from "./types";
-import { doesLabelMatchLabels } from "./label_utils";
-import * as fn from "./fn_utils";
-import { MutableRef } from "./react_utils";
+import { Entries, EntryKind, Label, Labels } from "../types";
+import { doesLabelMatchLabels } from "../utils/label_utils";
+import * as fn from "../utils/fn_utils";
+import { MutableRef } from "../utils/react_utils";
 
 export function splitSearchTerms(s: string): string[] {
   return s

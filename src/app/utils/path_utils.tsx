@@ -1,4 +1,4 @@
-import { Entry, EntryKind } from "./types";
+import { Entry, EntryKind } from "../types";
 
 export const NOTEMARKS_FOLDER = ".notemarks";
 

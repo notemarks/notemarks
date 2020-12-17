@@ -7,10 +7,10 @@ import { Typography } from "antd";
 
 import styled from "@emotion/styled";
 
-import { NoEntrySelected } from "./HelperComponents";
-import { UiRow } from "./UiRow";
+import { NoEntrySelected } from "../components/HelperComponents";
+import { UiRow } from "../components/UiRow";
 
-import { Entry } from "./types";
+import { Entry } from "../types";
 
 /*
 // ----------------------------------------------------------------------------

@@ -7,7 +7,7 @@ import styled from "@emotion/styled";
 
 import { DefaultTag } from "./ColorTag";
 
-import { Label, Labels } from "./types";
+import { Label, Labels } from "../types";
 
 /*
 // ----------------------------------------------------------------------------

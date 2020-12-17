@@ -1,5 +1,5 @@
-import { Labels, Entry, EntryKind } from "./types";
-import { VerificationStatus } from "./repo";
+import { Labels, Entry, EntryKind } from "../types";
+import { VerificationStatus } from "../repo";
 import {
   matchesOrIsSublabel,
   extractStatsMap,

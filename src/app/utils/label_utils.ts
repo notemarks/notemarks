@@ -1,4 +1,4 @@
-import { Entries, Label, Labels } from "./types";
+import { Entries, Label, Labels } from "../types";
 import * as fn from "./fn_utils";
 
 export function newLabel(fullName: string): Label {

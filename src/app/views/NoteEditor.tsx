@@ -6,13 +6,13 @@ import * as monacoEditor from "monaco-editor/esm/vs/editor/editor.api";
 
 import styled from "@emotion/styled";
 
-import { NoEntrySelected } from "./HelperComponents";
-import { UiRow } from "./UiRow";
+import { NoEntrySelected } from "../components/HelperComponents";
+import { UiRow } from "../components/UiRow";
 
-import { Entry } from "./types";
-import * as fn from "./fn_utils";
-import * as clipboard_utils from "./clipboard_utils";
-import * as web_utils from "./web_utils";
+import { Entry } from "../types";
+import * as fn from "../utils/fn_utils";
+import * as clipboard_utils from "../utils/clipboard_utils";
+import * as web_utils from "../utils/web_utils";
 
 type IStandaloneCodeEditor = monacoEditor.editor.IStandaloneCodeEditor;
 

@@ -15,8 +15,8 @@ import * as yaml from "js-yaml";
 import { Repo, Repos } from "./repo";
 import { GitOp } from "./git_ops";
 import { Entry, EntryKind } from "./types";
-import * as date_utils from "./date_utils";
-import * as path_utils from "./path_utils";
+import * as date_utils from "./utils/date_utils";
+import * as path_utils from "./utils/path_utils";
 
 // ----------------------------------------------------------------------------
 // ResultAsync helper

@@ -5,12 +5,12 @@ import { TextAreaRef } from "antd/lib/input/TextArea";
 
 import styled from "@emotion/styled";
 
-import { UiRow } from "./UiRow";
+import { UiRow } from "../components/UiRow";
 
-import { Repo } from "./repo";
-import { GitOpKind, mapMultiRepoGitOpsFlat, mapMultiRepoGitOpsGrouped } from "./git_ops";
-import type { GitOp, MultiRepoGitOps } from "./git_ops";
-import * as octokit from "./octokit";
+import { Repo } from "../repo";
+import { GitOpKind, mapMultiRepoGitOpsFlat, mapMultiRepoGitOpsGrouped } from "../git_ops";
+import type { GitOp, MultiRepoGitOps } from "../git_ops";
+import * as octokit from "../octokit";
 
 function prepareCommitMessage(ops: MultiRepoGitOps): string {
   return mapMultiRepoGitOpsFlat(ops, (repoId, op) => {

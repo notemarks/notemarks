@@ -19,23 +19,23 @@ import styled from "@emotion/styled";
 import * as monacoEditor from "monaco-editor/esm/vs/editor/editor.api";
 import mousetrap from "mousetrap";
 
-import { useEffectOnce } from "./react_utils";
-import { UiRow } from "./UiRow";
+import { useEffectOnce } from "./utils/react_utils";
+import { UiRow } from "./components/UiRow";
 
 import { Entry, Entries, Labels } from "./types";
-import * as entry_utils from "./entry_utils";
-import * as label_utils from "./label_utils";
+import * as entry_utils from "./utils/entry_utils";
+import * as label_utils from "./utils/label_utils";
 import * as repo_utils from "./repo";
 import type { Repos } from "./repo";
 import * as git_ops from "./git_ops";
 import type { MultiRepoGitOps } from "./git_ops";
 import { loadEntries } from "./octokit";
 
-import List from "./List";
-import NoteView from "./NoteView";
-import NoteEditor, { NoteEditorRef } from "./NoteEditor";
-import PrepareCommit from "./PrepareCommit";
-import Settings from "./Settings";
+import List from "./views/List";
+import NoteView from "./views/NoteView";
+import NoteEditor, { NoteEditorRef } from "./views/NoteEditor";
+import PrepareCommit from "./views/PrepareCommit";
+import Settings from "./views/Settings";
 
 const { Content } = Layout;
 

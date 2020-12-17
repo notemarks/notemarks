@@ -1,6 +1,6 @@
 import { Entry } from "./types";
 import { Repo, getRepoId } from "./repo";
-import * as path_utils from "./path_utils";
+import * as path_utils from "./utils/path_utils";
 
 export enum GitOpKind {
   Write = "write",

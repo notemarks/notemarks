@@ -1,5 +1,5 @@
 import { checkMatchingTitle, checkMatchingLabels, LabelFilter } from "./List";
-import { newLabel } from "./label_utils";
+import { newLabel } from "../utils/label_utils";
 
 test("checkMatchingTitle", () => {
   expect(checkMatchingTitle("foo", [])).toEqual(true);

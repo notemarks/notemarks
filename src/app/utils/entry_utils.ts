@@ -1,4 +1,4 @@
-import { EntryKind, Entries } from "./types";
+import { EntryKind, Entries } from "../types";
 
 const entryKindNumericValues = {
   [EntryKind.NoteMarkdown]: 0,

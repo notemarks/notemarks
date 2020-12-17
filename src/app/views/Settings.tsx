@@ -16,10 +16,10 @@ import {
 
 import styled from "@emotion/styled";
 
-import { UiRow } from "./UiRow";
+import { UiRow } from "../components/UiRow";
 
-import { Repo, Repos, VerificationStatus, createDefaultInitializedRepo } from "./repo";
-import * as octokit from "./octokit";
+import { Repo, Repos, VerificationStatus, createDefaultInitializedRepo } from "../repo";
+import * as octokit from "../octokit";
 
 const { Title } = Typography;
 
