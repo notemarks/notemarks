@@ -7,9 +7,10 @@ import styled from "@emotion/styled";
 import { NoEntrySelected } from "../components/HelperComponents";
 import { UiRow } from "../components/UiRow";
 
-import * as markdown_utils from "../utils/markdown_utils";
-
 import { Entry } from "../types";
+
+import * as markdown_utils from "../utils/markdown_utils";
+import * as entry_utils from "../utils/entry_utils";
 
 /*
 // ----------------------------------------------------------------------------
@@ -51,7 +52,7 @@ function NoteView({ entry }: NoteViewProps) {
         <StyledTitle>{entry.title}</StyledTitle>
         <div
           dangerouslySetInnerHTML={{
-            __html: markdown_utils.convertMarkdown(entry.content || ""),
+            __html: markdown_utils.convertMarkdown(entry_utils.getText(entry)!),
           }}
         />
         <Footer />

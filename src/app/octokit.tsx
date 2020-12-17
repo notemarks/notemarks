@@ -14,7 +14,7 @@ import * as yaml from "js-yaml";
 
 import { Repo, Repos } from "./repo";
 import { GitOp } from "./git_ops";
-import { Entry, EntryKind } from "./types";
+import { Content, Entry, EntryKind } from "./types";
 import * as date_utils from "./utils/date_utils";
 import * as path_utils from "./utils/path_utils";
 
@@ -359,17 +359,38 @@ async function loadEntry(
 
     let [location, title, extension] = path_utils.splitLocationTitleExtension(file.path);
 
+    let content: Content;
+    if (entryKind === EntryKind.Link) {
+      // TODO: We need a special FileKind here to skip this case...
+      return err(new Error("Cannot handle link"));
+    } else if (entryKind === EntryKind.Document) {
+      content = {
+        kind: entryKind,
+        location: location,
+        extension: extension,
+        timeCreated: metaData.timeCreated as Date,
+        timeUpdated: metaData.timeUpdated as Date,
+        rawUrl: file.rawUrl,
+      };
+    } else {
+      content = {
+        kind: entryKind,
+        location: location,
+        extension: extension,
+        timeCreated: metaData.timeCreated as Date,
+        timeUpdated: metaData.timeUpdated as Date,
+        rawUrl: file.rawUrl,
+        text: entryContent?.value || "",
+      };
+    }
+
     return ok({
       repo: repo,
-      rawUrl: file.rawUrl,
-      location: location,
-      title: title,
-      extension: extension,
       entryKind: entryKind,
-      labels: metaData.labels as string[],
-      timeCreated: metaData.timeCreated as Date,
-      timeUpdated: metaData.timeUpdated as Date,
-      content: entryContent?.value,
+      title: title,
+      priority: 0,
+      labels: metaData.labels,
+      content: content,
       key: `${repo.key}:${location}:${title}`,
     });
   } else {

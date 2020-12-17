@@ -165,7 +165,6 @@ function App() {
 
   const [page, setPage] = useState(Page.Main);
   const [activeEntryIdx, setActiveEntryIdx] = useState<number | undefined>(undefined);
-  const [activeEntry, setActiveEntry] = useState<Entry | undefined>(undefined);
 
   // *** Entries state
 
@@ -175,12 +174,11 @@ function App() {
   let [stagedGitOps, setStagedGitOps] = useState({} as MultiRepoGitOps);
 
   // Derived state: active entry
-  // TODO: Should we turn that into a simple getActiveEntry getter? Any need for having it as state?
-  useEffect(() => {
+  const getActiveEntry = (): Entry | undefined => {
     if (activeEntryIdx != null) {
-      setActiveEntry(entries[activeEntryIdx]);
+      return entries[activeEntryIdx];
     }
-  }, [entries, activeEntryIdx, setActiveEntry]);
+  };
 
   // *** Refs
 
@@ -191,12 +189,20 @@ function App() {
 
   const updateEntryContent = () => {
     if (editorRef.current != null && activeEntryIdx != null) {
-      let newContent = editorRef.current.getEditorContent();
-      if (newContent != null && newContent !== entries[activeEntryIdx].content) {
+      let activeEntry = getActiveEntry()!;
+      let newText = editorRef.current.getEditorContent();
+      if (
+        newText != null &&
+        entry_utils.isNote(activeEntry.content) &&
+        newText !== entry_utils.getText(activeEntry)
+      ) {
         let newEntries = entries.slice(0);
         newEntries[activeEntryIdx] = {
-          ...newEntries[activeEntryIdx],
-          content: newContent,
+          ...activeEntry,
+          content: {
+            ...activeEntry.content,
+            text: newText,
+          },
         };
         setEntries(newEntries);
 
@@ -206,17 +212,20 @@ function App() {
   };
 
   const storeNoteViewPosition = () => {
+    let activeEntry = getActiveEntry();
     if (activeEntry != null) {
       noteViewPositions[activeEntry.key] = getScrollPosition();
     }
   };
   const restoreNoteViewPosition = () => {
+    let activeEntry = getActiveEntry();
     if (activeEntry != null && activeEntry.key in noteViewPositions) {
       targetBodyPosition.current = noteViewPositions[activeEntry.key];
     }
   };
   const storeNoteEditorPosition = () => {
     // console.log("At time of switching editor scroll is:", editorRef.current?.getScrollPosition())
+    let activeEntry = getActiveEntry();
     if (activeEntry != null && editorRef.current != null) {
       let editorScrollPos = editorRef.current.getScrollPosition();
       let editorCursorPos = editorRef.current.getCursorPosition();
@@ -232,6 +241,7 @@ function App() {
     // like in the case of normal DOM updates, because the editor will no be available
     // immediately. The actual restoring has to be postponed until the onEditorDidMount
     // callback
+    let activeEntry = getActiveEntry();
     if (activeEntry != null && activeEntry.key in noteEditorPositions) {
       targetEditorPosition.current = noteEditorPositions[activeEntry.key];
     }
@@ -342,10 +352,14 @@ function App() {
           />
         );
       case Page.NoteView:
-        return <NoteView entry={activeEntry} />;
+        return <NoteView entry={getActiveEntry()} />;
       case Page.NoteEditor:
         return (
-          <NoteEditor entry={activeEntry} ref={editorRef} onEditorDidMount={onEditorDidMount} />
+          <NoteEditor
+            entry={getActiveEntry()}
+            ref={editorRef}
+            onEditorDidMount={onEditorDidMount}
+          />
         );
       case Page.Commit:
         return (

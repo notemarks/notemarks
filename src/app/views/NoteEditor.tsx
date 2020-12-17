@@ -10,6 +10,7 @@ import { NoEntrySelected } from "../components/HelperComponents";
 import { UiRow } from "../components/UiRow";
 
 import { Entry } from "../types";
+import * as entry_utils from "../utils/entry_utils";
 import * as fn from "../utils/fn_utils";
 import * as clipboard_utils from "../utils/clipboard_utils";
 import * as web_utils from "../utils/web_utils";
@@ -178,7 +179,7 @@ const NoteEditor = forwardRef(
             height="100%"
             theme="dark"
             language="markdown"
-            value={entry.content}
+            value={entry_utils.getText(entry)!}
             editorDidMount={onEditorDidMountWrapper}
             options={{
               fontSize: 12,

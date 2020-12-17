@@ -1,6 +1,7 @@
 import { Entry } from "./types";
 import { Repo, getRepoId } from "./repo";
 import * as path_utils from "./utils/path_utils";
+import * as entry_utils from "./utils/entry_utils";
 
 export enum GitOpKind {
   Write = "write",
@@ -192,18 +193,25 @@ export function appendNormalized(ops: GitOps, newOp: GitOp): GitOps {
   return newOps;
 }
 
-export function createGitOpUpdateContent(entry: Entry): GitOpWriteFile {
-  return {
-    kind: GitOpKind.Write,
-    path: path_utils.getPath(entry),
-    content: entry.content!,
-  };
+function createGitOpUpdateContent(entry: Entry): GitOpWriteFile | undefined {
+  // TODO: Handle this properly file Document type. Where should the content come from? It isn't stored attached to the entry...
+  if (entry_utils.isNote(entry.content)) {
+    return {
+      kind: GitOpKind.Write,
+      path: path_utils.getPath(entry)!,
+      content: entry.content.text,
+    };
+  }
 }
 
 export function appendUpdateEntry(ops: MultiRepoGitOps, entry: Entry): MultiRepoGitOps {
   let newOps = { ...ops };
 
   let newOp = createGitOpUpdateContent(entry);
+  if (newOp == null) {
+    console.log("Unimplemented git op.");
+    return newOps;
+  }
 
   let repoId = getRepoId(entry.repo);
   if (newOps.hasOwnProperty(repoId)) {

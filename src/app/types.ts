@@ -40,12 +40,43 @@ export enum EntryKind {
   Document = "Document",
 }
 
-/*
-export type NoteContent {
+export type FileEntryProps = {
+  location: string;
+  extension: string;
+  timeCreated: Date;
+  timeUpdated: Date;
+  rawUrl: string;
+};
 
-}
+export type FileContent = {
+  kind: EntryKind.Document;
+} & FileEntryProps;
+
+export type NoteContent = FileEntryProps & {
+  kind: EntryKind.NoteMarkdown;
+  text: string;
+};
+
+/*
+export type NoteContent = {
+  kind: EntryKind.NoteMarkdown;
+  location: string;
+  extension: string;
+  timeCreated: Date;
+  timeUpdated: Date;
+  rawUrl: string;
+  text: string;
+};
 */
 
+export type LinkContent = {
+  kind: EntryKind.Link;
+  locations: string[];
+  inheritedLabels: string[];
+  additionalLabels: string[];
+};
+
+export type Content = FileContent | NoteContent | LinkContent;
 /*
 Design questions regarding Entry fields
 ---------------------------------------
@@ -69,18 +100,13 @@ the modified repo attached. Should be fine.
 export type Entry = {
   // General fields
   repo: Repo;
-  rawUrl: string;
-  // Fields derived from filename/path
-  location: string;
-  title: string;
-  extension: string;
+  // Common props
   entryKind: EntryKind;
-  // From meta data:
+  title: string;
+  priority: number;
   labels: string[];
-  timeCreated: Date;
-  timeUpdated: Date;
-  // From file content (optional):
-  content: string | undefined;
+  // Kind specific content
+  content: Content;
   // React specific key to use Entry in lists. Will typically be a composition of
   // repoId + location + title
   key: string;

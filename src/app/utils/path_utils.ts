@@ -117,10 +117,12 @@ export function escapeTitle(s: string): string {
 // Higher level helpers on Entry
 // ----------------------------------------------------------------------------
 
-export function getPath(entry: Entry): string {
-  let s = `${entry.location}/${escapeTitle(entry.title)}`;
-  if (entry.extension !== "") {
-    s += "." + entry.extension;
+export function getPath(entry: Entry): string | undefined {
+  if (entry.content.kind === EntryKind.Document || entry.content.kind === EntryKind.NoteMarkdown) {
+    let s = `${entry.content.location}/${escapeTitle(entry.title)}`;
+    if (entry.content.extension !== "") {
+      s += "." + entry.content.extension;
+    }
+    return s;
   }
-  return s;
 }
