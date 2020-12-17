@@ -1,4 +1,17 @@
-import { EntryKind, Entry, Entries, Content, NoteContent, FileContent } from "../types";
+import {
+  Content,
+  ContentDoc,
+  ContentNote,
+  ContentLink,
+  ContentFile,
+  EntryKind,
+  Entry,
+  Entries,
+  EntryDoc,
+  EntryNote,
+  EntryLink,
+  EntryFile,
+} from "../types";
 
 const entryKindNumericValues = {
   [EntryKind.NoteMarkdown]: 0,
@@ -19,23 +32,51 @@ export function sortAndIndexEntries(entries: Entries) {
   }
 }
 
-// User defined type guard helpers:
-// https://www.typescriptlang.org/docs/handbook/advanced-types.html#user-defined-type-guards
-// Unfortunately it looks like nested property access is not possible?
-
 /*
-export function isNote(entry: Entry): entry.content is NoteContent {
-  return true;
-}
+User defined type guard helpers:
+https://www.typescriptlang.org/docs/handbook/advanced-types.html#user-defined-type-guards
+
+Regarding nesting see:
+https://stackoverflow.com/questions/65347424/user-defined-type-guard-on-outer-type-nested-property
 */
 
-export function isNote(content: Content): content is NoteContent {
+// On Content
+
+export function isDocContent(content: Content): content is ContentDoc {
+  return content.kind === EntryKind.Document;
+}
+
+export function isNoteContent(content: Content): content is ContentNote {
   return content.kind === EntryKind.NoteMarkdown;
 }
 
-export function isFile(content: Content): content is NoteContent | FileContent {
-  return content.kind === EntryKind.NoteMarkdown || content.kind === EntryKind.Document;
+export function isLinkContent(content: Content): content is ContentLink {
+  return content.kind === EntryKind.Link;
 }
+
+export function isFileContent(content: Content): content is ContentFile {
+  return content.kind === EntryKind.Document || content.kind === EntryKind.NoteMarkdown;
+}
+
+// On Entry
+
+export function isDoc(entry: Entry): entry is EntryDoc {
+  return entry.content.kind === EntryKind.Document;
+}
+
+export function isNote(entry: Entry): entry is EntryNote {
+  return entry.content.kind === EntryKind.NoteMarkdown;
+}
+
+export function isLink(entry: Entry): entry is EntryLink {
+  return entry.content.kind === EntryKind.Link;
+}
+
+export function isFile(entry: Entry): entry is EntryFile {
+  return entry.content.kind === EntryKind.Document || entry.content.kind === EntryKind.NoteMarkdown;
+}
+
+// Other Helpers
 
 export function getText(entry: Entry): string | undefined {
   if (entry.content.kind === EntryKind.NoteMarkdown) {

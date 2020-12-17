@@ -195,7 +195,7 @@ export function appendNormalized(ops: GitOps, newOp: GitOp): GitOps {
 
 function createGitOpUpdateContent(entry: Entry): GitOpWriteFile | undefined {
   // TODO: Handle this properly file Document type. Where should the content come from? It isn't stored attached to the entry...
-  if (entry_utils.isNote(entry.content)) {
+  if (entry_utils.isNote(entry)) {
     return {
       kind: GitOpKind.Write,
       path: path_utils.getPath(entry)!,

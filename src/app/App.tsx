@@ -193,7 +193,7 @@ function App() {
       let newText = editorRef.current.getEditorContent();
       if (
         newText != null &&
-        entry_utils.isNote(activeEntry.content) &&
+        entry_utils.isNote(activeEntry) &&
         newText !== entry_utils.getText(activeEntry)
       ) {
         let newEntries = entries.slice(0);

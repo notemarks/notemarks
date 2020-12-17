@@ -1,39 +1,5 @@
 import { Repo } from "./repo";
 
-/*
-For reference, these were the types used in the old implementation:
-
-export type Label = string;
-
-export interface Note {
-  id: string,
-  title: string,
-  labels: Label[],
-  markdown: string,
-  timeCreated: Date,
-  timeUpdated: Date,
-  link?: string,
-}
-export interface NoteUpdate {
-  id?: string,
-  title?: string,
-  labels?: string[],
-  markdown?: string,
-  timeCreated?: Date,
-  timeUpdated?: Date,
-  link?: string,
-}
-
-export type Notes = { [s: string]: Note }
-
-export type LabelCount = {
-  name: string,
-  count: number,
-}
-export type LabelCounts = LabelCount[]
-
-*/
-
 export enum EntryKind {
   NoteMarkdown = "NoteMarkdown",
   Link = "Link",
@@ -48,35 +14,25 @@ export type FileEntryProps = {
   rawUrl: string;
 };
 
-export type FileContent = {
+export type ContentDoc = {
   kind: EntryKind.Document;
 } & FileEntryProps;
 
-export type NoteContent = FileEntryProps & {
+export type ContentNote = FileEntryProps & {
   kind: EntryKind.NoteMarkdown;
   text: string;
 };
 
-/*
-export type NoteContent = {
-  kind: EntryKind.NoteMarkdown;
-  location: string;
-  extension: string;
-  timeCreated: Date;
-  timeUpdated: Date;
-  rawUrl: string;
-  text: string;
-};
-*/
-
-export type LinkContent = {
+export type ContentLink = {
   kind: EntryKind.Link;
   locations: string[];
   inheritedLabels: string[];
   additionalLabels: string[];
 };
 
-export type Content = FileContent | NoteContent | LinkContent;
+export type Content = ContentDoc | ContentNote | ContentLink;
+
+export type ContentFile = ContentDoc | ContentNote;
 /*
 Design questions regarding Entry fields
 ---------------------------------------
@@ -114,6 +70,13 @@ export type Entry = {
   // Allows for easier/faster lookups compared to using `key`.
   idx?: number;
 };
+
+// Entry flavors
+export type EntryDoc = Omit<Entry, "content"> & { content: ContentDoc };
+export type EntryNote = Omit<Entry, "content"> & { content: ContentNote };
+export type EntryLink = Omit<Entry, "content"> & { content: ContentLink };
+
+export type EntryFile = Omit<Entry, "content"> & { content: ContentFile };
 
 export type Entries = Entry[];
 
