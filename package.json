@@ -42,7 +42,8 @@
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "fmt-check": "npx prettier --check .",
-    "fmt-write": "npx prettier --write ."
+    "fmt-write": "npx prettier --write .",
+    "check-types": "tsc"
   },
   "eslintConfig": {
     "extends": [
