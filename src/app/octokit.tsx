@@ -10,12 +10,13 @@ import {
 import * as neverthrow from "neverthrow";
 import { ok, err, okAsync, errAsync, Result, ResultAsync } from "neverthrow";
 
-import * as yaml from "js-yaml";
-
 import { Repo, Repos } from "./repo";
 import { GitOp } from "./git_ops";
 import { Content, Entry, EntryKind } from "./types";
-import * as date_utils from "./utils/date_utils";
+
+import { MetaData } from "./io";
+import * as io from "./io";
+
 import { FileKind } from "./utils/path_utils";
 import * as path_utils from "./utils/path_utils";
 import * as markdown_utils from "./utils/markdown_utils";
@@ -216,16 +217,6 @@ async function listFiles(octokit: Octokit, repo: Repo, path: string): Promise<Fi
 // High level entry loading
 // ----------------------------------------------------------------------------
 
-// Note: Currently MetaData is only an internal type used during loading, and its
-// fields get copied into the Entry type. Perhaps keeping it as internal type is
-// beneficial, because it hides which data is actually coming from the meta files.
-// However, we might as well embed it directly if that turns out to be more convenient.
-type MetaData = {
-  labels: string[];
-  timeCreated: Date;
-  timeUpdated: Date;
-};
-
 type StagedChange = {};
 
 // TODO: Possible extension of return value to tuple containing:
@@ -343,14 +334,14 @@ async function loadEntry(
     // - Meta file exists, fetch is okay, but parse fails => probably better report as error?
     let metaData: MetaData;
     if (meta == null) {
-      metaData = createNewMetaData();
+      metaData = io.createNewMetaData();
       // TODO: Add to staged changes here.
     } else {
       let metaContent = await cachedFetch(octokit, repo, meta.path, meta.sha);
       if (metaContent.isErr()) {
         return err(new Error(`Failed to fetch content of meta data ${meta.path}`));
       } else {
-        let metaDataResult = parseMetaData(metaContent.value);
+        let metaDataResult = io.parseMetaData(metaContent.value);
         if (metaDataResult.isErr()) {
           return err(new Error(`Could not parse meta data file ${meta.path}`));
         } else {
@@ -402,52 +393,6 @@ async function loadEntry(
     });
   } else {
     return err(new Error(`Failed to fetch content of ${file.path}`));
-  }
-}
-
-// ----------------------------------------------------------------------------
-// Meta data utils
-// ----------------------------------------------------------------------------
-
-function createNewMetaData(): MetaData {
-  let date = new Date();
-  date.setMilliseconds(0);
-  return {
-    labels: [],
-    timeCreated: date,
-    timeUpdated: date,
-  };
-}
-
-function parseMetaData(content: string): Result<MetaData, Error> {
-  let metaData = yaml.safeLoad(content) as MetaData;
-
-  if (metaData == null) {
-    return err(new Error("Meta data parsing returned null"));
-  } else {
-    let labels = Array.isArray(metaData["labels"]) ? (metaData["labels"] as string[]) : undefined;
-    let timeCreated =
-      typeof metaData["timeCreated"] === "string"
-        ? date_utils.stringToDate(metaData["timeCreated"])
-        : undefined;
-    let timeUpdated =
-      typeof metaData["timeUpdated"] === "string"
-        ? date_utils.stringToDate(metaData["timeUpdated"])
-        : undefined;
-
-    if (labels == null) {
-      return err(new Error("Meta data field 'labels' isn't an array."));
-    } else if (timeCreated == null) {
-      return err(new Error("Meta data field 'timeCreated' cannot be parsed."));
-    } else if (timeUpdated == null) {
-      return err(new Error("Meta data field 'timeUpdated' cannot be parsed."));
-    } else {
-      return ok({
-        labels: labels,
-        timeCreated: timeCreated,
-        timeUpdated: timeUpdated,
-      });
-    }
   }
 }
 
