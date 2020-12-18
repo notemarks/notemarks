@@ -11,7 +11,9 @@ import {
   EntryNote,
   EntryLink,
   EntryFile,
+  RawLabel,
 } from "../types";
+import { Repo, getRepoId } from "../repo";
 
 const entryKindNumericValues = {
   [EntryKind.NoteMarkdown]: 0,
@@ -88,6 +90,29 @@ export function getText(entry: Entry): string | undefined {
 // Entry fusion
 // ----------------------------------------------------------------------------
 
+export function mergeLabels(existingLabels: RawLabel[], incomingLabels: RawLabel[]) {
+  for (let incomingLabel of incomingLabels) {
+    if (existingLabels.some((existingLabel) => existingLabel === incomingLabel)) {
+      continue;
+    } else {
+      existingLabels.push(incomingLabel);
+    }
+  }
+  existingLabels.sort();
+}
+
+export function mergeRepos(existingRepos: Repo[], incomingRepo: Repo) {
+  if (!existingRepos.some((existingRepo) => getRepoId(existingRepo) === getRepoId(incomingRepo))) {
+    existingRepos.push(incomingRepo);
+  }
+}
+
+export function mergeLocations(existingLocations: string[], incomingLocation: string) {
+  if (!existingLocations.some((existingLocation) => existingLocation === incomingLocation)) {
+    existingLocations.push(incomingLocation);
+  }
+}
+
 export function mergeEntriesAndLinks(entries: EntryFile[], links: {}): Entries {
   console.time("link extraction");
 
@@ -108,10 +133,9 @@ export function mergeEntriesAndLinks(entries: EntryFile[], links: {}): Entries {
             content: {
               kind: EntryKind.Link,
               referencedBy: [entry],
-              referencedRepos: [entry.content.repo],
-              locations: [entry.content.location],
-              inheritedLabels: entry.labels.slice(0),
-              additionalLabels: [],
+              refRepos: [entry.content.repo],
+              refLocations: [entry.content.location],
+              ownLabels: [],
             },
             key: `__link_${link}`,
           };
@@ -119,11 +143,10 @@ export function mergeEntriesAndLinks(entries: EntryFile[], links: {}): Entries {
           linkMap[link] = linkEntry;
         } else {
           let linkEntry = linkMap[link];
-          linkEntry.labels = [...linkEntry.labels, ...entry.labels]; // TODO: proper merge
           linkEntry.content.referencedBy.push(entry);
-          linkEntry.content.referencedRepos.push(entry.content.repo); // TODO: proper merge
-          linkEntry.content.locations.push(entry.content.location); // TODO: proper merge
-          linkEntry.content.inheritedLabels.push(...entry.labels); // TODO: proper merge
+          mergeLabels(linkEntry.labels, entry.labels);
+          mergeRepos(linkEntry.content.refRepos, entry.content.repo);
+          mergeLocations(linkEntry.content.refLocations, entry.content.location);
         }
       }
     }

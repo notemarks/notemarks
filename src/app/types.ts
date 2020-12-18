@@ -30,15 +30,19 @@ export type ContentLink = {
   kind: EntryKind.Link;
   referencedBy: Entry[];
   standaloneRepo?: Repo;
-  referencedRepos: Repo[];
-  locations: string[];
-  inheritedLabels: string[];
-  additionalLabels: string[];
+  refRepos: Repo[];
+  refLocations: string[];
+  ownLabels: string[];
 };
 
 export type Content = ContentDoc | ContentNote | ContentLink;
 
 export type ContentFile = ContentDoc | ContentNote;
+
+// TODO: At some point labels need to store at least the priority as well
+// so that arrays of labels can be properly sorted without extra information.
+export type RawLabel = string;
+
 /*
 Design questions regarding Entry fields
 ---------------------------------------
@@ -63,7 +67,7 @@ export type Entry = {
   // Common props
   title: string;
   priority: number;
-  labels: string[];
+  labels: RawLabel[];
   // Kind specific content
   content: Content;
   // React specific key to use Entry in lists. Will typically be a composition of
@@ -83,12 +87,17 @@ export type EntryFile = Omit<Entry, "content"> & { content: ContentFile };
 
 export type Entries = Entry[];
 
+// TODO: What would be a better name? Perhaps we should use `Label` for what
+// is `RawLabel` now and find a suitable name for this one. The properties
+// that are not trivially derivable from a raw label are `count` and
+// `children`. So possible terms:
+// ProcessedLabel, StructuredLabel, LabelWithContext, LabelWithCount
 export type Label = {
   baseName: string;
   fullName: string;
+  priority: number;
   count: number;
   children: Labels;
-  priority: number;
 };
 
 export type Labels = Label[];
