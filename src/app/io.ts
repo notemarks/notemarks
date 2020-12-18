@@ -72,7 +72,9 @@ export type StoredLink = {
   ownLabels: string[];
 };
 
-export function parseStoredLink(content: string): Result<StoredLink[], Error> {
+export type StoredLinks = StoredLink[];
+
+export function parseStoredLinks(content: string): Result<StoredLinks, Error> {
   let data: any;
   try {
     data = yaml.safeLoad(content) as any;
@@ -85,8 +87,8 @@ export function parseStoredLink(content: string): Result<StoredLink[], Error> {
   } else if (typeof data !== "object") {
     return err(new Error("Link data isn't an object."));
   } else {
-    // Since no converters are needed in this case a plain validation would be
-    // sufficient, but for now let's do it like that:
+    // Since no converters are needed in this case a plain validation is sufficient.
+    // For now let's do it like that:
 
     let links = extractArray(data["links"]);
     if (links == null) {

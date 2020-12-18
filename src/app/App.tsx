@@ -138,11 +138,36 @@ function App() {
     console.log("Reloading entries");
     setIsReloading(true);
     let newActiveRepos = repo_utils.filterActiveRepos(newRepos);
-    let newEntries = await loadEntries(newActiveRepos);
 
-    newEntries = entry_utils.mergeEntriesAndLinks(newEntries as EntryFile[], {});
+    // Either loadEntries returns the FileEntries seperated from LinkEntries
+    // here, or it merges it internally. One possibility:
+    /*
+    let [newFileEntries, newLinkEntries] = await loadEntries(newActiveRepos);
+
+    let newEntries = entry_utils.mergeEntriesAndLinks(newFileEntries, newLinkEntries);
+    entry_utils.sortAndIndexEntries(newEntries);
+
+    setEntries({
+      fileEntries: newFileEntries,
+      linkEntries: newLinkEntries,
+      allEntries: newEntries,
+    })
+    */
+    let newFileEntries = await loadEntries(newActiveRepos);
+
+    let newLinkEntries = entry_utils.recomputeLinkEntries(newFileEntries as EntryFile[], []);
+    let newEntries = [...newFileEntries, ...newLinkEntries];
 
     entry_utils.sortAndIndexEntries(newEntries);
+
+    // TODO: If the loading actually leads to a different link DB than what has been
+    // stored (i.e., if newLinkEntries is different from what will go in as existingLinks
+    // then we should stage a git op for updating the link DB file).
+
+    // Should the recomputeLinkEntries function actually return a boolean to express
+    // "the link DB should be updated, there have been changes in inferring the links"?
+    // Perhaps this would also be useful in the content update case?
+
     // TODO: Decide if these "double updates" are a problem.
     // See: https://stackoverflow.com/q/53574614/1804173
     setEntries(newEntries);
@@ -201,6 +226,25 @@ function App() {
         newText !== activeEntry.content.text
       ) {
         let [html, links] = markdown_utils.processMarkdownText(newText);
+
+        /*
+        To be solved: How to rerun entry_utils.mergeEntriesAndLinks(newFileEntries, newLinkEntries);
+
+        Tricky: Since the active entry may have received new links or links were removed, the
+        length of the combined entries can change. This also means that the activeEntryIdx
+        may longer be valid, and needs to be reset accordingly. Note that it isn't safe to assume
+        that the activeEntryIdx doesn't change because notes are always sorted before links.
+        In general the activeEntryIdx can point to links as well, not only notes, so it does
+        not necessarily "point to a stable area".
+
+        Brute force solution:
+        - Either store file vs link entries separately or divide them here into two groups.
+        - Identify the activeEntryIdx within the file entries, if it has no match the active
+          entry is a link, which actually should be impossible if the editor is up, hm...
+        - Modify the file entry.
+        - Merged them back together
+        - setEntries
+        */
 
         let newEntries = entries.slice(0);
         newEntries[activeEntryIdx] = {

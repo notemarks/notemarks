@@ -113,37 +113,86 @@ export function mergeLocations(existingLocations: string[], incomingLocation: st
   }
 }
 
-export function mergeEntriesAndLinks(entries: EntryFile[], links: {}): Entries {
+export function recomputeLinkEntries(entries: EntryFile[], existingLinks: EntryLink[]): Entries {
   console.time("link extraction");
 
-  let linkMap: { [link: string]: EntryLink } = {};
-
   // TODO Loop over existing/explicit links and insert them into the linkMap
+  /*
+  If the links variable contains the current array of EntryLinks, how
+  should this loop look like exactly? In order to allow for non-standalone
+  to disappear, we should actually only insert standalone links in the
+  results. However, this would mean that we lose the title and labels
+  information that is directly attached to these links (the links
+  inferred below can only be initialized with the default title equaling
+  the link target, and the labels directly inherited from the note).
+  Therefore, we should insert all existing links to the result, but
+  we would need a post-processing to remove those links that are not
+  standalone and did not get any references attached. A bit ugly.
+
+  Better idea: Use two data structures:
+  - The final link result list
+  - An intermediate lookup for existing links
+
+  The loop can fill standalone links directly into the result.
+
+  Non-standalone links can be added to the lookup map so that if they
+  are needed in the infer part below they can be read from there.
+  */
 
   let linkEntries = [] as EntryLink[];
+  let linkMap: { [link: string]: EntryLink } = {};
+
+  for (let link of existingLinks) {
+    // We need to 'reset' the link data so that the infered fields can be computed from scratch.
+    // TODO: Perhaps pull this out into a `cloneResetLink` helper function for better testability.
+    let resetLinkEntry: EntryLink = {
+      title: link.title,
+      priority: link.priority,
+      labels: link.content.ownLabels,
+      content: {
+        kind: EntryKind.Link,
+        target: link.content.target,
+        referencedBy: [],
+        refRepos: [],
+        refLocations: [],
+        standaloneRepo: link.content.standaloneRepo,
+        ownLabels: link.content.ownLabels,
+      },
+      key: link.key,
+    };
+    // TODO: There is still a potential problem here if the existingLinks would
+    // contain duplicate links, right? I.e., different link data (title/labels),
+    // but same link target would be two entries in the list, but only one of
+    // them is accessible in the linkMap.
+    if (link.content.standaloneRepo != null) {
+      linkEntries.push(resetLinkEntry);
+    }
+    linkMap[link.content.target] = resetLinkEntry;
+  }
 
   for (let entry of entries) {
     if (isNote(entry)) {
-      for (let link of entry.content.links) {
-        if (!(link in linkMap)) {
+      for (let linkTarget of entry.content.links) {
+        // TODO: rename entry.content.links to linkTargets because they aren't "real" links?
+        if (!(linkTarget in linkMap)) {
           let linkEntry: EntryLink = {
-            title: link, // TODO fetch here but then this whole thing becomes async and slow?
+            title: linkTarget, // TODO fetch here but then this whole thing becomes async and slow?
             priority: 0,
             labels: entry.labels.slice(0),
             content: {
               kind: EntryKind.Link,
-              target: link,
+              target: linkTarget,
               referencedBy: [entry],
               refRepos: [entry.content.repo],
               refLocations: [entry.content.location],
               ownLabels: [],
             },
-            key: `__link_${link}`,
+            key: `__link_${linkTarget}`,
           };
           linkEntries.push(linkEntry);
-          linkMap[link] = linkEntry;
+          linkMap[linkTarget] = linkEntry;
         } else {
-          let linkEntry = linkMap[link];
+          let linkEntry = linkMap[linkTarget];
           linkEntry.content.referencedBy.push(entry);
           mergeLabels(linkEntry.labels, entry.labels);
           mergeRepos(linkEntry.content.refRepos, entry.content.repo);
@@ -152,8 +201,17 @@ export function mergeEntriesAndLinks(entries: EntryFile[], links: {}): Entries {
       }
     }
   }
-  console.timeEnd("link extraction");
 
+  // TODO: Check if we have to sort the labels attached to links.
+  // In case we call mergeLabels, they should be sorted, because it sorts
+  // internally. However, we initialize by `ownLabels` and if we never
+  // call mergeLabels (i.e. no reference = standalone link), we would
+  // never sort them, and it is maybe not good to rely on them
+  // being sorted on disc?
+  // Perhaps it is easier to get rid of sorting them during the merge
+  // but rather have an explicit sort post-processing.
+
+  console.timeEnd("link extraction");
   console.log(linkMap);
-  return [...entries, ...linkEntries];
+  return linkEntries;
 }
