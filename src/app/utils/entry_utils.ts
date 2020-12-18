@@ -132,6 +132,7 @@ export function mergeEntriesAndLinks(entries: EntryFile[], links: {}): Entries {
             labels: entry.labels.slice(0),
             content: {
               kind: EntryKind.Link,
+              target: link,
               referencedBy: [entry],
               refRepos: [entry.content.repo],
               refLocations: [entry.content.location],

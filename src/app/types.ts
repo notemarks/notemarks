@@ -28,6 +28,7 @@ export type ContentNote = FileEntryProps & {
 
 export type ContentLink = {
   kind: EntryKind.Link;
+  target: string;
   referencedBy: Entry[];
   standaloneRepo?: Repo;
   refRepos: Repo[];
