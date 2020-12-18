@@ -22,7 +22,7 @@ import mousetrap from "mousetrap";
 import { useEffectOnce } from "./utils/react_utils";
 import { UiRow } from "./components/UiRow";
 
-import { Entry, Entries, Labels } from "./types";
+import { Entry, Entries, Labels, EntryFile } from "./types";
 import * as entry_utils from "./utils/entry_utils";
 import * as label_utils from "./utils/label_utils";
 import * as markdown_utils from "./utils/markdown_utils";
@@ -139,6 +139,9 @@ function App() {
     setIsReloading(true);
     let newActiveRepos = repo_utils.filterActiveRepos(newRepos);
     let newEntries = await loadEntries(newActiveRepos);
+
+    newEntries = entry_utils.mergeEntriesAndLinks(newEntries as EntryFile[], {});
+
     entry_utils.sortAndIndexEntries(newEntries);
     // TODO: Decide if these "double updates" are a problem.
     // See: https://stackoverflow.com/q/53574614/1804173

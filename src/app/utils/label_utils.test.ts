@@ -11,21 +11,21 @@ import {
 function createDummyEntry(labels: string[]): Entry {
   let date = new Date();
   return {
-    repo: {
-      key: "unique_key",
-      name: "SomeRepo",
-      userName: "",
-      repoName: "",
-      token: "",
-      enabled: true,
-      default: true,
-      verified: VerificationStatus.unknown,
-    },
     title: "title",
     priority: 0,
     labels: labels,
     content: {
       kind: EntryKind.Document,
+      repo: {
+        key: "unique_key",
+        name: "SomeRepo",
+        userName: "",
+        repoName: "",
+        token: "",
+        enabled: true,
+        default: true,
+        verified: VerificationStatus.unknown,
+      },
       location: "folder",
       extension: "md",
       timeCreated: date,

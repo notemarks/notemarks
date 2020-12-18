@@ -7,6 +7,7 @@ export enum EntryKind {
 }
 
 export type FileEntryProps = {
+  repo: Repo;
   location: string;
   extension: string;
   timeCreated: Date;
@@ -27,6 +28,9 @@ export type ContentNote = FileEntryProps & {
 
 export type ContentLink = {
   kind: EntryKind.Link;
+  referencedBy: Entry[];
+  standaloneRepo?: Repo;
+  referencedRepos: Repo[];
   locations: string[];
   inheritedLabels: string[];
   additionalLabels: string[];
@@ -56,8 +60,6 @@ but when the next "entry reload" runs, the newly loaded entries get
 the modified repo attached. Should be fine.
 */
 export type Entry = {
-  // General fields
-  repo: Repo;
   // Common props
   title: string;
   priority: number;

@@ -83,3 +83,53 @@ export function getText(entry: Entry): string | undefined {
     return entry.content.text;
   }
 }
+
+// ----------------------------------------------------------------------------
+// Entry fusion
+// ----------------------------------------------------------------------------
+
+export function mergeEntriesAndLinks(entries: EntryFile[], links: {}): Entries {
+  console.time("link extraction");
+
+  let linkMap: { [link: string]: EntryLink } = {};
+
+  // TODO Loop over existing/explicit links and insert them into the linkMap
+
+  let linkEntries = [] as EntryLink[];
+
+  for (let entry of entries) {
+    if (isNote(entry)) {
+      for (let link of entry.content.links) {
+        if (!(link in linkMap)) {
+          let linkEntry: EntryLink = {
+            title: link, // TODO fetch here but then this whole thing becomes async and slow?
+            priority: 0,
+            labels: entry.labels.slice(0),
+            content: {
+              kind: EntryKind.Link,
+              referencedBy: [entry],
+              referencedRepos: [entry.content.repo],
+              locations: [entry.content.location],
+              inheritedLabels: entry.labels.slice(0),
+              additionalLabels: [],
+            },
+            key: `__link_${link}`,
+          };
+          linkEntries.push(linkEntry);
+          linkMap[link] = linkEntry;
+        } else {
+          let linkEntry = linkMap[link];
+          linkEntry.labels = [...linkEntry.labels, ...entry.labels]; // TODO: proper merge
+          linkEntry.content.referencedBy.push(entry);
+          linkEntry.content.referencedRepos.push(entry.content.repo); // TODO: proper merge
+          linkEntry.content.locations.push(entry.content.location); // TODO: proper merge
+          linkEntry.content.inheritedLabels.push(...entry.labels); // TODO: proper merge
+        }
+      }
+    }
+  }
+  console.timeEnd("link extraction");
+
+  console.log(linkMap);
+  return [...entries, ...linkEntries];
+}

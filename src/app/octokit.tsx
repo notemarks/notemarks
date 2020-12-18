@@ -371,6 +371,7 @@ async function loadEntry(
 
       content = {
         kind: (fileKind as keyof typeof FileKind) as EntryKind.NoteMarkdown,
+        repo: repo,
         location: location,
         extension: extension,
         timeCreated: metaData.timeCreated as Date,
@@ -383,6 +384,7 @@ async function loadEntry(
     } else {
       content = {
         kind: (fileKind as keyof typeof FileKind) as EntryKind.Document,
+        repo: repo,
         location: location,
         extension: extension,
         timeCreated: metaData.timeCreated as Date,
@@ -392,7 +394,6 @@ async function loadEntry(
     }
 
     return ok({
-      repo: repo,
       title: title,
       priority: 0,
       labels: metaData.labels,

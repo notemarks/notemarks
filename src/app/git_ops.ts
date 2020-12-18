@@ -1,4 +1,4 @@
-import { Entry } from "./types";
+import { Entry, EntryNote } from "./types";
 import { Repo, getRepoId } from "./repo";
 import * as path_utils from "./utils/path_utils";
 import * as entry_utils from "./utils/entry_utils";
@@ -193,32 +193,31 @@ export function appendNormalized(ops: GitOps, newOp: GitOp): GitOps {
   return newOps;
 }
 
-function createGitOpUpdateContent(entry: Entry): GitOpWriteFile | undefined {
-  // TODO: Handle this properly file Document type. Where should the content come from? It isn't stored attached to the entry...
-  if (entry_utils.isNote(entry)) {
-    return {
-      kind: GitOpKind.Write,
-      path: path_utils.getPath(entry)!,
-      content: entry.content.text,
-    };
-  }
+function createGitOpUpdateContent(entry: EntryNote): GitOpWriteFile {
+  return {
+    kind: GitOpKind.Write,
+    path: path_utils.getPath(entry)!,
+    content: entry.content.text,
+  };
 }
 
 export function appendUpdateEntry(ops: MultiRepoGitOps, entry: Entry): MultiRepoGitOps {
   let newOps = { ...ops };
 
-  let newOp = createGitOpUpdateContent(entry);
-  if (newOp == null) {
+  // TODO: Handle this properly file Document type. Where should the content come from? It isn't stored attached to the entry...
+  if (!entry_utils.isNote(entry)) {
     console.log("Unimplemented git op.");
     return newOps;
   }
 
-  let repoId = getRepoId(entry.repo);
+  let newOp = createGitOpUpdateContent(entry);
+
+  let repoId = getRepoId(entry.content.repo);
   if (newOps.hasOwnProperty(repoId)) {
     newOps[repoId].ops = appendNormalized(newOps[repoId].ops, newOp);
   } else {
     newOps[repoId] = {
-      repo: entry.repo,
+      repo: entry.content.repo,
       ops: [newOp],
     };
   }
