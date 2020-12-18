@@ -21,6 +21,8 @@ export type ContentDoc = {
 export type ContentNote = FileEntryProps & {
   kind: EntryKind.NoteMarkdown;
   text: string;
+  html: string;
+  links: string[];
 };
 
 export type ContentLink = {

@@ -25,6 +25,7 @@ import { UiRow } from "./components/UiRow";
 import { Entry, Entries, Labels } from "./types";
 import * as entry_utils from "./utils/entry_utils";
 import * as label_utils from "./utils/label_utils";
+import * as markdown_utils from "./utils/markdown_utils";
 import * as repo_utils from "./repo";
 import type { Repos } from "./repo";
 import * as git_ops from "./git_ops";
@@ -194,19 +195,24 @@ function App() {
       if (
         newText != null &&
         entry_utils.isNote(activeEntry) &&
-        newText !== entry_utils.getText(activeEntry)
+        newText !== activeEntry.content.text
       ) {
+        let [html, links] = markdown_utils.processMarkdownText(newText);
+
         let newEntries = entries.slice(0);
         newEntries[activeEntryIdx] = {
           ...activeEntry,
           content: {
             ...activeEntry.content,
             text: newText,
+            html: html,
+            links: links,
           },
         };
         setEntries(newEntries);
 
         setStagedGitOps((gitOps) => git_ops.appendUpdateEntry(gitOps, newEntries[activeEntryIdx]));
+        // TODO: We need to stage updates to meta data as well
       }
     }
   };

@@ -43,3 +43,9 @@ export function extractLinks(html: string): string[] {
 
   return links;
 }
+
+export function processMarkdownText(text: string): [string, string[]] {
+  let html = convertMarkdown(text);
+  let links = extractLinks(html);
+  return [html, links];
+}

@@ -18,6 +18,7 @@ import { Content, Entry, EntryKind } from "./types";
 import * as date_utils from "./utils/date_utils";
 import { FileKind } from "./utils/path_utils";
 import * as path_utils from "./utils/path_utils";
+import * as markdown_utils from "./utils/markdown_utils";
 
 // ----------------------------------------------------------------------------
 // ResultAsync helper
@@ -365,6 +366,9 @@ async function loadEntry(
     // https://stackoverflow.com/a/42623905/1804173
     // https://stackoverflow.com/questions/55377365/what-does-keyof-typeof-mean-in-typescript
     if (fileKind === FileKind.NoteMarkdown) {
+      let text = entryContent?.value || "";
+      let [html, links] = markdown_utils.processMarkdownText(text);
+
       content = {
         kind: (fileKind as keyof typeof FileKind) as EntryKind.NoteMarkdown,
         location: location,
@@ -372,7 +376,9 @@ async function loadEntry(
         timeCreated: metaData.timeCreated as Date,
         timeUpdated: metaData.timeUpdated as Date,
         rawUrl: file.rawUrl,
-        text: entryContent?.value || "",
+        text: text,
+        html: html,
+        links: links,
       };
     } else {
       content = {

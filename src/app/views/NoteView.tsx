@@ -9,7 +9,6 @@ import { UiRow } from "../components/UiRow";
 
 import { Entry } from "../types";
 
-import * as markdown_utils from "../utils/markdown_utils";
 import * as entry_utils from "../utils/entry_utils";
 
 /*
@@ -52,7 +51,7 @@ function NoteView({ entry }: NoteViewProps) {
         <StyledTitle>{entry.title}</StyledTitle>
         <div
           dangerouslySetInnerHTML={{
-            __html: markdown_utils.convertMarkdown(entry_utils.getText(entry)!),
+            __html: entry_utils.isNote(entry) ? entry.content.html : "",
           }}
         />
         <Footer />
