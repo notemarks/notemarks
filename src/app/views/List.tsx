@@ -129,68 +129,6 @@ const ExpandButton = styled(Button)`
   margin-top: 20px;
 `;
 
-/*
-const StyledTable = styled(Table)`
-table {
-  font-size: 11px;
-}
-
-table > thead > tr > th {
-  padding: 4px;
-  font-weight: bold;
-}
-
-table > tbody > tr > td {
-  padding: 4px;
-}
-
-.highlight-row {
-  background-color: #fafbfF;
-  font-weight: bold;
-}
-`
-
-const columns: any[] = [
-  {
-    title: "Kind",
-    dataIndex: "entryKind",
-    key: "entryKind",
-    render: (entryKind: EntryKind) => {
-      switch (entryKind) {
-        case EntryKind.Link:
-          return <GlobalOutlined style={{fontSize: 14}}/>
-        case EntryKind.NoteMarkdown:
-          return <EditOutlined style={{fontSize: 14}}/>
-        case EntryKind.Document:
-          return <LinkOutlined style={{fontSize: 14}}/>
-      }
-    }
-  },
-  {
-    title: 'Title',
-    dataIndex: 'title',
-    key: 'title',
-    render: (text: string, entry: Entry) => {
-      // TODO: Should we make this a button?
-      // https://stackoverflow.com/a/60775925/1804173
-      // https://github.com/jsx-eslint/eslint-plugin-jsx-a11y/blob/master/docs/rules/anchor-is-valid.md
-      // eslint-disable-next-line
-      return <a>{text}</a>
-    },
-  },
-  {
-    title: "Labels",
-    dataIndex: "labels",
-    key: "labels",
-    render: (labels: string[]) => (
-      labels.map((label, i) => (
-        <Tag key={label} color="green">{label}</Tag>
-      ))
-    )
-  },
-]
-*/
-
 // ----------------------------------------------------------------------------
 // Notes
 // ----------------------------------------------------------------------------
@@ -211,6 +149,26 @@ const List = React.forwardRef(
     const [searchTerms, setSearchTerms] = useState<string[]>([]);
     const [labelFilters, setLabelFilters] = useState<LabelFilters>([]);
 
+    /*
+    // Note: For now the filteredEntries are computed asynchronously.
+    // This leads to the double rendering of the component when the
+    // search terms change. See e.g.:
+    // https://stackoverflow.com/questions/56028913/usememo-vs-useeffect-usestate
+    // In theory we could simplify it to:
+    const filteredEntries = React.useMemo(() => filterEntries(entries, searchTerms), [
+      entries,
+      searchTerms,
+    ]);
+    // However, using `useEffect` could be beneficial because:
+    // 1. If we want to do full text search, we probably need an async approach anyway,
+    //    due to the overhead. When using `useMemo` would could keep the computation
+    //    of "title filtered" synchronous, but we would have to merge the results of
+    //    the synchrnously filtered with the results of the asynchronously filtered
+    //    somehow, which would lead to a double rendering anyway.
+    // 2. Using `React.memo` on the JSX components that don't change (actually nothing
+    //    in the VDOM changes when the searchTerms change) should make the first
+    //    re-rendering fast.
+    */
     useEffect(() => {
       let newFilteredEntries = filterEntries(entries, searchTerms, labelFilters);
       setSearchStats({ totalMatchingEntries: newFilteredEntries.length });
@@ -233,27 +191,6 @@ const List = React.forwardRef(
         setSelectedIndex(-1);
       }
     }, [entries, searchTerms]);
-
-    /*
-    // Note: For now the filteredEntries are computed asynchronously.
-    // This leads to the double rendering of the component when the
-    // search terms change. See e.g.:
-    // https://stackoverflow.com/questions/56028913/usememo-vs-useeffect-usestate
-    // In theory we could simplify it to:
-    const filteredEntries = React.useMemo(() => filterEntries(entries, searchTerms), [
-      entries,
-      searchTerms,
-    ]);
-    // However, using `useEffect` could be beneficial because:
-    // 1. If we want to do full text search, we probably need an async approach anyway,
-    //    due to the overhead. When using `useMemo` would could keep the computation
-    //    of "title filtered" synchronous, but we would have to merge the results of
-    //    the synchrnously filtered with the results of the asynchronously filtered
-    //    somehow, which would lead to a double rendering anyway.
-    // 2. Using `React.memo` on the JSX components that don't change (actually nothing
-    //    in the VDOM changes when the searchTerms change) should make the first
-    //    re-rendering fast.
-    */
 
     const onChange = (event: React.ChangeEvent<HTMLInputElement>) => {
       // TODO: Improve performance

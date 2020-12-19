@@ -306,11 +306,11 @@ function App() {
     switch (pageFrom) {
       case Page.NoteView:
         storeNoteViewPosition();
-        restoreNoteEditorPosition();
+        restoreNoteEditorPosition(); // TODO: Shouldn't the restore go into a separate postprocessSwitchTo?
         break;
       case Page.NoteEditor:
         storeNoteEditorPosition();
-        restoreNoteViewPosition();
+        restoreNoteViewPosition(); // TODO: Shouldn't the restore go into a separate postprocessSwitchTo?
         updateEntryContent();
         break;
       default: {
@@ -345,6 +345,10 @@ function App() {
 
   // Probably not much sense to useCallback here, because it has too many dependencies?
   const onClickMenu = (menuInfo: MenuInfo) => {
+    // Should the prepareSwitchFrom(page) run before anything unconditionally,
+    // so that a even a reloadEntries gives the editor a chance to save its
+    // content?
+
     let clickedPage = menuInfo.key as Page;
     switch (clickedPage) {
       case Page.Reload:
@@ -431,7 +435,7 @@ function App() {
 
   return (
     <Layout style={{ height: "100%" }}>
-      {/* Theoretically the menu should be wrapped in <Header> but I prefer the smaller sized menu */}
+      {/* According to Antd style guide the menu should be wrapped in <Header> but I prefer the smaller sized menu. */}
       <UiRow
         center={
           <Menu theme="dark" mode="horizontal" selectedKeys={[page]} onClick={onClickMenu}>
