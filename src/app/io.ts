@@ -61,6 +61,14 @@ export function parseMetaData(content: string): Result<MetaData, Error> {
   }
 }
 
+export function serializeMetaData(data: MetaData): string {
+  return yaml.safeDump({
+    labels: data.labels,
+    timeCreated: date_utils.dateToString(data.timeCreated),
+    timeUpdated: date_utils.dateToString(data.timeUpdated),
+  });
+}
+
 // ----------------------------------------------------------------------------
 // Link data
 // ----------------------------------------------------------------------------

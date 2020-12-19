@@ -1,4 +1,29 @@
+import { MetaData } from "./io";
 import * as io from "./io";
+
+import * as date_utils from "./utils/date_utils";
+
+const META_DATA_1 = {
+  labels: ["foo", "bar"],
+  timeCreated: date_utils.stringToDate("2020-12-24T18:30:01")!,
+  timeUpdated: date_utils.stringToDate("2020-12-24T19:30:01")!,
+} as MetaData;
+
+const META_DATA_1_SERIALIZED = `\
+labels:
+  - foo
+  - bar
+timeCreated: '2020-12-24T18:30:01'
+timeUpdated: '2020-12-24T19:30:01'
+`;
+
+test("serializeMetaData", () => {
+  expect(io.serializeMetaData(META_DATA_1)).toEqual(META_DATA_1_SERIALIZED);
+});
+
+test("serializeMetaDataRoundtrip", () => {
+  expect(io.parseMetaData(io.serializeMetaData(META_DATA_1))._unsafeUnwrap()).toEqual(META_DATA_1);
+});
 
 test("parseStoredLinks", () => {
   expect(io.parseStoredLinks("[").isErr()).toEqual(true);

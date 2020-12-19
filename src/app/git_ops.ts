@@ -193,7 +193,7 @@ export function appendNormalized(ops: GitOps, newOp: GitOp): GitOps {
   return newOps;
 }
 
-function createGitOpUpdateContent(entry: EntryNote): GitOpWriteFile {
+function createGitOpWriteFromEntry(entry: EntryNote): GitOpWriteFile {
   return {
     kind: GitOpKind.Write,
     path: path_utils.getPath(entry)!,
@@ -204,13 +204,13 @@ function createGitOpUpdateContent(entry: EntryNote): GitOpWriteFile {
 export function appendUpdateEntry(ops: MultiRepoGitOps, entry: Entry): MultiRepoGitOps {
   let newOps = { ...ops };
 
-  // TODO: Handle this properly file Document type. Where should the content come from? It isn't stored attached to the entry...
+  // TODO: Handle this properly for Document type. Where should the content come from? It isn't stored attached to the entry...
   if (!entry_utils.isNote(entry)) {
     console.log("Unimplemented git op.");
     return newOps;
   }
 
-  let newOp = createGitOpUpdateContent(entry);
+  let newOp = createGitOpWriteFromEntry(entry);
 
   let repoId = getRepoId(entry.content.repo);
   if (newOps.hasOwnProperty(repoId)) {
@@ -218,6 +218,33 @@ export function appendUpdateEntry(ops: MultiRepoGitOps, entry: Entry): MultiRepo
   } else {
     newOps[repoId] = {
       repo: entry.content.repo,
+      ops: [newOp],
+    };
+  }
+
+  return newOps;
+}
+
+export function appendRawWrite(
+  ops: MultiRepoGitOps,
+  repo: Repo,
+  path: string,
+  content: string
+): MultiRepoGitOps {
+  let newOps = { ...ops };
+
+  let newOp: GitOpWriteFile = {
+    kind: GitOpKind.Write,
+    path: path,
+    content: content,
+  };
+
+  let repoId = getRepoId(repo);
+  if (newOps.hasOwnProperty(repoId)) {
+    newOps[repoId].ops = appendNormalized(newOps[repoId].ops, newOp);
+  } else {
+    newOps[repoId] = {
+      repo: repo,
       ops: [newOp],
     };
   }

@@ -153,7 +153,7 @@ function App() {
       allEntries: newEntries,
     })
     */
-    let newFileEntries = await loadEntries(newActiveRepos);
+    let [newFileEntries] = await loadEntries(newActiveRepos);
 
     let newLinkEntries = entry_utils.recomputeLinkEntries(newFileEntries as EntryFile[], []);
     let newEntries = [...newFileEntries, ...newLinkEntries];
@@ -161,8 +161,8 @@ function App() {
     entry_utils.sortAndIndexEntries(newEntries);
 
     // TODO: If the loading actually leads to a different link DB than what has been
-    // stored (i.e., if newLinkEntries is different from what will go in as existingLinks
-    // then we should stage a git op for updating the link DB file).
+    // stored (i.e., if newLinkEntries is different from what will go in as existingLinks)
+    // then we should stage a git op for updating the link DB file.
 
     // Should the recomputeLinkEntries function actually return a boolean to express
     // "the link DB should be updated, there have been changes in inferring the links"?

@@ -10,9 +10,11 @@ import {
 import * as neverthrow from "neverthrow";
 import { ok, err, okAsync, errAsync, Result, ResultAsync } from "neverthrow";
 
-import { Repo, Repos } from "./repo";
-import { GitOp } from "./git_ops";
 import { Content, Entry, EntryKind } from "./types";
+import { Repo, Repos } from "./repo";
+
+import { GitOp, MultiRepoGitOps } from "./git_ops";
+import * as git_ops from "./git_ops";
 
 import { MetaData } from "./io";
 import * as io from "./io";
@@ -217,19 +219,17 @@ async function listFiles(octokit: Octokit, repo: Repo, path: string): Promise<Fi
 // High level entry loading
 // ----------------------------------------------------------------------------
 
-type StagedChange = {};
-
 // TODO: Possible extension of return value to tuple containing:
 // - entries
 // - load errors
 // - load statistics like "X files downloaded", "Y files from cache"?
 // - staged changes
-export async function loadEntries(repos: Repos): Promise<Entry[]> {
+export async function loadEntries(repos: Repos): Promise<[Entry[], MultiRepoGitOps]> {
   console.log(`Loading contents from ${repos.length} repos`);
 
   let allEntries = [] as Entry[];
   let allErrors = [] as Error[];
-  let stagedChanges = [] as StagedChange[];
+  let stagedChanges = {} as MultiRepoGitOps;
 
   for (let repo of repos) {
     const octokit = new Octokit({
@@ -272,7 +272,7 @@ export async function loadEntries(repos: Repos): Promise<Entry[]> {
   console.log(allEntries);
   console.log(allErrors);
 
-  return allEntries;
+  return [allEntries, stagedChanges];
 }
 
 function loadEntriesForRepoFromFilesList(
@@ -280,7 +280,7 @@ function loadEntriesForRepoFromFilesList(
   repo: Repo,
   files: File[],
   metaFiles: File[],
-  stagedChanges: StagedChange[]
+  stagedChanges: MultiRepoGitOps
 ): Array<Promise<Result<Entry, Error>>> {
   // Build meta lookup map
   let metaFilesMap: { [key: string]: File } = {};
@@ -316,7 +316,7 @@ async function loadEntry(
   repo: Repo,
   file: File,
   meta: File | undefined,
-  stagedChanges: StagedChange[]
+  stagedChanges: MultiRepoGitOps
 ): Promise<Result<Entry, Error>> {
   // Determine file kind
   let fileKind = path_utils.getFileKind(file.path);
@@ -334,8 +334,15 @@ async function loadEntry(
     // - Meta file exists, fetch is okay, but parse fails => probably better report as error?
     let metaData: MetaData;
     if (meta == null) {
+      // TODO: Properly test staging of new meta.
       metaData = io.createNewMetaData();
-      // TODO: Add to staged changes here.
+      let content = io.serializeMetaData(metaData);
+      git_ops.appendRawWrite(
+        stagedChanges,
+        repo,
+        path_utils.getAssociatedMetaPath(file.path),
+        content
+      );
     } else {
       let metaContent = await cachedFetch(octokit, repo, meta.path, meta.sha);
       if (metaContent.isErr()) {
