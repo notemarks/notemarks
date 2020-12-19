@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useLayoutEffect } from "react";
+import React, { useState, useReducer, useEffect, useRef, useLayoutEffect } from "react";
 import "./App.css";
 
 import { Layout, Menu } from "antd";
@@ -121,6 +121,39 @@ mousetrap.bind(["command+p", "ctrl+p"], () => {
 });
 
 // ----------------------------------------------------------------------------
+// Reducer types
+// ----------------------------------------------------------------------------
+
+type State = {
+  entries: Entries;
+  labels: Labels;
+  isReloading: boolean;
+  activeEntryIdx?: number;
+  page: Page;
+};
+
+enum ActionKind {
+  StartReloading = "StartReloading",
+  ReloadingDone = "ReloadingDone",
+  SwitchToEntryViewOnIdx = "SwitchToEntryViewOnIdx",
+}
+
+type ActionStartReloading = {
+  kind: ActionKind.StartReloading;
+};
+type ActionReloadingDone = {
+  kind: ActionKind.ReloadingDone;
+  entries: Entries;
+  labels: Labels;
+};
+type ActionSwitchToEntryViewOnIdx = {
+  kind: ActionKind.SwitchToEntryViewOnIdx;
+  idx: number;
+};
+
+type Action = ActionStartReloading | ActionReloadingDone | ActionSwitchToEntryViewOnIdx;
+
+// ----------------------------------------------------------------------------
 // App
 // ----------------------------------------------------------------------------
 
@@ -136,7 +169,8 @@ function App() {
 
   async function reloadEntries(newRepos: Repos) {
     console.log("Reloading entries");
-    setIsReloading(true);
+    //setIsReloading(true);
+    dispatch({ kind: ActionKind.StartReloading });
     let newActiveRepos = repo_utils.filterActiveRepos(newRepos);
 
     // Either loadEntries returns the FileEntries seperated from LinkEntries
@@ -170,9 +204,16 @@ function App() {
 
     // TODO: Decide if these "double updates" are a problem.
     // See: https://stackoverflow.com/q/53574614/1804173
+    /*
     setEntries(newEntries);
     setLabels(label_utils.extractLabels(newEntries));
     setIsReloading(false);
+    */
+    dispatch({
+      kind: ActionKind.ReloadingDone,
+      entries: newEntries,
+      labels: label_utils.extractLabels(newEntries),
+    });
   }
 
   // *** Settings: Repos state
@@ -192,20 +233,41 @@ function App() {
 
   // *** Main state
 
-  const [page, setPage] = useState(Page.Main);
-  const [activeEntryIdx, setActiveEntryIdx] = useState<number | undefined>(undefined);
+  // const [page, setPage] = useState(Page.Main);
+  // const [activeEntryIdx, setActiveEntryIdx] = useState<number | undefined>(undefined);
+
+  function reducer(state: State, action: Action): State {
+    switch (action.kind) {
+      case ActionKind.StartReloading:
+        return { ...state, isReloading: true };
+      case ActionKind.ReloadingDone:
+        return { ...state, entries: action.entries, labels: action.labels };
+      case ActionKind.SwitchToEntryViewOnIdx:
+        return { ...state, page: Page.NoteView, activeEntryIdx: action.idx };
+      default:
+        return state;
+    }
+  }
+
+  const [state, dispatch] = useReducer(reducer, {
+    entries: [],
+    labels: [],
+    isReloading: false,
+    activeEntryIdx: undefined,
+    page: Page.Main,
+  });
 
   // *** Entries state
 
-  let [entries, setEntries] = useState([] as Entries);
-  let [labels, setLabels] = useState([] as Labels);
+  // let [entries, setEntries] = useState([] as Entries);
+  // let [labels, setLabels] = useState([] as Labels);
 
   let [stagedGitOps, setStagedGitOps] = useState({} as MultiRepoGitOps);
 
   // Derived state: active entry
   const getActiveEntry = (): Entry | undefined => {
-    if (activeEntryIdx != null) {
-      return entries[activeEntryIdx];
+    if (state.activeEntryIdx != null) {
+      return state.entries[state.activeEntryIdx];
     }
   };
 
@@ -217,7 +279,7 @@ function App() {
   // *** State change helper functions
 
   const updateEntryContent = () => {
-    if (editorRef.current != null && activeEntryIdx != null) {
+    if (editorRef.current != null && state.activeEntryIdx != null) {
       let activeEntry = getActiveEntry()!;
       let newText = editorRef.current.getEditorContent();
       if (
@@ -246,8 +308,8 @@ function App() {
         - setEntries
         */
 
-        let newEntries = entries.slice(0);
-        newEntries[activeEntryIdx] = {
+        let newEntries = state.entries.slice(0);
+        newEntries[state.activeEntryIdx] = {
           ...activeEntry,
           content: {
             ...activeEntry.content,
@@ -320,13 +382,13 @@ function App() {
   };
 
   keyboardHandlers.handleSwitchEdit = () => {
-    switch (page) {
+    switch (state.page) {
       case Page.NoteView:
-        prepareSwitchFrom(page);
+        prepareSwitchFrom(state.page);
         setPage(Page.NoteEditor);
         break;
       case Page.NoteEditor:
-        prepareSwitchFrom(page);
+        prepareSwitchFrom(state.page);
         setPage(Page.NoteView);
         break;
       default: {
@@ -336,7 +398,7 @@ function App() {
     }
   };
   keyboardHandlers.handleSearch = () => {
-    if (page !== Page.Main) {
+    if (state.page !== Page.Main) {
       setPage(Page.Main);
     } else if (searchInputRef.current != null) {
       searchInputRef.current.focus();
@@ -357,7 +419,7 @@ function App() {
         }
         break;
       default:
-        prepareSwitchFrom(page);
+        prepareSwitchFrom(state.page);
         setPage(clickedPage);
     }
   };
@@ -394,17 +456,18 @@ function App() {
 
   // *** Render helpers
   const renderCenter = () => {
-    switch (page) {
+    switch (state.page) {
       case Page.Main:
         return (
           <List
             ref={searchInputRef}
-            entries={entries}
-            labels={labels}
+            entries={state.entries}
+            labels={state.labels}
             onEnterEntry={(i) => {
               // TODO: requires useCallback?
-              setPage(Page.NoteView);
-              setActiveEntryIdx(i);
+              // setPage(Page.NoteView);
+              // setActiveEntryIdx(i);
+              dispatch({ kind: ActionKind.SwitchToEntryViewOnIdx, idx: i });
             }}
           />
         );
@@ -438,7 +501,7 @@ function App() {
       {/* According to Antd style guide the menu should be wrapped in <Header> but I prefer the smaller sized menu. */}
       <UiRow
         center={
-          <Menu theme="dark" mode="horizontal" selectedKeys={[page]} onClick={onClickMenu}>
+          <Menu theme="dark" mode="horizontal" selectedKeys={[state.page]} onClick={onClickMenu}>
             <Menu.Item key={Page.Main} icon={<FileSearchOutlined style={{ fontSize: 16 }} />} />
             <Menu.Item key={Page.NoteView} icon={<ReadOutlined style={{ fontSize: 16 }} />} />
             <Menu.Item key={Page.NoteEditor} icon={<EditOutlined style={{ fontSize: 16 }} />} />
