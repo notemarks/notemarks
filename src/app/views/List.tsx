@@ -141,9 +141,13 @@ type ListProps = {
 
 const List = React.forwardRef(
   ({ entries, labels, onEnterEntry }: ListProps, ref: MutableRef<HTMLInputElement>) => {
-    const [filteredEntries, setFilteredEntries] = useState(entries);
+    let initialNumVisibleEntires = 20;
+
+    const [filteredEntries, setFilteredEntries] = useState(
+      entries.slice(0, initialNumVisibleEntires)
+    );
     const [searchStats, setSearchStats] = useState({ totalMatchingEntries: entries.length });
-    const [numVisibleEntries, setNumVisibleEntries] = useState(20);
+    const [numVisibleEntries, setNumVisibleEntries] = useState(initialNumVisibleEntires);
     const [selectedIndex, setSelectedIndex] = useState(-1);
 
     const [searchTerms, setSearchTerms] = useState<string[]>([]);
