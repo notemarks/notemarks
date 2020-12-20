@@ -1,3 +1,5 @@
+import { ok, Result } from "neverthrow";
+
 import {
   Content,
   ContentDoc,
@@ -261,7 +263,7 @@ export function recomputeEntries(
 }
 
 // ----------------------------------------------------------------------------
-// Link DB git ops
+// Link entries <=> StoredLinks conversion
 // ----------------------------------------------------------------------------
 
 export function serializeLinkEntries(repo: Repo, linkEntries: EntryLink[]): string {
@@ -279,6 +281,32 @@ export function serializeLinkEntries(repo: Repo, linkEntries: EntryLink[]): stri
     }));
   return io.serializeStoredLinks(storedLinks);
 }
+
+export function deserializeLinkEntries(repo: Repo, content?: string): Result<EntryLink[], Error> {
+  let storedLinks =
+    content != null ? io.parseStoredLinks(content) : (ok([]) as Result<StoredLinks, Error>);
+  return storedLinks.map((storedLinks) =>
+    storedLinks.map((storedLink) => ({
+      title: storedLink.title,
+      priority: 0, // TODO: needs to be stored?
+      labels: storedLink.ownLabels,
+      content: {
+        kind: EntryKind.Link,
+        target: storedLink.target,
+        referencedBy: [],
+        standaloneRepo: storedLink.standalone ? repo : undefined,
+        refRepos: [],
+        refLocations: [],
+        ownLabels: storedLink.ownLabels,
+      },
+      key: `__link_${storedLink.target}`,
+    }))
+  );
+}
+
+// ----------------------------------------------------------------------------
+// Link DB git ops
+// ----------------------------------------------------------------------------
 
 /*
 In general we have a few different ways to determine if the link DB needs

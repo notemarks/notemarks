@@ -214,16 +214,13 @@ function App() {
     dispatch({ kind: ActionKind.StartReloading });
 
     let newActiveRepos = repo_utils.filterActiveRepos(newRepos);
-    let [newFileEntries, newStagedGitOps] = await loadEntries(newActiveRepos);
+    let [newFileEntries, oldLinkEntries, newStagedGitOps] = await loadEntries(newActiveRepos);
 
-    let [newLinkEntries, newEntries] = entry_utils.recomputeEntries(
-      newFileEntries,
-      state.linkEntries
-    );
+    let [newLinkEntries, newEntries] = entry_utils.recomputeEntries(newFileEntries, oldLinkEntries);
 
     newStagedGitOps = entry_utils.stageLinkDBUpdate(
       newStagedGitOps,
-      state.linkEntries,
+      oldLinkEntries,
       newLinkEntries
     );
 

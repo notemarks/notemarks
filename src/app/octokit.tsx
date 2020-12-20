@@ -10,7 +10,7 @@ import {
 import * as neverthrow from "neverthrow";
 import { ok, err, okAsync, errAsync, Result, ResultAsync } from "neverthrow";
 
-import { Content, EntryFile, EntryKind } from "./types";
+import { Content, EntryFile, EntryKind, EntryLink } from "./types";
 import { Repo, Repos } from "./repo";
 
 import { GitOp, MultiRepoGitOps } from "./git_ops";
@@ -21,6 +21,8 @@ import * as io from "./io";
 
 import { FileKind } from "./utils/path_utils";
 import * as path_utils from "./utils/path_utils";
+
+import * as entry_utils from "./utils/entry_utils";
 import * as markdown_utils from "./utils/markdown_utils";
 
 // ----------------------------------------------------------------------------
@@ -164,6 +166,20 @@ async function cachedFetch(
   }
 }
 
+async function cachedFetchStaticMetaFile(
+  octokit: Octokit,
+  repo: Repo,
+  metaFiles: File[],
+  path: string
+): Promise<Result<string | undefined, Error>> {
+  let metaFile = metaFiles.find((metaFile) => metaFile.path === path);
+  if (metaFile == null) {
+    return ok(undefined);
+  } else {
+    return cachedFetch(octokit, repo, metaFile.path, metaFile.sha);
+  }
+}
+
 // ----------------------------------------------------------------------------
 // Recursive file listing
 // ----------------------------------------------------------------------------
@@ -224,10 +240,13 @@ async function listFiles(octokit: Octokit, repo: Repo, path: string): Promise<Fi
 // - load errors
 // - load statistics like "X files downloaded", "Y files from cache"?
 // - staged changes
-export async function loadEntries(repos: Repos): Promise<[EntryFile[], MultiRepoGitOps]> {
+export async function loadEntries(
+  repos: Repos
+): Promise<[EntryFile[], EntryLink[], MultiRepoGitOps]> {
   console.log(`Loading contents from ${repos.length} repos`);
 
   let allEntries = [] as EntryFile[];
+  let allLinkEntries = [] as EntryLink[];
   let allErrors = [] as Error[];
   let stagedChanges = {} as MultiRepoGitOps;
 
@@ -239,6 +258,7 @@ export async function loadEntries(repos: Repos): Promise<[EntryFile[], MultiRepo
     let files = await listFiles(octokit, repo, ".");
     let metaFiles = await listFiles(octokit, repo, path_utils.NOTEMARKS_FOLDER);
 
+    // Loading of file entries by merging files + metaFiles
     let entriesPromises = loadEntriesForRepoFromFilesList(
       octokit,
       repo,
@@ -259,7 +279,6 @@ export async function loadEntries(repos: Repos): Promise<[EntryFile[], MultiRepo
     });
     */
     // console.log(entries)
-
     for (let entry of entries) {
       if (entry.isOk()) {
         allEntries.push(entry.value);
@@ -267,12 +286,30 @@ export async function loadEntries(repos: Repos): Promise<[EntryFile[], MultiRepo
         allErrors.push(entry.error);
       }
     }
+
+    // Loading of link entries
+    let contentLinkDBResult = await cachedFetchStaticMetaFile(
+      octokit,
+      repo,
+      metaFiles,
+      path_utils.NOTEMARKS_LINK_DB_PATH
+    );
+    let linkEntriesResult = contentLinkDBResult.andThen((contentLinkDB) =>
+      entry_utils.deserializeLinkEntries(repo, contentLinkDB)
+    );
+    if (linkEntriesResult.isErr()) {
+      console.log("Error extracting link DB:", linkEntriesResult.error);
+    }
+    let linkEntries = linkEntriesResult.unwrapOr([]);
+
+    // TODO: We need duplicate removal here...
+    allLinkEntries = [...allLinkEntries, ...linkEntries];
   }
 
   console.log(allEntries);
   console.log(allErrors);
 
-  return [allEntries, stagedChanges];
+  return [allEntries, allLinkEntries, stagedChanges];
 }
 
 function loadEntriesForRepoFromFilesList(
