@@ -23,6 +23,7 @@ import { useEffectOnce } from "./utils/react_utils";
 import { UiRow } from "./components/UiRow";
 
 import { Entry, Entries, Labels, EntryFile } from "./types";
+import * as fn from "./utils/fn_utils";
 import * as entry_utils from "./utils/entry_utils";
 import * as label_utils from "./utils/label_utils";
 import * as markdown_utils from "./utils/markdown_utils";
@@ -259,12 +260,18 @@ function App() {
 
   function reducer(state: State, action: Action): State {
     switch (action.kind) {
-      case ActionKind.StartReloading:
-        return { ...state, isReloading: true };
+      case ActionKind.SwitchToPage:
+        return { ...state, page: action.page };
+
       case ActionKind.SwitchToEntryViewOnIdx:
         return { ...state, page: Page.NoteView, activeEntryIdx: action.idx };
+
+      case ActionKind.StartReloading:
+        return { ...state, isReloading: true };
+
       case ActionKind.ReloadingDone:
-        return { ...state, entries: action.entries, labels: action.labels };
+        return { ...state, isReloading: false, entries: action.entries, labels: action.labels };
+
       case ActionKind.UpdateNoteContent:
         if (state.activeEntryIdx == null) {
           console.log("Illegal dispath: UpdateNoteContent was called without an active entry.");
@@ -329,8 +336,7 @@ function App() {
         return { ...state, page: Page.Main, stagedGitOps: {} };
 
       default:
-        console.log(`Illegal dispath: Unkown action kind ${(action as any).kind}`);
-        return state;
+        fn.assertUnreachable(action);
     }
   }
 
