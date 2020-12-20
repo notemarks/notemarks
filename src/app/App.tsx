@@ -130,14 +130,26 @@ type State = {
   isReloading: boolean;
   activeEntryIdx?: number;
   page: Page;
+  stagedGitOps: MultiRepoGitOps;
 };
 
 enum ActionKind {
+  SwitchToPage = "SwitchToPage",
+  SwitchToEntryViewOnIdx = "SwitchToEntryViewOnIdx",
   StartReloading = "StartReloading",
   ReloadingDone = "ReloadingDone",
-  SwitchToEntryViewOnIdx = "SwitchToEntryViewOnIdx",
+  UpdateNoteContent = "UpdateNoteContent",
+  SuccessfulCommit = "SuccessfulCommit",
 }
 
+type ActionSwitchToPage = {
+  kind: ActionKind.SwitchToPage;
+  page: Page;
+};
+type ActionSwitchToEntryViewOnIdx = {
+  kind: ActionKind.SwitchToEntryViewOnIdx;
+  idx: number;
+};
 type ActionStartReloading = {
   kind: ActionKind.StartReloading;
 };
@@ -146,12 +158,21 @@ type ActionReloadingDone = {
   entries: Entries;
   labels: Labels;
 };
-type ActionSwitchToEntryViewOnIdx = {
-  kind: ActionKind.SwitchToEntryViewOnIdx;
-  idx: number;
+type ActionUpdateNoteContent = {
+  kind: ActionKind.UpdateNoteContent;
+  content: string;
+};
+type ActionSuccessfulCommit = {
+  kind: ActionKind.SuccessfulCommit;
 };
 
-type Action = ActionStartReloading | ActionReloadingDone | ActionSwitchToEntryViewOnIdx;
+type Action =
+  | ActionSwitchToPage
+  | ActionSwitchToEntryViewOnIdx
+  | ActionStartReloading
+  | ActionReloadingDone
+  | ActionUpdateNoteContent
+  | ActionSuccessfulCommit;
 
 // ----------------------------------------------------------------------------
 // App
@@ -219,7 +240,7 @@ function App() {
   // *** Settings: Repos state
 
   const [repos, setRepos] = useState([] as Repos);
-  const [isReloading, setIsReloading] = useState(false);
+  // const [isReloading, setIsReloading] = useState(false);
 
   // Effect to store repo changes to local storage.
   // Note that it is slightly awkward that we re-store the repos data
@@ -240,11 +261,75 @@ function App() {
     switch (action.kind) {
       case ActionKind.StartReloading:
         return { ...state, isReloading: true };
-      case ActionKind.ReloadingDone:
-        return { ...state, entries: action.entries, labels: action.labels };
       case ActionKind.SwitchToEntryViewOnIdx:
         return { ...state, page: Page.NoteView, activeEntryIdx: action.idx };
+      case ActionKind.ReloadingDone:
+        return { ...state, entries: action.entries, labels: action.labels };
+      case ActionKind.UpdateNoteContent:
+        if (state.activeEntryIdx == null) {
+          console.log("Illegal dispath: UpdateNoteContent was called without an active entry.");
+          return state;
+        }
+        let activeEntry = state.entries[state.activeEntryIdx!];
+        if (!entry_utils.isNote(activeEntry)) {
+          console.log(
+            "Illegal dispath: UpdateNoteContent was called when active entry wasn't a note."
+          );
+          return state;
+        }
+
+        let newText = action.content;
+        if (newText !== activeEntry.content.text) {
+          let [html, links] = markdown_utils.processMarkdownText(newText);
+
+          /*
+          To be solved: How to rerun entry_utils.mergeEntriesAndLinks(newFileEntries, newLinkEntries);
+
+          Tricky: Since the active entry may have received new links or links were removed, the
+          length of the combined entries can change. This also means that the activeEntryIdx
+          may longer be valid, and needs to be reset accordingly. Note that it isn't safe to assume
+          that the activeEntryIdx doesn't change because notes are always sorted before links.
+          In general the activeEntryIdx can point to links as well, not only notes, so it does
+          not necessarily "point to a stable area".
+
+          Brute force solution:
+          - Either store file vs link entries separately or divide them here into two groups.
+          - Identify the activeEntryIdx within the file entries, if it has no match the active
+            entry is a link, which actually should be impossible if the editor is up, hm...
+          - Modify the file entry.
+          - Merged them back together
+          - setEntries
+          */
+
+          let newEntries = state.entries.slice(0);
+          newEntries[state.activeEntryIdx] = {
+            ...activeEntry,
+            content: {
+              ...activeEntry.content,
+              text: newText,
+              html: html,
+              links: links,
+            },
+          };
+
+          // TODO: We need to stage updates to meta data as well
+          let stagedGitOps = git_ops.appendUpdateEntry(
+            state.stagedGitOps,
+            newEntries[state.activeEntryIdx]
+          );
+          return {
+            ...state,
+            entries: newEntries,
+            stagedGitOps: stagedGitOps,
+          };
+        } else {
+          return state;
+        }
+      case ActionKind.SuccessfulCommit:
+        return { ...state, page: Page.Main, stagedGitOps: {} };
+
       default:
+        console.log(`Illegal dispath: Unkown action kind ${(action as any).kind}`);
         return state;
     }
   }
@@ -255,6 +340,7 @@ function App() {
     isReloading: false,
     activeEntryIdx: undefined,
     page: Page.Main,
+    stagedGitOps: {},
   });
 
   // *** Entries state
@@ -262,7 +348,7 @@ function App() {
   // let [entries, setEntries] = useState([] as Entries);
   // let [labels, setLabels] = useState([] as Labels);
 
-  let [stagedGitOps, setStagedGitOps] = useState({} as MultiRepoGitOps);
+  // let [stagedGitOps, setStagedGitOps] = useState({} as MultiRepoGitOps);
 
   // Derived state: active entry
   const getActiveEntry = (): Entry | undefined => {
@@ -279,49 +365,10 @@ function App() {
   // *** State change helper functions
 
   const updateEntryContent = () => {
-    if (editorRef.current != null && state.activeEntryIdx != null) {
-      let activeEntry = getActiveEntry()!;
+    if (editorRef.current != null) {
       let newText = editorRef.current.getEditorContent();
-      if (
-        newText != null &&
-        entry_utils.isNote(activeEntry) &&
-        newText !== activeEntry.content.text
-      ) {
-        let [html, links] = markdown_utils.processMarkdownText(newText);
-
-        /*
-        To be solved: How to rerun entry_utils.mergeEntriesAndLinks(newFileEntries, newLinkEntries);
-
-        Tricky: Since the active entry may have received new links or links were removed, the
-        length of the combined entries can change. This also means that the activeEntryIdx
-        may longer be valid, and needs to be reset accordingly. Note that it isn't safe to assume
-        that the activeEntryIdx doesn't change because notes are always sorted before links.
-        In general the activeEntryIdx can point to links as well, not only notes, so it does
-        not necessarily "point to a stable area".
-
-        Brute force solution:
-        - Either store file vs link entries separately or divide them here into two groups.
-        - Identify the activeEntryIdx within the file entries, if it has no match the active
-          entry is a link, which actually should be impossible if the editor is up, hm...
-        - Modify the file entry.
-        - Merged them back together
-        - setEntries
-        */
-
-        let newEntries = state.entries.slice(0);
-        newEntries[state.activeEntryIdx] = {
-          ...activeEntry,
-          content: {
-            ...activeEntry.content,
-            text: newText,
-            html: html,
-            links: links,
-          },
-        };
-        setEntries(newEntries);
-
-        setStagedGitOps((gitOps) => git_ops.appendUpdateEntry(gitOps, newEntries[activeEntryIdx]));
-        // TODO: We need to stage updates to meta data as well
+      if (newText != null) {
+        dispatch({ kind: ActionKind.UpdateNoteContent, content: newText });
       }
     }
   };
@@ -385,11 +432,13 @@ function App() {
     switch (state.page) {
       case Page.NoteView:
         prepareSwitchFrom(state.page);
-        setPage(Page.NoteEditor);
+        // setPage(Page.NoteEditor);
+        dispatch({ kind: ActionKind.SwitchToPage, page: Page.NoteEditor });
         break;
       case Page.NoteEditor:
         prepareSwitchFrom(state.page);
-        setPage(Page.NoteView);
+        // setPage(Page.NoteView);
+        dispatch({ kind: ActionKind.SwitchToPage, page: Page.NoteView });
         break;
       default: {
         console.log("Switching not possible");
@@ -399,7 +448,8 @@ function App() {
   };
   keyboardHandlers.handleSearch = () => {
     if (state.page !== Page.Main) {
-      setPage(Page.Main);
+      // setPage(Page.Main);
+      dispatch({ kind: ActionKind.SwitchToPage, page: Page.Main });
     } else if (searchInputRef.current != null) {
       searchInputRef.current.focus();
     }
@@ -414,13 +464,14 @@ function App() {
     let clickedPage = menuInfo.key as Page;
     switch (clickedPage) {
       case Page.Reload:
-        if (!isReloading) {
+        if (!state.isReloading) {
           reloadEntries(repos);
         }
         break;
       default:
         prepareSwitchFrom(state.page);
-        setPage(clickedPage);
+        // setPage(clickedPage);
+        dispatch({ kind: ActionKind.SwitchToPage, page: clickedPage });
     }
   };
 
@@ -484,10 +535,11 @@ function App() {
       case Page.Commit:
         return (
           <PrepareCommit
-            ops={stagedGitOps}
+            ops={state.stagedGitOps}
             onSuccessfulCommit={() => {
-              setPage(Page.Main);
-              setStagedGitOps({});
+              //setPage(Page.Main);
+              //setStagedGitOps({});
+              dispatch({ kind: ActionKind.SuccessfulCommit });
             }}
           />
         );
@@ -509,12 +561,12 @@ function App() {
             <Menu.Item
               key={Page.Commit}
               icon={<UploadOutlined style={{ fontSize: 16 }} />}
-              disabled={Object.keys(stagedGitOps).length === 0}
+              disabled={Object.keys(state.stagedGitOps).length === 0}
             />
             <Menu.Item
               key={Page.Reload}
               icon={
-                !isReloading ? (
+                !state.isReloading ? (
                   <ReloadOutlined style={{ fontSize: 16 }} />
                 ) : (
                   <LoadingOutlined style={{ fontSize: 16 }} />
