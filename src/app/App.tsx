@@ -22,7 +22,7 @@ import mousetrap from "mousetrap";
 import { useEffectOnce } from "./utils/react_utils";
 import { UiRow } from "./components/UiRow";
 
-import { Entry, Entries, Labels, EntryFile } from "./types";
+import { Entry, Entries, EntryFile, EntryLink, Labels } from "./types";
 import * as fn from "./utils/fn_utils";
 import * as entry_utils from "./utils/entry_utils";
 import * as label_utils from "./utils/label_utils";
@@ -127,6 +127,8 @@ mousetrap.bind(["command+p", "ctrl+p"], () => {
 
 type State = {
   entries: Entries;
+  fileEntries: EntryFile[];
+  linkEntries: EntryLink[];
   labels: Labels;
   isReloading: boolean;
   activeEntryIdx?: number;
@@ -157,7 +159,10 @@ type ActionStartReloading = {
 type ActionReloadingDone = {
   kind: ActionKind.ReloadingDone;
   entries: Entries;
+  fileEntries: EntryFile[];
+  linkEntries: EntryLink[];
   labels: Labels;
+  stagedGitOps: MultiRepoGitOps;
 };
 type ActionUpdateNoteContent = {
   kind: ActionKind.UpdateNoteContent;
@@ -189,6 +194,20 @@ function App() {
     reloadEntries(initRepos);
   });
 
+  // *** Settings: Repos state
+
+  const [repos, setRepos] = useState([] as Repos);
+
+  // Effect to store repo changes to local storage.
+  // Note that it is slightly awkward that we re-store the repos data
+  // after the initial loading, because it uses setRepos. But on first
+  // glance that shouldn't cause trouble and is better then reloading
+  // the repo data as an argument to useState in every re-render.
+  useEffect(() => {
+    // console.log("Storing repos:", repos)
+    repo_utils.setStoredRepos(repos);
+  }, [repos]);
+
   async function reloadEntries(newRepos: Repos) {
     console.log("Reloading entries");
     //setIsReloading(true);
@@ -209,12 +228,9 @@ function App() {
       allEntries: newEntries,
     })
     */
-    let [newFileEntries] = await loadEntries(newActiveRepos);
+    let [newFileEntries, stagedGitOps] = await loadEntries(newActiveRepos);
 
-    let newLinkEntries = entry_utils.recomputeLinkEntries(newFileEntries as EntryFile[], []);
-    let newEntries = [...newFileEntries, ...newLinkEntries];
-
-    entry_utils.sortAndIndexEntries(newEntries);
+    let [newLinkEntries, newEntries] = entry_utils.recomputeEntries(newFileEntries, []);
 
     // TODO: If the loading actually leads to a different link DB than what has been
     // stored (i.e., if newLinkEntries is different from what will go in as existingLinks)
@@ -234,114 +250,122 @@ function App() {
     dispatch({
       kind: ActionKind.ReloadingDone,
       entries: newEntries,
+      fileEntries: newFileEntries,
+      linkEntries: newLinkEntries,
       labels: label_utils.extractLabels(newEntries),
+      stagedGitOps: stagedGitOps,
     });
   }
 
-  // *** Settings: Repos state
-
-  const [repos, setRepos] = useState([] as Repos);
-  // const [isReloading, setIsReloading] = useState(false);
-
-  // Effect to store repo changes to local storage.
-  // Note that it is slightly awkward that we re-store the repos data
-  // after the initial loading, because it uses setRepos. But on first
-  // glance that shouldn't cause trouble and is better then reloading
-  // the repo data as an argument to useState in every re-render.
-  useEffect(() => {
-    // console.log("Storing repos:", repos)
-    repo_utils.setStoredRepos(repos);
-  }, [repos]);
-
   // *** Main state
-
-  // const [page, setPage] = useState(Page.Main);
-  // const [activeEntryIdx, setActiveEntryIdx] = useState<number | undefined>(undefined);
 
   function reducer(state: State, action: Action): State {
     switch (action.kind) {
-      case ActionKind.SwitchToPage:
+      case ActionKind.SwitchToPage: {
         return { ...state, page: action.page };
-
-      case ActionKind.SwitchToEntryViewOnIdx:
+      }
+      case ActionKind.SwitchToEntryViewOnIdx: {
         return { ...state, page: Page.NoteView, activeEntryIdx: action.idx };
-
-      case ActionKind.StartReloading:
+      }
+      case ActionKind.StartReloading: {
         return { ...state, isReloading: true };
-
-      case ActionKind.ReloadingDone:
-        return { ...state, isReloading: false, entries: action.entries, labels: action.labels };
-
-      case ActionKind.UpdateNoteContent:
+      }
+      case ActionKind.ReloadingDone: {
+        // Note that a reload discards existing stagedGitOps due to the reset semantics.
+        return {
+          ...state,
+          isReloading: false,
+          entries: action.entries,
+          fileEntries: action.fileEntries,
+          linkEntries: action.linkEntries,
+          labels: action.labels,
+          stagedGitOps: action.stagedGitOps,
+        };
+      }
+      case ActionKind.UpdateNoteContent: {
         if (state.activeEntryIdx == null) {
-          console.log("Illegal dispath: UpdateNoteContent was called without an active entry.");
+          console.log("Illegal update: UpdateNoteContent called without an active entry.");
           return state;
         }
+
         let activeEntry = state.entries[state.activeEntryIdx!];
         if (!entry_utils.isNote(activeEntry)) {
-          console.log(
-            "Illegal dispath: UpdateNoteContent was called when active entry wasn't a note."
-          );
+          console.log("Illegal update: UpdateNoteContent called when active entry wasn't a note.");
           return state;
         }
 
-        let newText = action.content;
-        if (newText !== activeEntry.content.text) {
-          let [html, links] = markdown_utils.processMarkdownText(newText);
+        if (action.content !== activeEntry.content.text) {
+          let [html, links] = markdown_utils.processMarkdownText(action.content);
 
           /*
-          To be solved: How to rerun entry_utils.mergeEntriesAndLinks(newFileEntries, newLinkEntries);
-
           Tricky: Since the active entry may have received new links or links were removed, the
           length of the combined entries can change. This also means that the activeEntryIdx
           may longer be valid, and needs to be reset accordingly. Note that it isn't safe to assume
           that the activeEntryIdx doesn't change because notes are always sorted before links.
           In general the activeEntryIdx can point to links as well, not only notes, so it does
           not necessarily "point to a stable area".
-
-          Brute force solution:
-          - Either store file vs link entries separately or divide them here into two groups.
-          - Identify the activeEntryIdx within the file entries, if it has no match the active
-            entry is a link, which actually should be impossible if the editor is up, hm...
-          - Modify the file entry.
-          - Merged them back together
-          - setEntries
           */
 
-          let newEntries = state.entries.slice(0);
-          newEntries[state.activeEntryIdx] = {
+          // Identify active entry within file entries
+          let fileEntryIdx = state.fileEntries.findIndex(
+            (entry) => entry.idx === state.activeEntryIdx
+          );
+          if (fileEntryIdx === -1) {
+            // Should be unreachable because we have verified that the active entry is a note.
+            console.log(
+              "Illegal update: Could not find a file entry for index " + state.activeEntryIdx
+            );
+            return state;
+          }
+
+          // Modify the file entries
+          let newFileEntries = state.fileEntries.slice(0);
+          newFileEntries[fileEntryIdx] = {
             ...activeEntry,
             content: {
               ...activeEntry.content,
-              text: newText,
+              text: action.content,
               html: html,
               links: links,
             },
           };
 
+          // Recompute links and all entries
+          let [newLinkEntries, newEntries] = entry_utils.recomputeEntries(
+            newFileEntries,
+            state.linkEntries
+          );
+
           // TODO: We need to stage updates to meta data as well
           let stagedGitOps = git_ops.appendUpdateEntry(
             state.stagedGitOps,
-            newEntries[state.activeEntryIdx]
+            newFileEntries[fileEntryIdx]
           );
           return {
             ...state,
             entries: newEntries,
+            fileEntries: newFileEntries,
+            linkEntries: newLinkEntries,
             stagedGitOps: stagedGitOps,
           };
         } else {
           return state;
         }
-      case ActionKind.SuccessfulCommit:
+      }
+      case ActionKind.SuccessfulCommit: {
         return { ...state, page: Page.Main, stagedGitOps: {} };
+      }
 
-      default:
+      default: {
         fn.assertUnreachable(action);
+      }
     }
   }
 
   const [state, dispatch] = useReducer(reducer, {
     entries: [],
+    fileEntries: [],
+    linkEntries: [],
     labels: [],
     isReloading: false,
     activeEntryIdx: undefined,
@@ -349,14 +373,8 @@ function App() {
     stagedGitOps: {},
   });
 
-  // *** Entries state
+  // *** Derived state
 
-  // let [entries, setEntries] = useState([] as Entries);
-  // let [labels, setLabels] = useState([] as Labels);
-
-  // let [stagedGitOps, setStagedGitOps] = useState({} as MultiRepoGitOps);
-
-  // Derived state: active entry
   const getActiveEntry = (): Entry | undefined => {
     if (state.activeEntryIdx != null) {
       return state.entries[state.activeEntryIdx];
@@ -438,12 +456,10 @@ function App() {
     switch (state.page) {
       case Page.NoteView:
         prepareSwitchFrom(state.page);
-        // setPage(Page.NoteEditor);
         dispatch({ kind: ActionKind.SwitchToPage, page: Page.NoteEditor });
         break;
       case Page.NoteEditor:
         prepareSwitchFrom(state.page);
-        // setPage(Page.NoteView);
         dispatch({ kind: ActionKind.SwitchToPage, page: Page.NoteView });
         break;
       default: {
@@ -464,7 +480,7 @@ function App() {
   // Probably not much sense to useCallback here, because it has too many dependencies?
   const onClickMenu = (menuInfo: MenuInfo) => {
     // Should the prepareSwitchFrom(page) run before anything unconditionally,
-    // so that a even a reloadEntries gives the editor a chance to save its
+    // so that even a reloadEntries gives the editor a chance to save its
     // content?
 
     let clickedPage = menuInfo.key as Page;
@@ -476,7 +492,6 @@ function App() {
         break;
       default:
         prepareSwitchFrom(state.page);
-        // setPage(clickedPage);
         dispatch({ kind: ActionKind.SwitchToPage, page: clickedPage });
     }
   };
@@ -521,9 +536,6 @@ function App() {
             entries={state.entries}
             labels={state.labels}
             onEnterEntry={(i) => {
-              // TODO: requires useCallback?
-              // setPage(Page.NoteView);
-              // setActiveEntryIdx(i);
               dispatch({ kind: ActionKind.SwitchToEntryViewOnIdx, idx: i });
             }}
           />
@@ -543,8 +555,6 @@ function App() {
           <PrepareCommit
             ops={state.stagedGitOps}
             onSuccessfulCommit={() => {
-              //setPage(Page.Main);
-              //setStagedGitOps({});
               dispatch({ kind: ActionKind.SuccessfulCommit });
             }}
           />

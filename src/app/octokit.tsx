@@ -10,7 +10,7 @@ import {
 import * as neverthrow from "neverthrow";
 import { ok, err, okAsync, errAsync, Result, ResultAsync } from "neverthrow";
 
-import { Content, Entry, EntryKind } from "./types";
+import { Content, EntryFile, EntryKind } from "./types";
 import { Repo, Repos } from "./repo";
 
 import { GitOp, MultiRepoGitOps } from "./git_ops";
@@ -224,10 +224,10 @@ async function listFiles(octokit: Octokit, repo: Repo, path: string): Promise<Fi
 // - load errors
 // - load statistics like "X files downloaded", "Y files from cache"?
 // - staged changes
-export async function loadEntries(repos: Repos): Promise<[Entry[], MultiRepoGitOps]> {
+export async function loadEntries(repos: Repos): Promise<[EntryFile[], MultiRepoGitOps]> {
   console.log(`Loading contents from ${repos.length} repos`);
 
-  let allEntries = [] as Entry[];
+  let allEntries = [] as EntryFile[];
   let allErrors = [] as Error[];
   let stagedChanges = {} as MultiRepoGitOps;
 
@@ -281,7 +281,7 @@ function loadEntriesForRepoFromFilesList(
   files: File[],
   metaFiles: File[],
   stagedChanges: MultiRepoGitOps
-): Array<Promise<Result<Entry, Error>>> {
+): Array<Promise<Result<EntryFile, Error>>> {
   // Build meta lookup map
   let metaFilesMap: { [key: string]: File } = {};
   for (let metaFile of metaFiles) {
@@ -317,7 +317,7 @@ async function loadEntry(
   file: File,
   meta: File | undefined,
   stagedChanges: MultiRepoGitOps
-): Promise<Result<Entry, Error>> {
+): Promise<Result<EntryFile, Error>> {
   // Determine file kind
   let fileKind = path_utils.getFileKind(file.path);
 

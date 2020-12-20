@@ -113,7 +113,10 @@ export function mergeLocations(existingLocations: string[], incomingLocation: st
   }
 }
 
-export function recomputeLinkEntries(entries: EntryFile[], existingLinks: EntryLink[]): Entries {
+export function recomputeLinkEntries(
+  entries: EntryFile[],
+  existingLinks: EntryLink[]
+): EntryLink[] {
   console.time("link extraction");
 
   // TODO Loop over existing/explicit links and insert them into the linkMap
@@ -214,4 +217,16 @@ export function recomputeLinkEntries(entries: EntryFile[], existingLinks: EntryL
   console.timeEnd("link extraction");
   console.log(linkMap);
   return linkEntries;
+}
+
+export function recomputeEntries(
+  fileEntries: EntryFile[],
+  existingLinkEntries: EntryLink[]
+): [EntryLink[], Entries] {
+  let linkEntries = recomputeLinkEntries(fileEntries, existingLinkEntries);
+  let entries = [...fileEntries, ...linkEntries];
+
+  sortAndIndexEntries(entries);
+
+  return [linkEntries, entries];
 }

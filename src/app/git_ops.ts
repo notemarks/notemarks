@@ -207,6 +207,7 @@ export function appendUpdateEntry(ops: MultiRepoGitOps, entry: Entry): MultiRepo
   // TODO: Handle this properly for Document type. Where should the content come from? It isn't stored attached to the entry...
   if (!entry_utils.isNote(entry)) {
     console.log("Unimplemented git op.");
+    console.log(entry);
     return newOps;
   }
 
