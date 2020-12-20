@@ -123,6 +123,10 @@ export function parseStoredLinks(content: string): Result<StoredLinks, Error> {
   }
 }
 
+export function serializeStoredLinks(data: StoredLinks): string {
+  return yaml.safeDump(data);
+}
+
 // ----------------------------------------------------------------------------
 // Parse utils
 // ----------------------------------------------------------------------------

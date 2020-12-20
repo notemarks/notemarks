@@ -210,50 +210,30 @@ function App() {
 
   async function reloadEntries(newRepos: Repos) {
     console.log("Reloading entries");
-    //setIsReloading(true);
+
     dispatch({ kind: ActionKind.StartReloading });
+
     let newActiveRepos = repo_utils.filterActiveRepos(newRepos);
+    let [newFileEntries, newStagedGitOps] = await loadEntries(newActiveRepos);
 
-    // Either loadEntries returns the FileEntries seperated from LinkEntries
-    // here, or it merges it internally. One possibility:
-    /*
-    let [newFileEntries, newLinkEntries] = await loadEntries(newActiveRepos);
+    let [newLinkEntries, newEntries] = entry_utils.recomputeEntries(
+      newFileEntries,
+      state.linkEntries
+    );
 
-    let newEntries = entry_utils.mergeEntriesAndLinks(newFileEntries, newLinkEntries);
-    entry_utils.sortAndIndexEntries(newEntries);
+    newStagedGitOps = entry_utils.stageLinkDBUpdate(
+      newStagedGitOps,
+      state.linkEntries,
+      newLinkEntries
+    );
 
-    setEntries({
-      fileEntries: newFileEntries,
-      linkEntries: newLinkEntries,
-      allEntries: newEntries,
-    })
-    */
-    let [newFileEntries, stagedGitOps] = await loadEntries(newActiveRepos);
-
-    let [newLinkEntries, newEntries] = entry_utils.recomputeEntries(newFileEntries, []);
-
-    // TODO: If the loading actually leads to a different link DB than what has been
-    // stored (i.e., if newLinkEntries is different from what will go in as existingLinks)
-    // then we should stage a git op for updating the link DB file.
-
-    // Should the recomputeLinkEntries function actually return a boolean to express
-    // "the link DB should be updated, there have been changes in inferring the links"?
-    // Perhaps this would also be useful in the content update case?
-
-    // TODO: Decide if these "double updates" are a problem.
-    // See: https://stackoverflow.com/q/53574614/1804173
-    /*
-    setEntries(newEntries);
-    setLabels(label_utils.extractLabels(newEntries));
-    setIsReloading(false);
-    */
     dispatch({
       kind: ActionKind.ReloadingDone,
       entries: newEntries,
       fileEntries: newFileEntries,
       linkEntries: newLinkEntries,
       labels: label_utils.extractLabels(newEntries),
-      stagedGitOps: stagedGitOps,
+      stagedGitOps: newStagedGitOps,
     });
   }
 
@@ -336,17 +316,25 @@ function App() {
             state.linkEntries
           );
 
-          // TODO: We need to stage updates to meta data as well
-          let stagedGitOps = git_ops.appendUpdateEntry(
-            state.stagedGitOps,
+          // Stage git ops
+          let newStagedGitOps = state.stagedGitOps;
+          newStagedGitOps = git_ops.appendUpdateEntry(
+            newStagedGitOps,
             newFileEntries[fileEntryIdx]
           );
+          newStagedGitOps = entry_utils.stageLinkDBUpdate(
+            newStagedGitOps,
+            state.linkEntries,
+            newLinkEntries
+          );
+
+          // TODO: We need to stage updates to meta data as well
           return {
             ...state,
             entries: newEntries,
             fileEntries: newFileEntries,
             linkEntries: newLinkEntries,
-            stagedGitOps: stagedGitOps,
+            stagedGitOps: newStagedGitOps,
           };
         } else {
           return state;

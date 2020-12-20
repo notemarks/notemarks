@@ -1,6 +1,7 @@
 import { Entry, EntryKind } from "../types";
 
 export const NOTEMARKS_FOLDER = ".notemarks";
+export const NOTEMARKS_LINK_DB_PATH = `${NOTEMARKS_FOLDER}/link_db.yaml`;
 
 // ----------------------------------------------------------------------------
 // General path helper

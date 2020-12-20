@@ -1,4 +1,4 @@
-import { Entry, EntryNote } from "./types";
+import { Entry } from "./types";
 import { Repo, getRepoId } from "./repo";
 import * as path_utils from "./utils/path_utils";
 import * as entry_utils from "./utils/entry_utils";
@@ -193,52 +193,17 @@ export function appendNormalized(ops: GitOps, newOp: GitOp): GitOps {
   return newOps;
 }
 
-function createGitOpWriteFromEntry(entry: EntryNote): GitOpWriteFile {
-  return {
-    kind: GitOpKind.Write,
-    path: path_utils.getPath(entry)!,
-    content: entry.content.text,
-  };
-}
+// ----------------------------------------------------------------------------
+// Multi repo wrapper
+// ----------------------------------------------------------------------------
 
-export function appendUpdateEntry(ops: MultiRepoGitOps, entry: Entry): MultiRepoGitOps {
-  let newOps = { ...ops };
-
-  // TODO: Handle this properly for Document type. Where should the content come from? It isn't stored attached to the entry...
-  if (!entry_utils.isNote(entry)) {
-    console.log("Unimplemented git op.");
-    console.log(entry);
-    return newOps;
-  }
-
-  let newOp = createGitOpWriteFromEntry(entry);
-
-  let repoId = getRepoId(entry.content.repo);
-  if (newOps.hasOwnProperty(repoId)) {
-    newOps[repoId].ops = appendNormalized(newOps[repoId].ops, newOp);
-  } else {
-    newOps[repoId] = {
-      repo: entry.content.repo,
-      ops: [newOp],
-    };
-  }
-
-  return newOps;
-}
-
-export function appendRawWrite(
+export function appendNormalizedMultiRepo(
   ops: MultiRepoGitOps,
   repo: Repo,
-  path: string,
-  content: string
+  newOp: GitOp
 ): MultiRepoGitOps {
+  // TBD: Should the ops actually change identity or return mutable?
   let newOps = { ...ops };
-
-  let newOp: GitOpWriteFile = {
-    kind: GitOpKind.Write,
-    path: path,
-    content: content,
-  };
 
   let repoId = getRepoId(repo);
   if (newOps.hasOwnProperty(repoId)) {
@@ -252,6 +217,58 @@ export function appendRawWrite(
 
   return newOps;
 }
+
+// ----------------------------------------------------------------------------
+// High level wrapper
+// ----------------------------------------------------------------------------
+
+export function appendRawWrite(
+  ops: MultiRepoGitOps,
+  repo: Repo,
+  path: string,
+  content: string
+): MultiRepoGitOps {
+  let newOp: GitOpWriteFile = {
+    kind: GitOpKind.Write,
+    path: path,
+    content: content,
+  };
+  return appendNormalizedMultiRepo(ops, repo, newOp);
+}
+
+export function appendUpdateEntry(ops: MultiRepoGitOps, entry: Entry): MultiRepoGitOps {
+  // TODO: Handle this properly for Document type. Where should the content come from? It isn't stored attached to the entry...
+  if (!entry_utils.isNote(entry)) {
+    console.log("Unimplemented git op.");
+    console.log(entry);
+    return ops;
+  }
+
+  let newOp: GitOpWriteFile = {
+    kind: GitOpKind.Write,
+    path: path_utils.getPath(entry)!,
+    content: entry.content.text,
+  };
+
+  return appendNormalizedMultiRepo(ops, entry.content.repo, newOp);
+}
+
+export function appendUpdateLinkDB(
+  ops: MultiRepoGitOps,
+  repo: Repo,
+  content: string
+): MultiRepoGitOps {
+  let newOp: GitOpWriteFile = {
+    kind: GitOpKind.Write,
+    path: path_utils.NOTEMARKS_LINK_DB_PATH,
+    content: content,
+  };
+  return appendNormalizedMultiRepo(ops, repo, newOp);
+}
+
+// ----------------------------------------------------------------------------
+// Utils
+// ----------------------------------------------------------------------------
 
 export function mapMultiRepoGitOpsFlat<T>(
   ops: MultiRepoGitOps,
