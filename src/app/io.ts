@@ -95,36 +95,69 @@ export function parseStoredLinks(content: string): Result<StoredLinks, Error> {
   } else if (typeof data !== "object") {
     return err(new Error("Link data isn't an object."));
   } else {
-    // Since no converters are needed in this case a plain validation is sufficient.
-    // For now let's do it like that:
-
     let links = extractArray(data["links"]);
     if (links == null) {
       return err(new Error("Link data field 'links' isn't an array."));
     }
 
     for (let link of links) {
+      // Mandatory fields
       let title = extractString(link["title"]);
       let target = extractString(link["target"]);
-      let standalone = extractBool(link["standalone"]);
-      let ownLabels = extractArrayOfString(link["ownLabels"]);
 
       if (title == null) {
-        return err(new Error("Link data field 'title' isn't an array."));
+        return err(new Error("Link data field 'title' isn't a string."));
       } else if (target == null) {
-        return err(new Error("Link data field 'target' cannot be parsed."));
-      } else if (standalone == null) {
-        return err(new Error("Link data field 'standalone' cannot be parsed."));
-      } else if (ownLabels == null) {
-        return err(new Error("Link data field 'ownLabels' cannot be parsed."));
+        return err(new Error("Link data field 'target' isn't a string."));
+      }
+
+      // Optional fields
+      if ("standalone" in link) {
+        let standalone = extractBool(link["standalone"]);
+        if (standalone == null) {
+          return err(new Error("Link data field 'standalone' isn't a boolean."));
+        }
+      } else {
+        link["standalone"] = false;
+      }
+
+      if ("ownLabels" in link) {
+        let ownLabels = extractArrayOfString(link["ownLabels"]);
+        if (ownLabels == null) {
+          return err(new Error("Link data field 'ownLabels' isn't an array of string."));
+        }
+      } else {
+        link["ownLabels"] = [];
       }
     }
     return ok(links as StoredLink[]);
   }
 }
 
-export function serializeStoredLinks(data: StoredLinks): string {
-  return yaml.safeDump(data);
+export function serializeStoredLinks(storedLinks: StoredLinks): string {
+  storedLinks = [...storedLinks].sort((a, b) => a.target.localeCompare(b.target));
+  // Reasons not to use the generic YAML serialization:
+  // - Doesn't allow (easily / at all?) to drop properties for maximally concise representation.
+  // - Max line length behavior not needed in our use case (unnecessary overhead)
+  // - Due to genericity, it is a bit slow.
+  // return yaml.safeDump({ links: data });
+  let components = ["links:"];
+  if (storedLinks.length === 0) {
+    components.push("  []");
+  } else {
+    for (let storedLink of storedLinks) {
+      components.push("  - title: " + JSON.stringify(storedLink.title));
+      components.push("    target: " + JSON.stringify(storedLink.target));
+      if (storedLink.standalone) {
+        components.push("    standalone: true");
+      }
+      if (storedLink.ownLabels.length > 0) {
+        components.push("    ownLabels: " + JSON.stringify(storedLink.ownLabels));
+      }
+    }
+  }
+  components.push(""); // To enforce final newline
+  return components.join("\n");
 }
 
 // ----------------------------------------------------------------------------
