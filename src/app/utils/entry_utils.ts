@@ -15,7 +15,7 @@ import {
   EntryFile,
   RawLabel,
 } from "../types";
-import { Repo, getRepoId } from "../repo";
+import { Repo, MultiRepoFile, getRepoId, mapMultiRepo } from "../repo";
 
 import { MultiRepoGitOps } from "../git_ops";
 import * as git_ops from "../git_ops";
@@ -268,8 +268,11 @@ export function recomputeEntries(
 
 export function serializeLinkEntries(repo: Repo, linkEntries: EntryLink[]): string {
   let storedLinks: StoredLinks = linkEntries
-    .filter((linkEntry) =>
-      linkEntry.content.refRepos.some((refRepo) => getRepoId(refRepo) === getRepoId(repo))
+    .filter(
+      (linkEntry) =>
+        linkEntry.content.refRepos.some((refRepo) => getRepoId(refRepo) === getRepoId(repo)) ||
+        (linkEntry.content.standaloneRepo != null &&
+          getRepoId(linkEntry.content.standaloneRepo) === getRepoId(repo))
     )
     .map((linkEntry) => ({
       title: linkEntry.title,
@@ -304,6 +307,21 @@ export function deserializeLinkEntries(repo: Repo, content?: string): Result<Ent
   );
 }
 
+export function convertLinkDBtoLinkEntries(perRepoLinkDBs: MultiRepoFile): EntryLink[] {
+  let allLinkEntriesWithoutRefsResolved = [] as EntryLink[];
+  mapMultiRepo(perRepoLinkDBs, (repo, contentLinkDB) => {
+    let linkEntriesWithoutRefsResolvedResult = deserializeLinkEntries(repo, contentLinkDB);
+    if (linkEntriesWithoutRefsResolvedResult.isOk()) {
+      // TODO: We need duplicate removal here...
+      allLinkEntriesWithoutRefsResolved = [
+        ...allLinkEntriesWithoutRefsResolved,
+        ...linkEntriesWithoutRefsResolvedResult.value,
+      ];
+    }
+  });
+  return allLinkEntriesWithoutRefsResolved;
+}
+
 // ----------------------------------------------------------------------------
 // Link DB git ops
 // ----------------------------------------------------------------------------
@@ -323,20 +341,27 @@ are:
 
 Even though (3) is the least sophisticated, it is also the least error prone.
 Let's start with that.
+
+The above reasoning had a flaw: After deserializing the links directly from the
+repo, the link collection is missing any entry references. The serialization
+however has to filter out links without references in order to achive a correct
+"entry to repo" association. This makes approaches (1) and (2) very awkward.
+
+Perhaps the easiest solution is to focus on (3) and keep track of the raw link
+DB content in the app state, which also gets rid of the re-serialization of the
+existing links.
 */
 
 export function stageLinkDBUpdate(
   stagedGitOps: MultiRepoGitOps,
-  linkEntriesExisting: EntryLink[],
-  linkEntriesIncoming: EntryLink[]
+  linkEntriesIncoming: EntryLink[],
+  perRepoLinkDBs: MultiRepoFile
 ): MultiRepoGitOps {
   console.time("stageLinkDBUpdate");
 
   let allRepos: { [repoId: string]: Repo } = {};
-  for (let linkEntry of linkEntriesExisting) {
-    for (let repo of linkEntry.content.refRepos) {
-      allRepos[getRepoId(repo)] = repo;
-    }
+  for (let { repo } of Object.values(perRepoLinkDBs)) {
+    allRepos[getRepoId(repo)] = repo;
   }
   for (let linkEntry of linkEntriesIncoming) {
     for (let repo of linkEntry.content.refRepos) {
@@ -345,7 +370,8 @@ export function stageLinkDBUpdate(
   }
 
   for (let repo of Object.values(allRepos)) {
-    let serializedLinkEntriesExisting = serializeLinkEntries(repo, linkEntriesExisting);
+    let repoId = getRepoId(repo);
+    let serializedLinkEntriesExisting = perRepoLinkDBs[repoId]?.data as string | undefined;
     let serializedLinkEntriesIncoming = serializeLinkEntries(repo, linkEntriesIncoming);
     if (serializedLinkEntriesExisting !== serializedLinkEntriesIncoming) {
       stagedGitOps = git_ops.appendUpdateLinkDB(stagedGitOps, repo, serializedLinkEntriesIncoming);

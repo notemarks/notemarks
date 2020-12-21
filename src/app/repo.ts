@@ -88,3 +88,28 @@ export function setStoredRepos(repos: Repos) {
 export function getRepoCommitPage(repo: Repo, commitHash: string): string {
   return `https://github.com/${repo.userName}/${repo.repoName}/commit/${commitHash}`;
 }
+
+// ----------------------------------------------------------------------------
+// Multi repo data type and helper
+// ----------------------------------------------------------------------------
+
+// TBD if we should actually account for optionality in value lookup...
+// The ` | undefined` on the values definitely sucks, because we don't really
+// want existing values to be undefined.
+// https://github.com/microsoft/TypeScript/issues/13778
+export type MultiRepoData<T> = { [id: string]: { repo: Repo; data: T } };
+
+export function mapMultiRepo<T, R>(
+  multiRepoData: MultiRepoData<T>,
+  f: (repo: Repo, data: T) => R
+): R[] {
+  let result = [] as R[];
+  let repoIds = Object.keys(multiRepoData);
+  for (let repoId of repoIds) {
+    let { repo, data } = multiRepoData[repoId];
+    result.push(f(repo, data));
+  }
+  return result;
+}
+
+export type MultiRepoFile = MultiRepoData<string>;

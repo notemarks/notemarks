@@ -29,7 +29,7 @@ import * as entry_utils from "./utils/entry_utils";
 import * as label_utils from "./utils/label_utils";
 import * as markdown_utils from "./utils/markdown_utils";
 import * as repo_utils from "./repo";
-import type { Repos } from "./repo";
+import type { Repos, MultiRepoFile } from "./repo";
 import * as git_ops from "./git_ops";
 import type { MultiRepoGitOps } from "./git_ops";
 import { loadEntries } from "./octokit";
@@ -135,6 +135,7 @@ type State = {
   activeEntryIdx?: number;
   page: Page;
   stagedGitOps: MultiRepoGitOps;
+  perRepoLinkDBs: MultiRepoFile;
 };
 
 enum ActionKind {
@@ -164,6 +165,7 @@ type ActionReloadingDone = {
   linkEntries: EntryLink[];
   labels: Labels;
   stagedGitOps: MultiRepoGitOps;
+  perRepoLinkDBs: MultiRepoFile;
 };
 type ActionUpdateNoteContent = {
   kind: ActionKind.UpdateNoteContent;
@@ -215,14 +217,21 @@ function App() {
     dispatch({ kind: ActionKind.StartReloading });
 
     let newActiveRepos = repo_utils.filterActiveRepos(newRepos);
-    let [newFileEntries, oldLinkEntries, newStagedGitOps] = await loadEntries(newActiveRepos);
+    let [newFileEntries, newPerRepoLinkDBs, newStagedGitOps] = await loadEntries(newActiveRepos);
 
-    let [newLinkEntries, newEntries] = entry_utils.recomputeEntries(newFileEntries, oldLinkEntries);
+    let newLinkEntriesWithoutRefsResoled = entry_utils.convertLinkDBtoLinkEntries(
+      newPerRepoLinkDBs
+    );
+
+    let [newLinkEntries, newEntries] = entry_utils.recomputeEntries(
+      newFileEntries,
+      newLinkEntriesWithoutRefsResoled
+    );
 
     newStagedGitOps = entry_utils.stageLinkDBUpdate(
       newStagedGitOps,
-      oldLinkEntries,
-      newLinkEntries
+      newLinkEntries,
+      newPerRepoLinkDBs
     );
 
     dispatch({
@@ -232,6 +241,7 @@ function App() {
       linkEntries: newLinkEntries,
       labels: label_utils.extractLabels(newEntries),
       stagedGitOps: newStagedGitOps,
+      perRepoLinkDBs: newPerRepoLinkDBs,
     });
   }
 
@@ -258,6 +268,7 @@ function App() {
           linkEntries: action.linkEntries,
           labels: action.labels,
           stagedGitOps: action.stagedGitOps,
+          perRepoLinkDBs: action.perRepoLinkDBs,
         };
       }
       case ActionKind.UpdateNoteContent: {
@@ -322,8 +333,8 @@ function App() {
           );
           newStagedGitOps = entry_utils.stageLinkDBUpdate(
             newStagedGitOps,
-            state.linkEntries,
-            newLinkEntries
+            newLinkEntries,
+            state.perRepoLinkDBs
           );
           // TODO: We need to stage updates to meta data as well
 
@@ -368,6 +379,7 @@ function App() {
     activeEntryIdx: undefined,
     page: Page.Main,
     stagedGitOps: {},
+    perRepoLinkDBs: {},
   });
 
   // *** Derived state

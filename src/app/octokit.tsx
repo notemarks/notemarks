@@ -10,8 +10,8 @@ import {
 import * as neverthrow from "neverthrow";
 import { ok, err, okAsync, errAsync, Result, ResultAsync } from "neverthrow";
 
-import { Content, EntryFile, EntryKind, EntryLink } from "./types";
-import { Repo, Repos } from "./repo";
+import { Content, EntryFile, EntryKind } from "./types";
+import { Repo, Repos, MultiRepoFile, getRepoId } from "./repo";
 
 import { GitOp, MultiRepoGitOps } from "./git_ops";
 import * as git_ops from "./git_ops";
@@ -22,7 +22,6 @@ import * as io from "./io";
 import { FileKind } from "./utils/path_utils";
 import * as path_utils from "./utils/path_utils";
 
-import * as entry_utils from "./utils/entry_utils";
 import * as markdown_utils from "./utils/markdown_utils";
 
 // ----------------------------------------------------------------------------
@@ -242,11 +241,11 @@ async function listFiles(octokit: Octokit, repo: Repo, path: string): Promise<Fi
 // - staged changes
 export async function loadEntries(
   repos: Repos
-): Promise<[EntryFile[], EntryLink[], MultiRepoGitOps]> {
+): Promise<[EntryFile[], MultiRepoFile, MultiRepoGitOps]> {
   console.log(`Loading contents from ${repos.length} repos`);
 
   let allEntries = [] as EntryFile[];
-  let allLinkEntries = [] as EntryLink[];
+  let allLinkDBs = {} as MultiRepoFile;
   let allErrors = [] as Error[];
   let stagedChanges = {} as MultiRepoGitOps;
 
@@ -294,22 +293,21 @@ export async function loadEntries(
       metaFiles,
       path_utils.NOTEMARKS_LINK_DB_PATH
     );
-    let linkEntriesResult = contentLinkDBResult.andThen((contentLinkDB) =>
-      entry_utils.deserializeLinkEntries(repo, contentLinkDB)
-    );
-    if (linkEntriesResult.isErr()) {
-      console.log("Error extracting link DB:", linkEntriesResult.error);
+    if (contentLinkDBResult.isErr()) {
+      console.log("Error fetching link DB:", contentLinkDBResult.error);
+    } else {
+      let contentLinkDB = contentLinkDBResult.value;
+      if (contentLinkDB != null) {
+        allLinkDBs[getRepoId(repo)] = { repo: repo, data: contentLinkDB };
+      }
     }
-    let linkEntries = linkEntriesResult.unwrapOr([]);
-
-    // TODO: We need duplicate removal here...
-    allLinkEntries = [...allLinkEntries, ...linkEntries];
   }
 
   console.log(allEntries);
+  console.log(allLinkDBs);
   console.log(allErrors);
 
-  return [allEntries, allLinkEntries, stagedChanges];
+  return [allEntries, allLinkDBs, stagedChanges];
 }
 
 function loadEntriesForRepoFromFilesList(
