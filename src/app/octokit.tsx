@@ -8,7 +8,6 @@ import {
   ReposGetContentResponseData,
 } from "@octokit/types/dist-types/generated/Endpoints";
 
-import * as neverthrow from "neverthrow";
 import { ok, err, okAsync, errAsync, Result, ResultAsync } from "neverthrow";
 
 import { Content, EntryFile, EntryKind } from "./types";
@@ -29,8 +28,8 @@ import * as markdown_utils from "./utils/markdown_utils";
 // ResultAsync helper
 // ----------------------------------------------------------------------------
 
-function expect<T>(promise: Promise<T>): neverthrow.ResultAsync<T, Error> {
-  return neverthrow.ResultAsync.fromPromise(promise, (e) => e as Error);
+function expect<T>(promise: Promise<T>): ResultAsync<T, Error> {
+  return ResultAsync.fromPromise(promise, (e) => e as Error);
 }
 
 export type WrappedError = {
@@ -117,61 +116,61 @@ export function clearBrowserCache() {
 // Internal cached fetching
 // ----------------------------------------------------------------------------
 
-async function cachedFetch(
+function cachedFetch(
   octokit: Octokit,
   repo: Repo,
   path: string,
   sha: string
-): Promise<Result<string, Error>> {
+): ResultAsync<string, WrappedError> {
   let key = `${path}_${sha}`;
-  let cached = (await localforage.getItem(key)) as string | undefined;
 
-  if (cached != null) {
-    // console.log(`${key} found in cached`)
-    return ok(cached);
-  } else {
-    let result = await expect(
-      octokit.repos.getContent({
-        owner: repo.userName,
-        repo: repo.repoName,
-        path: path,
-      })
-    );
-
-    if (result.isOk()) {
-      console.log(`${key} fetched successfully`);
-      let content = result.value;
-      //console.log(content)
-
-      // TODO: Turn these into Result errors...
-      console.assert(content.data.sha === sha, "SHA mismatch");
-      console.assert(content.data.encoding === "base64", "Encoding mismatch");
-
-      // The following simple base64 -> string decoding has problem if the content is actually UTF-8.
-      // let plainContent = atob(content.data.content)
-
-      // TODO: How can we know that the decoded content is actually UTF-8 encoded?
-      // Perhaps we need to have a property on a note that represents "original encoding".
-      // Alternatively we could have a heuristic? How does the `file` utility does it?
-      // It would be interesting to add a markdown file with some Windows encoding.
-      let plainContent = base64DecodeUnicode(content.data.content);
-      // console.log(plainContent)
-
-      await localforage.setItem(key, plainContent);
-      return ok(plainContent);
+  return wrapPromise(
+    localforage.getItem(key) as Promise<string | undefined>,
+    "Failed to get item from local storage."
+  ).andThen((cached) => {
+    if (cached != null) {
+      // console.log(`${key} found in cached`)
+      return okAsync(cached);
     } else {
-      console.log(`${key} failed to fetch`, result.error);
-      return err(result.error);
+      return wrapPromise(
+        octokit.repos.getContent({
+          owner: repo.userName,
+          repo: repo.repoName,
+          path: path,
+        }),
+        "Failure during fetching file from GitHub."
+      ).map((response) => {
+        console.log(`${key} fetched successfully`);
+        //console.log(content)
+
+        // TODO: Turn these into Result errors...
+        console.assert(response.data.sha === sha, "SHA mismatch");
+        console.assert(response.data.encoding === "base64", "Encoding mismatch");
+
+        // The following simple base64 -> string decoding has problem if the content is actually UTF-8.
+        // let plainContent = atob(content.data.content)
+
+        // TODO: How can we know that the decoded content is actually UTF-8 encoded?
+        // Perhaps we need to have a property on a note that represents "original encoding".
+        // Alternatively we could have a heuristic? How does the `file` utility does it?
+        // It would be interesting to add a markdown file with some Windows encoding.
+        let plainContent = base64DecodeUnicode(response.data.content);
+        // console.log(plainContent)
+
+        localforage.setItem(key, plainContent);
+
+        return plainContent;
+      });
     }
-  }
+  });
 }
 
 async function cachedFetchStaticMetaFile(
   octokit: Octokit,
   repo: Repo,
-  metaFiles: File[],
+  metaFiles: FileDesc[],
   path: string
-): Promise<Result<string | undefined, Error>> {
+): Promise<Result<string | undefined, WrappedError>> {
   let metaFile = metaFiles.find((metaFile) => metaFile.path === path);
   if (metaFile == null) {
     return ok(undefined);
@@ -184,21 +183,22 @@ async function cachedFetchStaticMetaFile(
 // Recursive file listing
 // ----------------------------------------------------------------------------
 
-type File = {
+type FileDesc = {
   path: string;
   sha: string;
   rawUrl: string;
 };
 
-async function listFilesRecursive(octokit: Octokit, repo: Repo, path: string, files: File[]) {
+async function listFilesRecursive(octokit: Octokit, repo: Repo, path: string, files: FileDesc[]) {
   console.log("recursiveListFiles", path);
 
-  let response = await expect(
+  let response = await wrapPromise(
     octokit.repos.getContent({
       owner: repo.userName,
       repo: repo.repoName,
       path: path,
-    })
+    }),
+    "octokit.repos.getContent"
   );
 
   if (response.isOk()) {
@@ -223,15 +223,75 @@ async function listFilesRecursive(octokit: Octokit, repo: Repo, path: string, fi
         });
       }
     }
+  } else {
+    console.log("WARNING: Failed to get repo content:");
+    console.log(response.error.originalError);
   }
 }
 
-async function listFiles(octokit: Octokit, repo: Repo, path: string): Promise<File[]> {
+async function listFiles(octokit: Octokit, repo: Repo, path: string): Promise<FileDesc[]> {
   // It is important to await the recursive load, otherwise the 'out' variables will
   // just stay empty...
-  let files = [] as File[];
+  let files = [] as FileDesc[];
   await listFilesRecursive(octokit, repo, path, files);
   return files;
+}
+
+// ----------------------------------------------------------------------------
+// Recursive downloading
+// ----------------------------------------------------------------------------
+
+export type File = {
+  path: string;
+  sha: string;
+  rawUrl: string;
+  content?: string;
+};
+
+export type Files = File[];
+
+async function downloadFiles(octokit: Octokit, repo: Repo): Promise<Result<File, WrappedError>[]> {
+  let files = await listFiles(octokit, repo, ".");
+
+  let filePromises: ResultAsync<File, WrappedError>[] = [];
+
+  for (let file of files) {
+    let fileKind = path_utils.getFileKind(file.path);
+    let doFetch =
+      fileKind !== FileKind.Document || file.path.startsWith(path_utils.NOTEMARKS_FOLDER);
+
+    if (doFetch) {
+      filePromises.push(
+        cachedFetch(octokit, repo, file.path, file.sha).map((content) => ({
+          path: file.path,
+          sha: file.sha,
+          rawUrl: file.rawUrl,
+          content: content,
+        }))
+      );
+    } else {
+      filePromises.push(
+        okAsync({
+          path: file.path,
+          sha: file.sha,
+          rawUrl: file.rawUrl,
+        })
+      );
+    }
+  }
+
+  let filesDownloaded = Promise.all(filePromises);
+  return filesDownloaded;
+}
+
+export type FileMap = { [path: string]: File };
+
+export function convertFilesToFileMap(files: Files) {
+  let fileMap: FileMap = {};
+  for (let file of files) {
+    fileMap[file.path] = file;
+  }
+  return fileMap;
 }
 
 // ----------------------------------------------------------------------------
@@ -250,7 +310,7 @@ export async function loadEntries(
 
   let allEntries = [] as EntryFile[];
   let allLinkDBs = {} as MultiRepoFile;
-  let allErrors = [] as Error[];
+  let allErrors = [] as WrappedError[];
   let stagedChanges = {} as MultiRepoGitOps;
 
   for (let repo of repos) {
@@ -258,14 +318,16 @@ export async function loadEntries(
       auth: repo.token,
     });
 
-    let files = await listFiles(octokit, repo, ".");
+    let downloadResults = await downloadFiles(octokit, repo);
+
+    let entryFiles = await listFiles(octokit, repo, ".");
     let metaFiles = await listFiles(octokit, repo, path_utils.NOTEMARKS_FOLDER);
 
     // Loading of file entries by merging files + metaFiles
     let entriesPromises = loadEntriesForRepoFromFilesList(
       octokit,
       repo,
-      files,
+      entryFiles,
       metaFiles,
       stagedChanges
     );
@@ -317,19 +379,19 @@ export async function loadEntries(
 function loadEntriesForRepoFromFilesList(
   octokit: Octokit,
   repo: Repo,
-  files: File[],
-  metaFiles: File[],
+  files: FileDesc[],
+  metaFiles: FileDesc[],
   stagedChanges: MultiRepoGitOps
-): Array<Promise<Result<EntryFile, Error>>> {
+): Array<Promise<Result<EntryFile, WrappedError>>> {
   // Build meta lookup map
-  let metaFilesMap: { [key: string]: File } = {};
+  let metaFilesMap: { [key: string]: FileDesc } = {};
   for (let metaFile of metaFiles) {
     metaFilesMap[metaFile.path] = metaFile;
   }
 
   type FileAndMeta = {
-    file: File;
-    meta?: File;
+    file: FileDesc;
+    meta?: FileDesc;
   };
   let filesAndMeta = [] as FileAndMeta[];
 
@@ -353,15 +415,15 @@ function loadEntriesForRepoFromFilesList(
 async function loadEntry(
   octokit: Octokit,
   repo: Repo,
-  file: File,
-  meta: File | undefined,
+  file: FileDesc,
+  meta: FileDesc | undefined,
   stagedChanges: MultiRepoGitOps
-): Promise<Result<EntryFile, Error>> {
+): Promise<Result<EntryFile, WrappedError>> {
   // Determine file kind
   let fileKind = path_utils.getFileKind(file.path);
 
   // Optionally fetch entry content
-  let entryContent: Result<string, Error> | undefined = undefined;
+  let entryContent: Result<string, WrappedError> | undefined = undefined;
   if (fileKind !== FileKind.Document) {
     entryContent = await cachedFetch(octokit, repo, file.path, file.sha);
   }
@@ -385,11 +447,11 @@ async function loadEntry(
     } else {
       let metaContent = await cachedFetch(octokit, repo, meta.path, meta.sha);
       if (metaContent.isErr()) {
-        return err(new Error(`Failed to fetch content of meta data ${meta.path}`));
+        return err({ msg: `Failed to fetch content of meta data ${meta.path}` });
       } else {
         let metaDataResult = io.parseMetaData(metaContent.value);
         if (metaDataResult.isErr()) {
-          return err(new Error(`Could not parse meta data file ${meta.path}`));
+          return err({ msg: `Could not parse meta data file ${meta.path}` });
         } else {
           metaData = metaDataResult.value;
         }
@@ -438,7 +500,7 @@ async function loadEntry(
       key: `${repo.key}:${location}:${title}`,
     });
   } else {
-    return err(new Error(`Failed to fetch content of ${file.path}`));
+    return err({ msg: `Failed to fetch content of ${file.path}` });
   }
 }
 
