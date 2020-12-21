@@ -80,3 +80,11 @@ export function getStoredRepos(): Repos {
 export function setStoredRepos(repos: Repos) {
   window.localStorage.setItem("repos", JSON.stringify(repos));
 }
+
+// ----------------------------------------------------------------------------
+// Utility functions
+// ----------------------------------------------------------------------------
+
+export function getRepoCommitPage(repo: Repo, commitHash: string): string {
+  return `https://github.com/${repo.userName}/${repo.repoName}/commit/${commitHash}`;
+}

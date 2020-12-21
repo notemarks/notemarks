@@ -454,11 +454,11 @@ type GitCreateTreeParamsTree = {
   content?: string;
 };
 
-export async function commit(
+export function commit(
   repo: Repo,
   ops: GitOp[],
   commitMsg: string
-): Promise<Result<string, WrappedError>> {
+): ResultAsync<string, WrappedError> {
   const octokit = new Octokit({
     auth: repo.token,
   });

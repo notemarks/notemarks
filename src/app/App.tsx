@@ -1,7 +1,7 @@
 import React, { useState, useReducer, useEffect, useRef, useLayoutEffect } from "react";
 import "./App.css";
 
-import { Layout, Menu } from "antd";
+import { Layout, Menu, Modal } from "antd";
 import {
   EditOutlined,
   SettingOutlined,
@@ -10,6 +10,7 @@ import {
   ReloadOutlined,
   PlusOutlined,
   LoadingOutlined,
+  ExclamationCircleOutlined,
 } from "@ant-design/icons";
 import { MenuInfo } from "rc-menu/lib/interface";
 
@@ -324,8 +325,8 @@ function App() {
             state.linkEntries,
             newLinkEntries
           );
-
           // TODO: We need to stage updates to meta data as well
+
           return {
             ...state,
             entries: newEntries,
@@ -338,6 +339,17 @@ function App() {
         }
       }
       case ActionKind.SuccessfulCommit: {
+        // Design decision: On a successful commit, we treat the current memory
+        // content of the app as the ground truth of the repo content. This assumes
+        // that the commit indeed has exactly resulted in what the app state is.
+        // Let's see how valid this assumption is...
+        // The alternative would be to re-trigger a reload entries after the commit
+        // succeeded. The problem with that could be that there might be a delay in
+        // the visibility of the changes. I.e., if we refresh too quickly, perhaps
+        // the fetch would not pick up the change even if it succeeded, but still
+        // requires a some time to propagate (eventual consistency...). Delaying the
+        // refresh arbitrarily feels like a hack, and if the assumption is valid, we
+        // can safe unnecessary API requests / time.
         return { ...state, stagedGitOps: {} };
       }
 
@@ -364,6 +376,10 @@ function App() {
     if (state.activeEntryIdx != null) {
       return state.entries[state.activeEntryIdx];
     }
+  };
+
+  const anyStagedChange = () => {
+    return Object.keys(state.stagedGitOps).length > 0;
   };
 
   // *** Refs
@@ -472,7 +488,19 @@ function App() {
     switch (clickedPage) {
       case Page.Reload:
         if (!state.isReloading) {
-          reloadEntries(repos);
+          if (anyStagedChange() === false) {
+            reloadEntries(repos);
+          } else {
+            Modal.confirm({
+              title: "Do you want to reload entries?",
+              icon: <ExclamationCircleOutlined />,
+              content:
+                "You have uncommitted changes. Reloading the repository content will discard local changes.",
+              onOk() {
+                reloadEntries(repos);
+              },
+            });
+          }
         }
         break;
       default:
@@ -577,9 +605,7 @@ function App() {
             />
             <Menu.Item
               key={Page.Commit}
-              icon={
-                <UploadOutlinedWithStatus status={Object.keys(state.stagedGitOps).length > 0} />
-              }
+              icon={<UploadOutlinedWithStatus status={anyStagedChange() === true} />}
               title="Commit staged changes"
             />
             <Menu.Item

@@ -284,14 +284,17 @@ export function mapMultiRepoGitOpsFlat<T>(
   return result;
 }
 
-export function mapMultiRepoGitOpsGrouped<T>(
+export function flatMapMultiRepoGitOpsGrouped<T>(
   ops: MultiRepoGitOps,
-  f: (repo: Repo, op: GitOps) => T
+  f: (repo: Repo, op: GitOps) => T[]
 ): T[] {
-  let result = [] as T[];
+  let allResults = [] as T[];
   let repoIds = Object.keys(ops);
   for (let repoId of repoIds) {
-    result.push(f(ops[repoId].repo, ops[repoId].ops));
+    let results = f(ops[repoId].repo, ops[repoId].ops);
+    for (let result of results) {
+      allResults.push(result);
+    }
   }
-  return result;
+  return allResults;
 }

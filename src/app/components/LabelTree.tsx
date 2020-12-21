@@ -106,7 +106,7 @@ type LabelTreeProps = {
 
 export const LabelTree = React.memo(
   ({ labels, onSetLabelFilter, onRegainFocus }: LabelTreeProps) => {
-    console.log("Rendering: LabelTree");
+    // console.log("Rendering: LabelTree");
 
     let labelTagRefs = useRef({} as RefMap);
 
