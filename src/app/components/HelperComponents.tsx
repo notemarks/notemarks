@@ -1,6 +1,7 @@
 import React from "react";
 
 import { Empty } from "antd";
+import { UploadOutlined } from "@ant-design/icons";
 
 import styled from "@emotion/styled";
 
@@ -34,5 +35,33 @@ export function ScrollContent({ children }: { children: React.ReactNode }) {
     <WrapperOuter>
       <WrapperInner>{children}</WrapperInner>
     </WrapperOuter>
+  );
+}
+
+export function UploadOutlinedWithStatus({ status }: { status: boolean }) {
+  return (
+    <>
+      <UploadOutlined style={{ fontSize: 16 }} />
+      <span
+        style={{
+          position: "relative",
+        }}
+      >
+        <span
+          style={{
+            position: "absolute",
+            left: "0px",
+            top: "-6px",
+            display: "inline-block",
+            height: "7px",
+            width: "7px",
+            backgroundColor: "#f33756",
+            borderRadius: "50%",
+            transition: "all 0.2 linear",
+            opacity: status ? 1 : 0,
+          }}
+        />
+      </span>
+    </>
   );
 }

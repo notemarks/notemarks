@@ -7,7 +7,6 @@ import {
   SettingOutlined,
   FileSearchOutlined,
   ReadOutlined,
-  UploadOutlined,
   ReloadOutlined,
   PlusOutlined,
   LoadingOutlined,
@@ -21,6 +20,7 @@ import mousetrap from "mousetrap";
 
 import { useEffectOnce } from "./utils/react_utils";
 import { UiRow } from "./components/UiRow";
+import { UploadOutlinedWithStatus } from "./components/HelperComponents";
 
 import { Entry, Entries, EntryFile, EntryLink, Labels } from "./types";
 import * as fn from "./utils/fn_utils";
@@ -338,7 +338,7 @@ function App() {
         }
       }
       case ActionKind.SuccessfulCommit: {
-        return { ...state, page: Page.Main, stagedGitOps: {} };
+        return { ...state, stagedGitOps: {} };
       }
 
       default: {
@@ -555,14 +555,32 @@ function App() {
       <UiRow
         center={
           <Menu theme="dark" mode="horizontal" selectedKeys={[state.page]} onClick={onClickMenu}>
-            <Menu.Item key={Page.Main} icon={<FileSearchOutlined style={{ fontSize: 16 }} />} />
-            <Menu.Item key={Page.NoteView} icon={<ReadOutlined style={{ fontSize: 16 }} />} />
-            <Menu.Item key={Page.NoteEditor} icon={<EditOutlined style={{ fontSize: 16 }} />} />
-            <Menu.Item key={Page.Settings} icon={<SettingOutlined style={{ fontSize: 16 }} />} />
+            <Menu.Item
+              key={Page.Main}
+              icon={<FileSearchOutlined style={{ fontSize: 16 }} />}
+              title="Overview"
+            />
+            <Menu.Item
+              key={Page.NoteView}
+              icon={<ReadOutlined style={{ fontSize: 16 }} />}
+              title="Entry Viewer"
+            />
+            <Menu.Item
+              key={Page.NoteEditor}
+              icon={<EditOutlined style={{ fontSize: 16 }} />}
+              title="Editor"
+            />
+            <Menu.Item
+              key={Page.Settings}
+              icon={<SettingOutlined style={{ fontSize: 16 }} />}
+              title="Settings"
+            />
             <Menu.Item
               key={Page.Commit}
-              icon={<UploadOutlined style={{ fontSize: 16 }} />}
-              disabled={Object.keys(state.stagedGitOps).length === 0}
+              icon={
+                <UploadOutlinedWithStatus status={Object.keys(state.stagedGitOps).length > 0} />
+              }
+              title="Commit staged changes"
             />
             <Menu.Item
               key={Page.Reload}
@@ -573,8 +591,13 @@ function App() {
                   <LoadingOutlined style={{ fontSize: 16 }} />
                 )
               }
+              title="Reload entries"
             />
-            <Menu.Item key={Page.Add} icon={<PlusOutlined style={{ fontSize: 16 }} />} />
+            <Menu.Item
+              key={Page.Add}
+              icon={<PlusOutlined style={{ fontSize: 16 }} />}
+              title="Add new entry"
+            />
           </Menu>
         }
         style={{ background: "#001529" }}
