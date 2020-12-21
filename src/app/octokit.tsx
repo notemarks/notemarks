@@ -5,6 +5,7 @@ import { OctokitResponse } from "@octokit/types/dist-types/OctokitResponse";
 import {
   GitGetTreeResponseData,
   GitCreateTreeResponseData,
+  ReposGetContentResponseData,
 } from "@octokit/types/dist-types/generated/Endpoints";
 
 import * as neverthrow from "neverthrow";
@@ -192,7 +193,7 @@ type File = {
 async function listFilesRecursive(octokit: Octokit, repo: Repo, path: string, files: File[]) {
   console.log("recursiveListFiles", path);
 
-  let result = await expect(
+  let response = await expect(
     octokit.repos.getContent({
       owner: repo.userName,
       repo: repo.repoName,
@@ -200,14 +201,17 @@ async function listFilesRecursive(octokit: Octokit, repo: Repo, path: string, fi
     })
   );
 
-  if (result.isOk()) {
-    let content = result.value;
-    // console.log(content)
+  if (response.isOk()) {
+    // console.log(result)
     // Reference for fields:
     // https://developer.github.com/v3/repos/contents/#get-repository-content
+    // I think the types are slightly wrong, because the return type is only a
+    // ReposGetContentResponseData if the requested path was a file/symlink/....
+    // In the case of a directory it should be a ReposGetContentResponseData[].
+    let responseData = (response.value.data as unknown) as ReposGetContentResponseData[];
 
-    for (let entry of content.data as any) {
-      if (entry.type === "dir" && entry.name !== path_utils.NOTEMARKS_FOLDER) {
+    for (let entry of responseData) {
+      if (entry.type === "dir") {
         // It is important to await the recursive load, otherwise the outer logic does not
         // even know what / how many promises there will be scheduled.
         await listFilesRecursive(octokit, repo, entry.path, files);
