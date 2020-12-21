@@ -11,6 +11,7 @@ import { Repo } from "../repo";
 import { GitOpKind, mapMultiRepoGitOpsFlat, mapMultiRepoGitOpsGrouped } from "../git_ops";
 import type { GitOp, MultiRepoGitOps } from "../git_ops";
 import * as octokit from "../octokit";
+import * as fn from "../utils/fn_utils";
 
 function prepareCommitMessage(ops: MultiRepoGitOps): string {
   return mapMultiRepoGitOpsFlat(ops, (repoId, op) => {
@@ -21,8 +22,9 @@ function prepareCommitMessage(ops: MultiRepoGitOps): string {
         return `- removed file ${op.path}`;
       case GitOpKind.Move:
         return `- moved file from ${op.pathFrom} to ${op.pathTo}`;
+      default:
+        fn.assertUnreachable(op);
     }
-    return "";
   }).join("\n");
 }
 

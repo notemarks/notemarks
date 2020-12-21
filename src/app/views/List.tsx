@@ -269,6 +269,21 @@ const List = React.forwardRef(
       [setLabelFilters]
     );
 
+    const onRegainFocus = useCallback(() => {
+      // TODO: Somehow this type union of forwardRef is weird. Is it really the case
+      // that we can only read the passed in ref, it is hasn't been passed in as a
+      // callback? Can we enforce in the type system that the ref is not passed in
+      // as a function? Should we safe the antdInputRef locally in addition to the
+      // external ref?
+      if (ref != null) {
+        if (typeof ref === "function") {
+          console.log("WARNING: ref is a function, cannot access value...");
+        } else {
+          ref.current?.focus();
+        }
+      }
+    }, [ref]);
+
     return (
       <Container>
         <UiRow
@@ -294,7 +309,11 @@ const List = React.forwardRef(
         <StretchedUiRow
           left={
             <ScrollContent>
-              <LabelTree labels={labels} onSetLabelFilter={onSetLabelFilter} />
+              <LabelTree
+                labels={labels}
+                onSetLabelFilter={onSetLabelFilter}
+                onRegainFocus={onRegainFocus}
+              />
             </ScrollContent>
           }
           center={

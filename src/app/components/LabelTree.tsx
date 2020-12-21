@@ -101,56 +101,60 @@ function renderLabel(
 type LabelTreeProps = {
   labels: Labels;
   onSetLabelFilter: (label: Label, state: number) => void;
+  onRegainFocus: () => void;
 };
 
-export const LabelTree = React.memo(({ labels, onSetLabelFilter }: LabelTreeProps) => {
-  // console.log("Rendering: LabelTree");
+export const LabelTree = React.memo(
+  ({ labels, onSetLabelFilter, onRegainFocus }: LabelTreeProps) => {
+    console.log("Rendering: LabelTree");
 
-  let labelTagRefs = useRef({} as RefMap);
+    let labelTagRefs = useRef({} as RefMap);
 
-  function onClick(label: Label, selected: boolean) {
-    let ref = labelTagRefs.current[label.fullName];
-    // console.log(ref);
-    if (ref != null && ref.element != null) {
-      if (selected) {
-        if (ref.state < 0) {
-          ref.element.classList.remove("excluded");
-          ref.element.classList.add("included");
-          ref.state = 1;
-          onSetLabelFilter(label, 1);
-        } else if (ref.state === 0) {
-          ref.element.classList.add("included");
-          ref.state = 1;
-          onSetLabelFilter(label, 1);
+    function onClick(label: Label, selected: boolean) {
+      let ref = labelTagRefs.current[label.fullName];
+      // console.log(ref);
+      if (ref != null && ref.element != null) {
+        if (selected) {
+          if (ref.state < 0) {
+            ref.element.classList.remove("excluded");
+            ref.element.classList.add("included");
+            ref.state = 1;
+            onSetLabelFilter(label, 1);
+          } else if (ref.state === 0) {
+            ref.element.classList.add("included");
+            ref.state = 1;
+            onSetLabelFilter(label, 1);
+          } else {
+            ref.element.classList.remove("included");
+            ref.state = 0;
+            onSetLabelFilter(label, 0);
+          }
         } else {
-          ref.element.classList.remove("included");
-          ref.state = 0;
-          onSetLabelFilter(label, 0);
-        }
-      } else {
-        if (ref.state > 0) {
-          ref.element.classList.remove("included");
-          ref.element.classList.add("excluded");
-          ref.state = -1;
-          onSetLabelFilter(label, -1);
-        } else if (ref.state === 0) {
-          ref.element.classList.add("excluded");
-          ref.state = -1;
-          onSetLabelFilter(label, -1);
-        } else {
-          ref.element.classList.remove("excluded");
-          ref.state = 0;
-          onSetLabelFilter(label, 0);
+          if (ref.state > 0) {
+            ref.element.classList.remove("included");
+            ref.element.classList.add("excluded");
+            ref.state = -1;
+            onSetLabelFilter(label, -1);
+          } else if (ref.state === 0) {
+            ref.element.classList.add("excluded");
+            ref.state = -1;
+            onSetLabelFilter(label, -1);
+          } else {
+            ref.element.classList.remove("excluded");
+            ref.state = 0;
+            onSetLabelFilter(label, 0);
+          }
         }
       }
+      onRegainFocus();
     }
+
+    const treeData = labels.map((labelCount) =>
+      renderLabel(labelCount, labelTagRefs.current, onClick)
+    );
+
+    return <ResponsiveTree treeData={treeData} selectable={false} checkable={false} />;
   }
-
-  const treeData = labels.map((labelCount) =>
-    renderLabel(labelCount, labelTagRefs.current, onClick)
-  );
-
-  return <ResponsiveTree treeData={treeData} selectable={false} checkable={false} />;
-});
+);
 
 export default LabelTree;
