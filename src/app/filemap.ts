@@ -136,7 +136,6 @@ export function extractFileEntriesAndUpdateFileMap(
   allFileMaps: MultiRepoFileMap
 ): [EntryFile[], MultiRepoFileMap] {
   let fileEntries: EntryFile[] = [];
-  //let allFileMapsModified = new MultiRepoFileMap();
   let allFileMapsModified = allFileMaps.clone();
 
   allFileMaps.mapMultiRepo((repo, fileMap) => {
@@ -144,8 +143,6 @@ export function extractFileEntriesAndUpdateFileMap(
       let isNotemarksFile = path_utils.isNotemarksFile(file.path);
       // let isFetchedFile = file.content != null || file.error != null;
       if (!isNotemarksFile) {
-        let associatedMetaPath = path_utils.getAssociatedMetaPath(file.path);
-        let associatedMetaFile = fileMap.get(associatedMetaPath);
         // For meta data there are three cases:
         // - No meta file exists => okay, create/stage new
         // - Meta file exists, but fetch fails => create/stage not good, report as error,
@@ -155,20 +152,21 @@ export function extractFileEntriesAndUpdateFileMap(
         //   okay. If meta data is broken, users may want to have it fixed anyway. Also
         //   a user sees this action clearly by the staged change, and git history is
         //   recoverable anyway.
+
+        let associatedMetaPath = path_utils.getAssociatedMetaPath(file.path);
+        let associatedMetaFile = fileMap.get(associatedMetaPath);
+        let createMetaDataFromScratch = false;
+
         if (associatedMetaFile != null && associatedMetaFile.content != null) {
           // Meta file fetch successful
-          let metaDataResult = io.parseMetaData(associatedMetaFile.content);
-          if (metaDataResult.isOk()) {
+          let metaData = io.parseMetaData(associatedMetaFile.content);
+          if (metaData.isOk()) {
             // Parse successful
-            let entry = constructFileEntry(repo, file, metaDataResult.value);
+            let entry = constructFileEntry(repo, file, metaData.value);
             fileEntries.push(entry);
           } else {
-            // Parse failed => stage fix
-            let newMetaData = io.createNewMetaData();
-            let newMetaDataContent = io.serializeMetaData(newMetaData);
-            allFileMapsModified.get(repo)?.data.setContent(associatedMetaPath, newMetaDataContent);
-            let entry = constructFileEntry(repo, file, newMetaData);
-            fileEntries.push(entry);
+            // Parse failed => load entry + stage fix
+            createMetaDataFromScratch = true;
           }
         } else if (associatedMetaFile != null && associatedMetaFile.error != null) {
           // Meta file fetch failed
@@ -176,7 +174,11 @@ export function extractFileEntriesAndUpdateFileMap(
             `Skipping entry extraction for ${file.path} because associated meta couldn't be fetched.`
           );
         } else {
-          // No meta file at all
+          // No meta file at all => load entry + stage fix
+          createMetaDataFromScratch = true;
+        }
+
+        if (createMetaDataFromScratch) {
           let newMetaData = io.createNewMetaData();
           let newMetaDataContent = io.serializeMetaData(newMetaData);
           allFileMapsModified.get(repo)?.data.setContent(associatedMetaPath, newMetaDataContent);
