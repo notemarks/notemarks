@@ -15,7 +15,7 @@ import {
   EntryFile,
   RawLabel,
 } from "../types";
-import { Repo, MultiRepoFile, getRepoId, mapMultiRepo } from "../repo";
+import { Repo, MultiRepoFile, getRepoId } from "../repo";
 
 import { MultiRepoGitOps } from "../git_ops";
 import * as git_ops from "../git_ops";
@@ -309,7 +309,7 @@ export function deserializeLinkEntries(repo: Repo, content?: string): Result<Ent
 
 export function convertLinkDBtoLinkEntries(perRepoLinkDBs: MultiRepoFile): EntryLink[] {
   let allLinkEntriesWithoutRefsResolved = [] as EntryLink[];
-  mapMultiRepo(perRepoLinkDBs, (repo, contentLinkDB) => {
+  perRepoLinkDBs.mapMultiRepo((repo, contentLinkDB) => {
     let linkEntriesWithoutRefsResolvedResult = deserializeLinkEntries(repo, contentLinkDB);
     if (linkEntriesWithoutRefsResolvedResult.isOk()) {
       // TODO: We need duplicate removal here...
@@ -360,7 +360,7 @@ export function stageLinkDBUpdate(
   console.time("stageLinkDBUpdate");
 
   let allRepos: { [repoId: string]: Repo } = {};
-  for (let { repo } of Object.values(perRepoLinkDBs)) {
+  for (let { repo } of perRepoLinkDBs.values()) {
     allRepos[getRepoId(repo)] = repo;
   }
   for (let linkEntry of linkEntriesIncoming) {
@@ -370,8 +370,7 @@ export function stageLinkDBUpdate(
   }
 
   for (let repo of Object.values(allRepos)) {
-    let repoId = getRepoId(repo);
-    let serializedLinkEntriesExisting = perRepoLinkDBs[repoId]?.data as string | undefined;
+    let serializedLinkEntriesExisting = perRepoLinkDBs.get(repo)?.data;
     let serializedLinkEntriesIncoming = serializeLinkEntries(repo, linkEntriesIncoming);
     if (serializedLinkEntriesExisting !== serializedLinkEntriesIncoming) {
       stagedGitOps = git_ops.appendUpdateLinkDB(stagedGitOps, repo, serializedLinkEntriesIncoming);

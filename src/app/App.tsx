@@ -29,7 +29,7 @@ import * as entry_utils from "./utils/entry_utils";
 import * as label_utils from "./utils/label_utils";
 import * as markdown_utils from "./utils/markdown_utils";
 import * as repo_utils from "./repo";
-import type { Repos, MultiRepoFile } from "./repo";
+import { Repos, MultiRepoFile } from "./repo";
 import * as git_ops from "./git_ops";
 import type { MultiRepoGitOps } from "./git_ops";
 import { loadEntries } from "./octokit";
@@ -379,7 +379,7 @@ function App() {
     activeEntryIdx: undefined,
     page: Page.Main,
     stagedGitOps: {},
-    perRepoLinkDBs: {},
+    perRepoLinkDBs: new MultiRepoFile(),
   });
 
   // *** Derived state

@@ -93,10 +93,15 @@ export function getRepoCommitPage(repo: Repo, commitHash: string): string {
 // Multi repo data type and helper
 // ----------------------------------------------------------------------------
 
+/*
 // TBD if we should actually account for optionality in value lookup...
 // The ` | undefined` on the values definitely sucks, because we don't really
 // want existing values to be undefined.
 // https://github.com/microsoft/TypeScript/issues/13778
+// The easiest solution seems to be to wrap the map in a class where the getter
+// return `Value | undefined` but the setter and the internal map use the type
+// without optionality.
+
 export type MultiRepoData<T> = { [id: string]: { repo: Repo; data: T } };
 
 export function mapMultiRepo<T, R>(
@@ -111,5 +116,46 @@ export function mapMultiRepo<T, R>(
   }
   return result;
 }
+*/
+
+export type MultiRepoDataMapValueType<T> = { repo: Repo; data: T };
+
+export type MultiRepoDataMapType<T> = { [id: string]: MultiRepoDataMapValueType<T> };
+
+export class MultiRepoData<T> {
+  constructor(readonly map: MultiRepoDataMapType<T> = {}) {}
+
+  mapMultiRepo<R>(f: (repo: Repo, data: T) => R): R[] {
+    let result = [] as R[];
+    let repoIds = Object.keys(this.map);
+    for (let repoId of repoIds) {
+      let { repo, data } = this.map[repoId];
+      result.push(f(repo, data));
+    }
+    return result;
+  }
+
+  set(repo: Repo, data: T) {
+    this.map[getRepoId(repo)] = { repo: repo, data: data };
+  }
+
+  get(repo: Repo): MultiRepoDataMapValueType<T> | undefined {
+    return this.map[getRepoId(repo)];
+  }
+
+  getFromRepoId(repoId: string): MultiRepoDataMapValueType<T> | undefined {
+    return this.map[repoId];
+  }
+
+  keys(): string[] {
+    return Object.keys(this.map);
+  }
+
+  values(): MultiRepoDataMapValueType<T>[] {
+    return Object.values(this.map);
+  }
+}
 
 export type MultiRepoFile = MultiRepoData<string>;
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const MultiRepoFile = MultiRepoData as { new (): MultiRepoFile };

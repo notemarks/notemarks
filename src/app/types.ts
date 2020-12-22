@@ -1,5 +1,9 @@
 import { Repo } from "./repo";
 
+// ----------------------------------------------------------------------------
+// Entry
+// ----------------------------------------------------------------------------
+
 export enum EntryKind {
   NoteMarkdown = "NoteMarkdown",
   Link = "Link",
@@ -39,10 +43,6 @@ export type ContentLink = {
 export type Content = ContentDoc | ContentNote | ContentLink;
 
 export type ContentFile = ContentDoc | ContentNote;
-
-// TODO: At some point labels need to store at least the priority as well
-// so that arrays of labels can be properly sorted without extra information.
-export type RawLabel = string;
 
 /*
 Design questions regarding Entry fields
@@ -88,6 +88,14 @@ export type EntryFile = Omit<Entry, "content"> & { content: ContentFile };
 
 export type Entries = Entry[];
 
+// ----------------------------------------------------------------------------
+// Label
+// ----------------------------------------------------------------------------
+
+// TODO: At some point labels need to store at least the priority as well
+// so that arrays of labels can be properly sorted without extra information.
+export type RawLabel = string;
+
 // TODO: What would be a better name? Perhaps we should use `Label` for what
 // is `RawLabel` now and find a suitable name for this one. The properties
 // that are not trivially derivable from a raw label are `count` and
@@ -102,3 +110,12 @@ export type Label = {
 };
 
 export type Labels = Label[];
+
+// ----------------------------------------------------------------------------
+// Error Handling
+// ----------------------------------------------------------------------------
+
+export type WrappedError = {
+  msg: string;
+  originalError?: Error;
+};

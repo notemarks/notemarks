@@ -10,8 +10,11 @@ import {
 
 import { ok, err, okAsync, errAsync, Result, ResultAsync } from "neverthrow";
 
-import { Content, EntryFile, EntryKind } from "./types";
-import { Repo, Repos, MultiRepoFile, getRepoId } from "./repo";
+import { Content, EntryFile, EntryKind, WrappedError } from "./types";
+import { Repo, Repos, MultiRepoFile } from "./repo";
+
+import { File, MultiRepoFileMap } from "./filemap";
+import * as filemap from "./filemap";
 
 import { GitOp, MultiRepoGitOps } from "./git_ops";
 import * as git_ops from "./git_ops";
@@ -31,11 +34,6 @@ import * as markdown_utils from "./utils/markdown_utils";
 function expect<T>(promise: Promise<T>): ResultAsync<T, Error> {
   return ResultAsync.fromPromise(promise, (e) => e as Error);
 }
-
-export type WrappedError = {
-  msg: string;
-  originalError?: Error;
-};
 
 function wrapPromise<T>(promise: Promise<T>, msg: string): ResultAsync<T, WrappedError> {
   return ResultAsync.fromPromise(promise, (error) => {
@@ -224,6 +222,9 @@ async function listFilesRecursive(octokit: Octokit, repo: Repo, path: string, fi
       }
     }
   } else {
+    // TODO: We need to communicate to the outside that an error has occurred.
+    // Probably best to have another `errors: WrapperError[]` argument that
+    // can be pushed to.
     console.log("WARNING: Failed to get repo content:");
     console.log(response.error.originalError);
   }
@@ -241,19 +242,10 @@ async function listFiles(octokit: Octokit, repo: Repo, path: string): Promise<Fi
 // Recursive downloading
 // ----------------------------------------------------------------------------
 
-export type File = {
-  path: string;
-  sha: string;
-  rawUrl: string;
-  content?: string;
-};
-
-export type Files = File[];
-
-async function downloadFiles(octokit: Octokit, repo: Repo): Promise<Result<File, WrappedError>[]> {
+async function downloadFiles(octokit: Octokit, repo: Repo): Promise<File[]> {
   let files = await listFiles(octokit, repo, ".");
 
-  let filePromises: ResultAsync<File, WrappedError>[] = [];
+  let fileFetches: ResultAsync<File, File>[] = [];
 
   for (let file of files) {
     let fileKind = path_utils.getFileKind(file.path);
@@ -261,16 +253,23 @@ async function downloadFiles(octokit: Octokit, repo: Repo): Promise<Result<File,
       fileKind !== FileKind.Document || file.path.startsWith(path_utils.NOTEMARKS_FOLDER);
 
     if (doFetch) {
-      filePromises.push(
-        cachedFetch(octokit, repo, file.path, file.sha).map((content) => ({
-          path: file.path,
-          sha: file.sha,
-          rawUrl: file.rawUrl,
-          content: content,
-        }))
+      fileFetches.push(
+        cachedFetch(octokit, repo, file.path, file.sha)
+          .map((content) => ({
+            path: file.path,
+            sha: file.sha,
+            rawUrl: file.rawUrl,
+            content: content,
+          }))
+          .mapErr((error) => ({
+            path: file.path,
+            sha: file.sha,
+            rawUrl: file.rawUrl,
+            error: error,
+          }))
       );
     } else {
-      filePromises.push(
+      fileFetches.push(
         okAsync({
           path: file.path,
           sha: file.sha,
@@ -280,18 +279,8 @@ async function downloadFiles(octokit: Octokit, repo: Repo): Promise<Result<File,
     }
   }
 
-  let filesDownloaded = Promise.all(filePromises);
-  return filesDownloaded;
-}
-
-export type FileMap = { [path: string]: File };
-
-export function convertFilesToFileMap(files: Files) {
-  let fileMap: FileMap = {};
-  for (let file of files) {
-    fileMap[file.path] = file;
-  }
-  return fileMap;
+  let allResults = await Promise.all(fileFetches);
+  return allResults.map((result) => (result.isOk() ? result.value : result.error));
 }
 
 // ----------------------------------------------------------------------------
@@ -309,8 +298,9 @@ export async function loadEntries(
   console.log(`Loading contents from ${repos.length} repos`);
 
   let allEntries = [] as EntryFile[];
-  let allLinkDBs = {} as MultiRepoFile;
+  let allLinkDBs = new MultiRepoFile();
   let allErrors = [] as WrappedError[];
+  let allFileMaps = new MultiRepoFileMap();
   let stagedChanges = {} as MultiRepoGitOps;
 
   for (let repo of repos) {
@@ -318,7 +308,9 @@ export async function loadEntries(
       auth: repo.token,
     });
 
-    let downloadResults = await downloadFiles(octokit, repo);
+    let files = await downloadFiles(octokit, repo);
+    let fileMap = filemap.convertFilesToFileMap(files);
+    allFileMaps.set(repo, fileMap);
 
     let entryFiles = await listFiles(octokit, repo, ".");
     let metaFiles = await listFiles(octokit, repo, path_utils.NOTEMARKS_FOLDER);
@@ -364,7 +356,7 @@ export async function loadEntries(
     } else {
       let contentLinkDB = contentLinkDBResult.value;
       if (contentLinkDB != null) {
-        allLinkDBs[getRepoId(repo)] = { repo: repo, data: contentLinkDB };
+        allLinkDBs.set(repo, contentLinkDB);
       }
     }
   }
