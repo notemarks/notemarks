@@ -128,12 +128,12 @@ export function convertFilesToFileContentMap(files: Files) {
 // ----------------------------------------------------------------------------
 
 export function extractFileEntriesAndUpdateFileMap(
-  allFileMaps: MultiRepoFileMap
+  allFileMapsOrig: MultiRepoFileMap
 ): [EntryFile[], MultiRepoFileMap] {
   let fileEntries: EntryFile[] = [];
-  let allFileMapsModified = allFileMaps.clone();
+  let allFileMapsEdit = allFileMapsOrig.clone();
 
-  allFileMaps.mapMultiRepo((repo, fileMap) => {
+  allFileMapsOrig.mapMultiRepo((repo, fileMap) => {
     fileMap.forEach((file) => {
       let isNotemarksFile = path_utils.isNotemarksFile(file.path);
       // let isFetchedFile = file.content != null || file.error != null;
@@ -176,7 +176,7 @@ export function extractFileEntriesAndUpdateFileMap(
         if (createMetaDataFromScratch) {
           let newMetaData = io.createNewMetaData();
           let newMetaDataContent = io.serializeMetaData(newMetaData);
-          allFileMapsModified.get(repo)?.data.setContent(associatedMetaPath, newMetaDataContent);
+          allFileMapsEdit.get(repo)?.data.setContent(associatedMetaPath, newMetaDataContent);
           let entry = constructFileEntry(repo, file, newMetaData);
           fileEntries.push(entry);
         }
@@ -184,7 +184,7 @@ export function extractFileEntriesAndUpdateFileMap(
     });
   });
 
-  return [fileEntries, allFileMaps];
+  return [fileEntries, allFileMapsEdit];
 }
 
 export function constructFileEntry(repo: Repo, file: FileFetched, metaData: MetaData): EntryFile {

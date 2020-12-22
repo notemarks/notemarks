@@ -11,12 +11,12 @@ import {
 import { okAsync, errAsync, ResultAsync } from "neverthrow";
 
 import { EntryFile, WrappedError } from "./types";
-import { Repo, Repos, MultiRepoFile } from "./repo";
+import { Repo, Repos } from "./repo";
 
 import { File, MultiRepoFileMap } from "./filemap";
 import * as filemap from "./filemap";
 
-import { GitOp, MultiRepoGitOps } from "./git_ops";
+import { GitOp } from "./git_ops";
 
 import { FileKind } from "./utils/path_utils";
 import * as path_utils from "./utils/path_utils";
@@ -167,7 +167,13 @@ type FileDesc = {
   rawUrl: string;
 };
 
-async function listFilesRecursive(octokit: Octokit, repo: Repo, path: string, files: FileDesc[]) {
+async function listFilesRecursive(
+  octokit: Octokit,
+  repo: Repo,
+  path: string,
+  files: FileDesc[],
+  allErrors: WrappedError[]
+) {
   console.log("recursiveListFiles", path);
 
   let response = await wrapPromise(
@@ -192,7 +198,7 @@ async function listFilesRecursive(octokit: Octokit, repo: Repo, path: string, fi
       if (entry.type === "dir") {
         // It is important to await the recursive load, otherwise the outer logic does not
         // even know what / how many promises there will be scheduled.
-        await listFilesRecursive(octokit, repo, entry.path, files);
+        await listFilesRecursive(octokit, repo, entry.path, files, allErrors);
       } else if (entry.type === "file") {
         files.push({
           path: entry.path,
@@ -202,19 +208,23 @@ async function listFilesRecursive(octokit: Octokit, repo: Repo, path: string, fi
       }
     }
   } else {
-    // TODO: We need to communicate to the outside that an error has occurred.
-    // Probably best to have another `errors: WrapperError[]` argument that
-    // can be pushed to.
+    // To communicate errors to the outside we push to a global error collection array...
     console.log("WARNING: Failed to get repo content:");
     console.log(response.error.originalError);
+    allErrors.push(response.error);
   }
 }
 
-async function listFiles(octokit: Octokit, repo: Repo, path: string): Promise<FileDesc[]> {
+async function listFiles(
+  octokit: Octokit,
+  repo: Repo,
+  path: string,
+  allErrors: WrappedError[]
+): Promise<FileDesc[]> {
   // It is important to await the recursive load, otherwise the 'out' variables will
   // just stay empty...
   let files = [] as FileDesc[];
-  await listFilesRecursive(octokit, repo, path, files);
+  await listFilesRecursive(octokit, repo, path, files, allErrors);
   return files;
 }
 
@@ -222,8 +232,12 @@ async function listFiles(octokit: Octokit, repo: Repo, path: string): Promise<Fi
 // Recursive downloading
 // ----------------------------------------------------------------------------
 
-async function downloadFiles(octokit: Octokit, repo: Repo): Promise<File[]> {
-  let files = await listFiles(octokit, repo, ".");
+async function downloadFiles(
+  octokit: Octokit,
+  repo: Repo,
+  allErrors: WrappedError[]
+): Promise<File[]> {
+  let files = await listFiles(octokit, repo, ".", allErrors);
 
   let fileFetches: ResultAsync<File, File>[] = [];
 
@@ -264,49 +278,51 @@ async function downloadFiles(octokit: Octokit, repo: Repo): Promise<File[]> {
 }
 
 // ----------------------------------------------------------------------------
-// High level entry loading
+// Load high level API
 // ----------------------------------------------------------------------------
 
-// TODO: Possible extension of return value to tuple containing:
-// - entries
-// - load errors
-// - load statistics like "X files downloaded", "Y files from cache"?
-// - staged changes
+// Possible extension of return values:
+// - [x] entries
+// - [x] load errors
+// - [x] staged changes
+// - [ ] load statistics like "X files downloaded", "Y files from cache"?
+
 export async function loadEntries(
   repos: Repos
-): Promise<[EntryFile[], MultiRepoFile, MultiRepoGitOps]> {
+): Promise<[EntryFile[], MultiRepoFileMap, MultiRepoFileMap, WrappedError[]]> {
   console.log(`Loading contents from ${repos.length} repos`);
 
-  let allEntries = [] as EntryFile[];
-  let allLinkDBs = new MultiRepoFile();
   let allErrors = [] as WrappedError[];
-  let allFileMaps = new MultiRepoFileMap();
-  let stagedChanges = {} as MultiRepoGitOps;
+  let allFileMapsOrig = new MultiRepoFileMap();
 
   for (let repo of repos) {
     const octokit = new Octokit({
       auth: repo.token,
     });
 
-    let files = await downloadFiles(octokit, repo);
+    let files = await downloadFiles(octokit, repo, allErrors);
     let fileMap = filemap.convertFilesToFileMap(files);
-    allFileMaps.set(repo, fileMap);
+    allFileMapsOrig.set(repo, fileMap);
 
-    let fileLinkDB = fileMap.get(path_utils.NOTEMARKS_LINK_DB_PATH);
-    if (fileLinkDB != null && fileLinkDB.content != null) {
-      allLinkDBs.set(repo, fileLinkDB.content);
+    for (let file of files) {
+      if (file.error != null) {
+        allErrors.push(file.error);
+      }
     }
   }
 
-  console.log(allEntries);
-  console.log(allLinkDBs);
-  console.log(allErrors);
-  let [fileEntries, allFileMapsPatched] = filemap.extractFileEntriesAndUpdateFileMap(allFileMaps);
+  let [fileEntries, allFileMapsEdit] = filemap.extractFileEntriesAndUpdateFileMap(allFileMapsOrig);
 
+  if (allErrors.length > 0) {
+    console.log("Fetch errors occurred:");
+    console.log(allErrors);
+  }
+
+  // TODO: Remove
   console.log(fileEntries);
-  console.log(allFileMapsPatched);
+  console.log(allFileMapsEdit);
 
-  return [fileEntries, allLinkDBs, stagedChanges];
+  return [fileEntries, allFileMapsOrig, allFileMapsEdit, allErrors];
 }
 
 // ----------------------------------------------------------------------------
