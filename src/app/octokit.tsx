@@ -490,8 +490,8 @@ function applyOps(ops: GitOp[], oldTree: GitGetTreeResponseData): GitCreateTreeP
       if (op.kind !== "move" && op.path === entry.path) {
         keep = false;
         break;
-      } else if (op.kind === "move" && op.pathFrom === entry.path) {
-        destinationPath = op.pathTo;
+      } else if (op.kind === "move" && op.pathSrc === entry.path) {
+        destinationPath = op.pathDst;
       }
     }
 

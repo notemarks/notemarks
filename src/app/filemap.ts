@@ -105,7 +105,7 @@ export const MultiRepoFileMap = MultiRepoData as { new (): MultiRepoFileMap };
 // Utils
 // ----------------------------------------------------------------------------
 
-export function convertFilesToFileMap(files: Files) {
+export function convertFilesToFileMap(files: Files): FileMap {
   let fileMap = new FileMap();
   for (let file of files) {
     fileMap.setFile(file.path, file);
@@ -113,14 +113,14 @@ export function convertFilesToFileMap(files: Files) {
   return fileMap;
 }
 
-export function convertFilesToFileContentMap(files: Files) {
-  let fileMap = {} as FileMapRaw;
-  for (let file of files) {
+export function convertFileMapToFileContentMap(fileMap: FileMap): FileMapRaw {
+  let contentMap = {} as FileMapRaw;
+  fileMap.forEach((file) => {
     if (file.content != null) {
-      fileMap[file.content] = file;
+      contentMap[file.content] = file;
     }
-  }
-  return fileMap;
+  });
+  return contentMap;
 }
 
 // ----------------------------------------------------------------------------

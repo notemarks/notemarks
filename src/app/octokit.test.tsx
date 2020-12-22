@@ -26,8 +26,8 @@ test("commitIntegrationTest", async () => {
       let ops: GitOps = [
         {
           kind: GitOpKind.Move,
-          pathFrom: "some/subfolder/foo.txt",
-          pathTo: "some/subfolder/bar.txt",
+          pathSrc: "some/subfolder/foo.txt",
+          pathDst: "some/subfolder/bar.txt",
         },
       ];
       let result = await octokit.commit(repo, ops, "moved foo.txt -> bar.txt");

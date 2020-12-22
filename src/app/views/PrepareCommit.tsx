@@ -21,7 +21,7 @@ function prepareCommitMessage(ops: GitOps): string {
         case GitOpKind.Remove:
           return `removing ${op.path}`;
         case GitOpKind.Move:
-          return `moving ${op.pathFrom} to ${op.pathTo}`;
+          return `moving ${op.pathSrc} to ${op.pathDst}`;
         default:
           fn.assertUnreachable(op);
           return "";
@@ -67,7 +67,7 @@ function buildTableDataSource(ops: MultiRepoGitOps): TableRow[] {
           <Text code>{op.path}</Text>
         ) : (
           <>
-            <Text code>{op.pathFrom}</Text> to <Text code>{op.pathTo}</Text>
+            <Text code>{op.pathSrc}</Text> to <Text code>{op.pathDst}</Text>
           </>
         ),
     }))

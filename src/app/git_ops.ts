@@ -1,5 +1,5 @@
 import { Repo, MultiRepoData } from "./repo";
-import { FileMap, MultiRepoFileMap } from "./filemap";
+import { File, FileMap, MultiRepoFileMap, convertFileMapToFileContentMap } from "./filemap";
 
 export enum GitOpKind {
   Write = "write",
@@ -18,8 +18,8 @@ export type GitOpRemoveFile = {
 };
 export type GitOpMoveFile = {
   kind: GitOpKind.Move;
-  pathFrom: string;
-  pathTo: string;
+  pathSrc: string;
+  pathDst: string;
 };
 
 export type GitOp = GitOpWriteFile | GitOpRemoveFile | GitOpMoveFile;
@@ -64,16 +64,33 @@ export function diffMultiFileMaps(
 export function diffFileMaps(fileMapOld: FileMap, fileMapNew: FileMap): GitOps {
   let gitOps = [] as GitOps;
 
+  let oldContentMap = convertFileMapToFileContentMap(fileMapOld);
+  let movedFiles = {} as { [path: string]: boolean };
+
   fileMapNew.forEach((newFile) => {
     let oldFile = fileMapOld.get(newFile.path);
-    if (oldFile == null || oldFile.content !== newFile.content) {
+    let needsToBeWritten = false;
+    if (oldFile != null) {
+      if (oldFile.content !== newFile.content) {
+        needsToBeWritten = true;
+      }
+    } else {
+      let otherOldFile = oldContentMap[newFile.content!] as File | undefined;
+      if (otherOldFile == null) {
+        needsToBeWritten = true;
+      } else {
+        gitOps.push({ kind: GitOpKind.Move, pathSrc: otherOldFile.path, pathDst: newFile.path });
+        movedFiles[otherOldFile.path] = true;
+      }
+    }
+    if (needsToBeWritten) {
       gitOps.push({ kind: GitOpKind.Write, path: newFile.path, content: newFile.content! });
     }
   });
 
   fileMapOld.forEach((oldFile) => {
     let newFile = fileMapNew.get(oldFile.path);
-    if (newFile == null) {
+    if (newFile == null && !(oldFile.path in movedFiles)) {
       gitOps.push({ kind: GitOpKind.Remove, path: oldFile.path });
     }
   });
