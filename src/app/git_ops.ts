@@ -1,9 +1,5 @@
-import { Entry } from "./types";
-import { Repo, getRepoId, MultiRepoData } from "./repo";
-import { MultiRepoFileMap } from "./filemap";
-
-import * as path_utils from "./utils/path_utils";
-import * as entry_utils from "./utils/entry_utils";
+import { Repo, MultiRepoData } from "./repo";
+import { FileMap, MultiRepoFileMap } from "./filemap";
 
 export enum GitOpKind {
   Write = "write",
@@ -39,9 +35,48 @@ export const MultiRepoGitOps = MultiRepoData as { new (): MultiRepoGitOps };
 // ----------------------------------------------------------------------------
 
 export function diffMultiFileMaps(
-  multiFileMapA: MultiRepoFileMap,
-  multiFileMapB: MultiRepoFileMap
+  multiFileMapOld: MultiRepoFileMap,
+  multiFileMapNew: MultiRepoFileMap
 ): MultiRepoGitOps {
   let multiRepoGitOps = new MultiRepoGitOps();
+
+  let allRepos: { [repoId: string]: Repo } = {};
+  for (let repoId of multiFileMapOld.keys()) {
+    allRepos[repoId] = multiFileMapOld.getFromRepoId(repoId)!.repo;
+  }
+  for (let repoId of multiFileMapNew.keys()) {
+    allRepos[repoId] = multiFileMapNew.getFromRepoId(repoId)!.repo;
+  }
+
+  for (let repo of Object.values(allRepos)) {
+    let oldRepoFileMap = multiFileMapOld.get(repo)?.data;
+    let newRepoFileMap = multiFileMapOld.get(repo)?.data;
+    // For now only support case with overlapping repos.
+    // If we don't see a 'before' vs 'after' of a repo, we cannot
+    // infer meaningful git ops anyway.
+    if (oldRepoFileMap != null && newRepoFileMap != null) {
+      multiRepoGitOps.set(repo, diffFileMaps(oldRepoFileMap, newRepoFileMap));
+    }
+  }
   return multiRepoGitOps;
+}
+
+export function diffFileMaps(fileMapOld: FileMap, fileMapNew: FileMap): GitOps {
+  let gitOps = [] as GitOps;
+
+  fileMapNew.forEach((newFile) => {
+    let oldFile = fileMapOld.get(newFile.path);
+    if (oldFile == null || oldFile.content !== newFile.content) {
+      gitOps.push({ kind: GitOpKind.Write, path: newFile.path, content: newFile.content! });
+    }
+  });
+
+  fileMapOld.forEach((oldFile) => {
+    let newFile = fileMapNew.get(oldFile.path);
+    if (newFile == null) {
+      gitOps.push({ kind: GitOpKind.Remove, path: oldFile.path });
+    }
+  });
+
+  return gitOps;
 }
