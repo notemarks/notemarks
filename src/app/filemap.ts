@@ -9,8 +9,6 @@ import * as path_utils from "./utils/path_utils";
 
 import * as markdown_utils from "./utils/markdown_utils";
 
-// Perhaps we should model the type as a union type?
-// FileFetchedSuccessfully | FileFetchFailed | FileVirtual
 export type File = {
   path: string;
   sha?: string;
@@ -20,6 +18,36 @@ export type File = {
 };
 
 export type Files = File[];
+
+// File type flavors
+
+export type FileFetched = {
+  path: string;
+  sha: string;
+  rawUrl: string;
+  content: string;
+};
+export function isFileFetched(file: File): file is FileFetched {
+  return file.sha != null && file.rawUrl != null && file.content != null;
+}
+
+export type FileFetchedFailed = {
+  path: string;
+  sha: string;
+  rawUrl: string;
+  error: WrappedError;
+};
+export function isFileFetchedFailed(file: File): file is FileFetchedFailed {
+  return file.sha != null && file.rawUrl != null && file.error != null;
+}
+
+export type FileVirtual = {
+  path: string;
+  content: string;
+};
+export function isFileVirtual(file: File): file is FileVirtual {
+  return file.content != null;
+}
 
 // ----------------------------------------------------------------------------
 // FileMap
@@ -109,7 +137,7 @@ export function extractFileEntriesAndUpdateFileMap(
     fileMap.forEach((file) => {
       let isNotemarksFile = path_utils.isNotemarksFile(file.path);
       // let isFetchedFile = file.content != null || file.error != null;
-      if (!isNotemarksFile) {
+      if (isFileFetched(file) && !isNotemarksFile) {
         // For meta data there are three cases:
         // - No meta file exists => okay, create/stage new
         // - Meta file exists, but fetch fails => create/stage not good, report as error,
@@ -159,7 +187,7 @@ export function extractFileEntriesAndUpdateFileMap(
   return [fileEntries, allFileMaps];
 }
 
-export function constructFileEntry(repo: Repo, file: File, metaData: MetaData): EntryFile {
+export function constructFileEntry(repo: Repo, file: FileFetched, metaData: MetaData): EntryFile {
   let fileKind = path_utils.getFileKind(file.path);
   let [location, title, extension] = path_utils.splitLocationTitleExtension(file.path);
 
@@ -168,7 +196,7 @@ export function constructFileEntry(repo: Repo, file: File, metaData: MetaData): 
   // https://stackoverflow.com/a/42623905/1804173
   // https://stackoverflow.com/questions/55377365/what-does-keyof-typeof-mean-in-typescript
   if (fileKind === FileKind.NoteMarkdown) {
-    let text = file.content!;
+    let text = file.content;
     let [html, links] = markdown_utils.processMarkdownText(text);
 
     content = {
@@ -178,7 +206,7 @@ export function constructFileEntry(repo: Repo, file: File, metaData: MetaData): 
       extension: extension,
       timeCreated: metaData.timeCreated as Date,
       timeUpdated: metaData.timeUpdated as Date,
-      rawUrl: file.rawUrl!,
+      rawUrl: file.rawUrl,
       text: text,
       html: html,
       links: links,
@@ -191,7 +219,7 @@ export function constructFileEntry(repo: Repo, file: File, metaData: MetaData): 
       extension: extension,
       timeCreated: metaData.timeCreated as Date,
       timeUpdated: metaData.timeUpdated as Date,
-      rawUrl: file.rawUrl!,
+      rawUrl: file.rawUrl,
     };
   }
 
