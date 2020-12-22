@@ -21,6 +21,10 @@ export function getFileKind(path: string): FileKind {
   }
 }
 
+export function isNotemarksFile(path: string): boolean {
+  return path.startsWith(NOTEMARKS_FOLDER);
+}
+
 export function getAssociatedMetaPath(path: string): string {
   return `${NOTEMARKS_FOLDER}/${path}.yaml`;
 }

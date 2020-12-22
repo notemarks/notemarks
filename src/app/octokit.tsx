@@ -364,8 +364,12 @@ export async function loadEntries(
   console.log(allEntries);
   console.log(allLinkDBs);
   console.log(allErrors);
+  let [fileEntries, allFileMapsPatched] = filemap.extractFileEntriesAndUpdateFileMap(allFileMaps);
 
-  return [allEntries, allLinkDBs, stagedChanges];
+  console.log(fileEntries);
+  console.log(allFileMapsPatched);
+
+  return [fileEntries, allLinkDBs, stagedChanges];
 }
 
 function loadEntriesForRepoFromFilesList(
@@ -497,7 +501,7 @@ async function loadEntry(
 }
 
 // ----------------------------------------------------------------------------
-// Commit experiments
+// Commit
 // ----------------------------------------------------------------------------
 
 // http://www.levibotelho.com/development/commit-a-file-with-the-github-api/

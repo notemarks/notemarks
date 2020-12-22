@@ -125,10 +125,16 @@ export type MultiRepoDataMapType<T> = { [id: string]: MultiRepoDataMapValueType<
 export class MultiRepoData<T> {
   constructor(readonly map: MultiRepoDataMapType<T> = {}) {}
 
+  forEach(f: (repo: Repo, data: T) => void) {
+    for (let repoId of Object.keys(this.map)) {
+      let { repo, data } = this.map[repoId];
+      f(repo, data);
+    }
+  }
+
   mapMultiRepo<R>(f: (repo: Repo, data: T) => R): R[] {
     let result = [] as R[];
-    let repoIds = Object.keys(this.map);
-    for (let repoId of repoIds) {
+    for (let repoId of Object.keys(this.map)) {
       let { repo, data } = this.map[repoId];
       result.push(f(repo, data));
     }
@@ -153,6 +159,18 @@ export class MultiRepoData<T> {
 
   values(): MultiRepoDataMapValueType<T>[] {
     return Object.values(this.map);
+  }
+
+  clone(): MultiRepoData<T> {
+    let m = new MultiRepoData<T>();
+    this.forEach((repo, data) => {
+      if ("clone" in data) {
+        m.set(repo, (data as any).clone());
+      } else {
+        m.set(repo, data);
+      }
+    });
+    return m;
   }
 }
 
