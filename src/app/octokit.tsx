@@ -8,24 +8,18 @@ import {
   ReposGetContentResponseData,
 } from "@octokit/types/dist-types/generated/Endpoints";
 
-import { ok, err, okAsync, errAsync, Result, ResultAsync } from "neverthrow";
+import { okAsync, errAsync, ResultAsync } from "neverthrow";
 
-import { Content, EntryFile, EntryKind, WrappedError } from "./types";
+import { EntryFile, WrappedError } from "./types";
 import { Repo, Repos, MultiRepoFile } from "./repo";
 
 import { File, MultiRepoFileMap } from "./filemap";
 import * as filemap from "./filemap";
 
 import { GitOp, MultiRepoGitOps } from "./git_ops";
-import * as git_ops from "./git_ops";
-
-import { MetaData } from "./io";
-import * as io from "./io";
 
 import { FileKind } from "./utils/path_utils";
 import * as path_utils from "./utils/path_utils";
-
-import * as markdown_utils from "./utils/markdown_utils";
 
 // ----------------------------------------------------------------------------
 // ResultAsync helper
@@ -163,20 +157,6 @@ function cachedFetch(
   });
 }
 
-async function cachedFetchStaticMetaFile(
-  octokit: Octokit,
-  repo: Repo,
-  metaFiles: FileDesc[],
-  path: string
-): Promise<Result<string | undefined, WrappedError>> {
-  let metaFile = metaFiles.find((metaFile) => metaFile.path === path);
-  if (metaFile == null) {
-    return ok(undefined);
-  } else {
-    return cachedFetch(octokit, repo, metaFile.path, metaFile.sha);
-  }
-}
-
 // ----------------------------------------------------------------------------
 // Recursive file listing
 // ----------------------------------------------------------------------------
@@ -312,52 +292,9 @@ export async function loadEntries(
     let fileMap = filemap.convertFilesToFileMap(files);
     allFileMaps.set(repo, fileMap);
 
-    let entryFiles = await listFiles(octokit, repo, ".");
-    let metaFiles = await listFiles(octokit, repo, path_utils.NOTEMARKS_FOLDER);
-
-    // Loading of file entries by merging files + metaFiles
-    let entriesPromises = loadEntriesForRepoFromFilesList(
-      octokit,
-      repo,
-      entryFiles,
-      metaFiles,
-      stagedChanges
-    );
-    let entries = await Promise.all(entriesPromises);
-    /*
-    // In theory we should use Promise.allSettled to account for failures of the promises,
-    // but since we use ResultAsync that should be practically impossible, right?
-    let entries: Result<Entry, Error>[] = (await Promise.allSettled(entriesPromises)).map(settleStatus => {
-      if (settleStatus.status === "fulfilled") {
-        return settleStatus.value;
-      } else {
-        return err(settleStatus.reason);
-      }
-    });
-    */
-    // console.log(entries)
-    for (let entry of entries) {
-      if (entry.isOk()) {
-        allEntries.push(entry.value);
-      } else {
-        allErrors.push(entry.error);
-      }
-    }
-
-    // Loading of link entries
-    let contentLinkDBResult = await cachedFetchStaticMetaFile(
-      octokit,
-      repo,
-      metaFiles,
-      path_utils.NOTEMARKS_LINK_DB_PATH
-    );
-    if (contentLinkDBResult.isErr()) {
-      console.log("Error fetching link DB:", contentLinkDBResult.error);
-    } else {
-      let contentLinkDB = contentLinkDBResult.value;
-      if (contentLinkDB != null) {
-        allLinkDBs.set(repo, contentLinkDB);
-      }
+    let fileLinkDB = fileMap.get(path_utils.NOTEMARKS_LINK_DB_PATH);
+    if (fileLinkDB != null && fileLinkDB.content != null) {
+      allLinkDBs.set(repo, fileLinkDB.content);
     }
   }
 
@@ -370,134 +307,6 @@ export async function loadEntries(
   console.log(allFileMapsPatched);
 
   return [fileEntries, allLinkDBs, stagedChanges];
-}
-
-function loadEntriesForRepoFromFilesList(
-  octokit: Octokit,
-  repo: Repo,
-  files: FileDesc[],
-  metaFiles: FileDesc[],
-  stagedChanges: MultiRepoGitOps
-): Array<Promise<Result<EntryFile, WrappedError>>> {
-  // Build meta lookup map
-  let metaFilesMap: { [key: string]: FileDesc } = {};
-  for (let metaFile of metaFiles) {
-    metaFilesMap[metaFile.path] = metaFile;
-  }
-
-  type FileAndMeta = {
-    file: FileDesc;
-    meta?: FileDesc;
-  };
-  let filesAndMeta = [] as FileAndMeta[];
-
-  // Iterate over files and find associated meta
-  for (let file of files) {
-    let metaPath = path_utils.getAssociatedMetaPath(file.path);
-    filesAndMeta.push({
-      file: file,
-      meta: metaFilesMap[metaPath],
-    });
-  }
-
-  let entryPromises = [];
-  for (let { file, meta } of filesAndMeta) {
-    entryPromises.push(loadEntry(octokit, repo, file, meta, stagedChanges));
-  }
-
-  return entryPromises;
-}
-
-async function loadEntry(
-  octokit: Octokit,
-  repo: Repo,
-  file: FileDesc,
-  meta: FileDesc | undefined,
-  stagedChanges: MultiRepoGitOps
-): Promise<Result<EntryFile, WrappedError>> {
-  // Determine file kind
-  let fileKind = path_utils.getFileKind(file.path);
-
-  // Optionally fetch entry content
-  let entryContent: Result<string, WrappedError> | undefined = undefined;
-  if (fileKind !== FileKind.Document) {
-    entryContent = await cachedFetch(octokit, repo, file.path, file.sha);
-  }
-
-  if (entryContent == null || entryContent.isOk()) {
-    // For meta data there are three cases:
-    // - No meta file exists => okay, create/stage new
-    // - Meta file exists, but fetch fails => create/stage not good, report as error
-    // - Meta file exists, fetch is okay, but parse fails => probably better report as error?
-    let metaData: MetaData;
-    if (meta == null) {
-      // TODO: Properly test staging of new meta.
-      metaData = io.createNewMetaData();
-      let content = io.serializeMetaData(metaData);
-      git_ops.appendRawWrite(
-        stagedChanges,
-        repo,
-        path_utils.getAssociatedMetaPath(file.path),
-        content
-      );
-    } else {
-      let metaContent = await cachedFetch(octokit, repo, meta.path, meta.sha);
-      if (metaContent.isErr()) {
-        return err({ msg: `Failed to fetch content of meta data ${meta.path}` });
-      } else {
-        let metaDataResult = io.parseMetaData(metaContent.value);
-        if (metaDataResult.isErr()) {
-          return err({ msg: `Could not parse meta data file ${meta.path}` });
-        } else {
-          metaData = metaDataResult.value;
-        }
-      }
-    }
-
-    let [location, title, extension] = path_utils.splitLocationTitleExtension(file.path);
-
-    let content: Content;
-    // Regarding double enum conversion
-    // https://stackoverflow.com/a/42623905/1804173
-    // https://stackoverflow.com/questions/55377365/what-does-keyof-typeof-mean-in-typescript
-    if (fileKind === FileKind.NoteMarkdown) {
-      let text = entryContent?.value || "";
-      let [html, links] = markdown_utils.processMarkdownText(text);
-
-      content = {
-        kind: (fileKind as keyof typeof FileKind) as EntryKind.NoteMarkdown,
-        repo: repo,
-        location: location,
-        extension: extension,
-        timeCreated: metaData.timeCreated as Date,
-        timeUpdated: metaData.timeUpdated as Date,
-        rawUrl: file.rawUrl,
-        text: text,
-        html: html,
-        links: links,
-      };
-    } else {
-      content = {
-        kind: (fileKind as keyof typeof FileKind) as EntryKind.Document,
-        repo: repo,
-        location: location,
-        extension: extension,
-        timeCreated: metaData.timeCreated as Date,
-        timeUpdated: metaData.timeUpdated as Date,
-        rawUrl: file.rawUrl,
-      };
-    }
-
-    return ok({
-      title: title,
-      priority: 0,
-      labels: metaData.labels,
-      content: content,
-      key: `${repo.key}:${location}:${title}`,
-    });
-  } else {
-    return err({ msg: `Failed to fetch content of ${file.path}` });
-  }
 }
 
 // ----------------------------------------------------------------------------
