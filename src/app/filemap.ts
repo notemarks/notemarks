@@ -21,6 +21,10 @@ export type File = {
 
 export type Files = File[];
 
+// ----------------------------------------------------------------------------
+// FileMap
+// ----------------------------------------------------------------------------
+
 export type FileMapRaw = { [path: string]: File };
 
 export class FileMap {
@@ -69,6 +73,10 @@ export type MultiRepoFileMap = MultiRepoData<FileMap>;
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const MultiRepoFileMap = MultiRepoData as { new (): MultiRepoFileMap };
 
+// ----------------------------------------------------------------------------
+// Utils
+// ----------------------------------------------------------------------------
+
 export function convertFilesToFileMap(files: Files) {
   let fileMap = new FileMap();
   for (let file of files) {
@@ -87,50 +95,9 @@ export function convertFilesToFileContentMap(files: Files) {
   return fileMap;
 }
 
-export function constructFileEntry(repo: Repo, file: File, metaData: MetaData): EntryFile {
-  let fileKind = path_utils.getFileKind(file.path);
-  let [location, title, extension] = path_utils.splitLocationTitleExtension(file.path);
-
-  let content: Content;
-  // Regarding double enum conversion
-  // https://stackoverflow.com/a/42623905/1804173
-  // https://stackoverflow.com/questions/55377365/what-does-keyof-typeof-mean-in-typescript
-  if (fileKind === FileKind.NoteMarkdown) {
-    let text = file.content!;
-    let [html, links] = markdown_utils.processMarkdownText(text);
-
-    content = {
-      kind: (fileKind as keyof typeof FileKind) as EntryKind.NoteMarkdown,
-      repo: repo,
-      location: location,
-      extension: extension,
-      timeCreated: metaData.timeCreated as Date,
-      timeUpdated: metaData.timeUpdated as Date,
-      rawUrl: file.rawUrl!,
-      text: text,
-      html: html,
-      links: links,
-    };
-  } else {
-    content = {
-      kind: (fileKind as keyof typeof FileKind) as EntryKind.Document,
-      repo: repo,
-      location: location,
-      extension: extension,
-      timeCreated: metaData.timeCreated as Date,
-      timeUpdated: metaData.timeUpdated as Date,
-      rawUrl: file.rawUrl!,
-    };
-  }
-
-  return {
-    title: title,
-    priority: 0,
-    labels: metaData.labels,
-    content: content,
-    key: `${repo.key}:${location}:${title}`,
-  };
-}
+// ----------------------------------------------------------------------------
+// Entry Extraction
+// ----------------------------------------------------------------------------
 
 export function extractFileEntriesAndUpdateFileMap(
   allFileMaps: MultiRepoFileMap
@@ -190,4 +157,49 @@ export function extractFileEntriesAndUpdateFileMap(
   });
 
   return [fileEntries, allFileMaps];
+}
+
+export function constructFileEntry(repo: Repo, file: File, metaData: MetaData): EntryFile {
+  let fileKind = path_utils.getFileKind(file.path);
+  let [location, title, extension] = path_utils.splitLocationTitleExtension(file.path);
+
+  let content: Content;
+  // Regarding double enum conversion
+  // https://stackoverflow.com/a/42623905/1804173
+  // https://stackoverflow.com/questions/55377365/what-does-keyof-typeof-mean-in-typescript
+  if (fileKind === FileKind.NoteMarkdown) {
+    let text = file.content!;
+    let [html, links] = markdown_utils.processMarkdownText(text);
+
+    content = {
+      kind: (fileKind as keyof typeof FileKind) as EntryKind.NoteMarkdown,
+      repo: repo,
+      location: location,
+      extension: extension,
+      timeCreated: metaData.timeCreated as Date,
+      timeUpdated: metaData.timeUpdated as Date,
+      rawUrl: file.rawUrl!,
+      text: text,
+      html: html,
+      links: links,
+    };
+  } else {
+    content = {
+      kind: (fileKind as keyof typeof FileKind) as EntryKind.Document,
+      repo: repo,
+      location: location,
+      extension: extension,
+      timeCreated: metaData.timeCreated as Date,
+      timeUpdated: metaData.timeUpdated as Date,
+      rawUrl: file.rawUrl!,
+    };
+  }
+
+  return {
+    title: title,
+    priority: 0,
+    labels: metaData.labels,
+    content: content,
+    key: `${repo.key}:${location}:${title}`,
+  };
 }
