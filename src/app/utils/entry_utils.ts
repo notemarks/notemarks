@@ -15,13 +15,17 @@ import {
   EntryFile,
   RawLabel,
 } from "../types";
-import { Repo, MultiRepoFile, getRepoId } from "../repo";
+import { Repo, getRepoId } from "../repo";
 
 import { MultiRepoGitOps } from "../git_ops";
 import * as git_ops from "../git_ops";
 
 import { StoredLinks } from "../io";
 import * as io from "../io";
+
+import { MultiRepoFileMap } from "../filemap";
+
+import * as path_utils from "./path_utils";
 
 const entryKindNumericValues = {
   [EntryKind.NoteMarkdown]: 0,
@@ -307,16 +311,19 @@ export function deserializeLinkEntries(repo: Repo, content?: string): Result<Ent
   );
 }
 
-export function convertLinkDBtoLinkEntries(perRepoLinkDBs: MultiRepoFile): EntryLink[] {
+export function convertLinkDBtoLinkEntries(allFileMaps: MultiRepoFileMap): EntryLink[] {
   let allLinkEntriesWithoutRefsResolved = [] as EntryLink[];
-  perRepoLinkDBs.mapMultiRepo((repo, contentLinkDB) => {
-    let linkEntriesWithoutRefsResolvedResult = deserializeLinkEntries(repo, contentLinkDB);
-    if (linkEntriesWithoutRefsResolvedResult.isOk()) {
-      // TODO: We need duplicate removal here...
-      allLinkEntriesWithoutRefsResolved = [
-        ...allLinkEntriesWithoutRefsResolved,
-        ...linkEntriesWithoutRefsResolvedResult.value,
-      ];
+  allFileMaps.forEach((repo, fileMap) => {
+    let fileLinkDB = fileMap.get(path_utils.NOTEMARKS_LINK_DB_PATH);
+    if (fileLinkDB != null && fileLinkDB.content != null) {
+      let linkEntriesWithoutRefsResolvedResult = deserializeLinkEntries(repo, fileLinkDB.content);
+      if (linkEntriesWithoutRefsResolvedResult.isOk()) {
+        // TODO: We need duplicate removal here...
+        allLinkEntriesWithoutRefsResolved = [
+          ...allLinkEntriesWithoutRefsResolved,
+          ...linkEntriesWithoutRefsResolvedResult.value,
+        ];
+      }
     }
   });
   return allLinkEntriesWithoutRefsResolved;
@@ -352,6 +359,8 @@ DB content in the app state, which also gets rid of the re-serialization of the
 existing links.
 */
 
+// TODO
+/*
 export function stageLinkDBUpdate(
   stagedGitOps: MultiRepoGitOps,
   linkEntriesIncoming: EntryLink[],
@@ -380,3 +389,4 @@ export function stageLinkDBUpdate(
   console.timeEnd("stageLinkDBUpdate");
   return stagedGitOps;
 }
+*/

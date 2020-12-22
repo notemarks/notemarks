@@ -123,42 +123,53 @@ export type MultiRepoDataMapValueType<T> = { repo: Repo; data: T };
 export type MultiRepoDataMapType<T> = { [id: string]: MultiRepoDataMapValueType<T> };
 
 export class MultiRepoData<T> {
-  constructor(readonly map: MultiRepoDataMapType<T> = {}) {}
+  constructor(readonly mapData: MultiRepoDataMapType<T> = {}) {}
 
   forEach(f: (repo: Repo, data: T) => void) {
-    for (let repoId of Object.keys(this.map)) {
-      let { repo, data } = this.map[repoId];
+    for (let repoId of Object.keys(this.mapData)) {
+      let { repo, data } = this.mapData[repoId];
       f(repo, data);
     }
   }
 
-  mapMultiRepo<R>(f: (repo: Repo, data: T) => R): R[] {
+  map<R>(f: (repo: Repo, data: T) => R): R[] {
     let result = [] as R[];
-    for (let repoId of Object.keys(this.map)) {
-      let { repo, data } = this.map[repoId];
+    for (let repoId of Object.keys(this.mapData)) {
+      let { repo, data } = this.mapData[repoId];
       result.push(f(repo, data));
     }
     return result;
   }
 
+  flatMap<R>(f: (repo: Repo, data: T) => R[]): R[] {
+    let result = [] as R[];
+    for (let repoId of Object.keys(this.mapData)) {
+      let { repo, data } = this.mapData[repoId];
+      for (let x of f(repo, data)) {
+        result.push(x);
+      }
+    }
+    return result;
+  }
+
   set(repo: Repo, data: T) {
-    this.map[getRepoId(repo)] = { repo: repo, data: data };
+    this.mapData[getRepoId(repo)] = { repo: repo, data: data };
   }
 
   get(repo: Repo): MultiRepoDataMapValueType<T> | undefined {
-    return this.map[getRepoId(repo)];
+    return this.mapData[getRepoId(repo)];
   }
 
   getFromRepoId(repoId: string): MultiRepoDataMapValueType<T> | undefined {
-    return this.map[repoId];
+    return this.mapData[repoId];
   }
 
   keys(): string[] {
-    return Object.keys(this.map);
+    return Object.keys(this.mapData);
   }
 
   values(): MultiRepoDataMapValueType<T>[] {
-    return Object.values(this.map);
+    return Object.values(this.mapData);
   }
 
   clone(): MultiRepoData<T> {
@@ -173,7 +184,3 @@ export class MultiRepoData<T> {
     return m;
   }
 }
-
-export type MultiRepoFile = MultiRepoData<string>;
-// eslint-disable-next-line @typescript-eslint/no-redeclare
-export const MultiRepoFile = MultiRepoData as { new (): MultiRepoFile };

@@ -28,10 +28,15 @@ import * as fn from "./utils/fn_utils";
 import * as entry_utils from "./utils/entry_utils";
 import * as label_utils from "./utils/label_utils";
 import * as markdown_utils from "./utils/markdown_utils";
+
+import { Repos } from "./repo";
 import * as repo_utils from "./repo";
-import { Repos, MultiRepoFile } from "./repo";
+
+import { MultiRepoGitOps } from "./git_ops";
 import * as git_ops from "./git_ops";
-import type { MultiRepoGitOps } from "./git_ops";
+
+import { MultiRepoFileMap } from "./filemap";
+
 import { loadEntries } from "./octokit";
 
 import List from "./views/List";
@@ -134,8 +139,9 @@ type State = {
   isReloading: boolean;
   activeEntryIdx?: number;
   page: Page;
+  allFileMapsOrig: MultiRepoFileMap;
+  allFileMapsEdit: MultiRepoFileMap;
   stagedGitOps: MultiRepoGitOps;
-  perRepoLinkDBs: MultiRepoFile;
 };
 
 enum ActionKind {
@@ -164,8 +170,9 @@ type ActionReloadingDone = {
   fileEntries: EntryFile[];
   linkEntries: EntryLink[];
   labels: Labels;
+  allFileMapsOrig: MultiRepoFileMap;
+  allFileMapsEdit: MultiRepoFileMap;
   stagedGitOps: MultiRepoGitOps;
-  perRepoLinkDBs: MultiRepoFile;
 };
 type ActionUpdateNoteContent = {
   kind: ActionKind.UpdateNoteContent;
@@ -217,22 +224,33 @@ function App() {
     dispatch({ kind: ActionKind.StartReloading });
 
     let newActiveRepos = repo_utils.filterActiveRepos(newRepos);
-    let [newFileEntries, newPerRepoLinkDBs, newStagedGitOps] = await loadEntries(newActiveRepos);
-
-    let newLinkEntriesWithoutRefsResoled = entry_utils.convertLinkDBtoLinkEntries(
-      newPerRepoLinkDBs
+    let [newFileEntries, allFileMapsOrig, allFileMapsEdit, allErrors] = await loadEntries(
+      newActiveRepos
     );
+
+    if (allErrors.length > 0) {
+      Modal.error({
+        title: "Reload errors",
+        content: `There were ${allErrors.length} request errors. Check console log for details.`,
+      });
+    }
+
+    let newLinkEntriesWithoutRefsResoled = entry_utils.convertLinkDBtoLinkEntries(allFileMapsOrig);
 
     let [newLinkEntries, newEntries] = entry_utils.recomputeEntries(
       newFileEntries,
       newLinkEntriesWithoutRefsResoled
     );
 
-    newStagedGitOps = entry_utils.stageLinkDBUpdate(
+    /*
+    // TODO Update link DB
+    let newStagedGitOps = entry_utils.stageLinkDBUpdate(
       newStagedGitOps,
       newLinkEntries,
       newPerRepoLinkDBs
     );
+    */
+    let stagedGitOps = git_ops.diffMultiFileMaps(allFileMapsOrig, allFileMapsEdit);
 
     dispatch({
       kind: ActionKind.ReloadingDone,
@@ -240,8 +258,9 @@ function App() {
       fileEntries: newFileEntries,
       linkEntries: newLinkEntries,
       labels: label_utils.extractLabels(newEntries),
-      stagedGitOps: newStagedGitOps,
-      perRepoLinkDBs: newPerRepoLinkDBs,
+      allFileMapsOrig: allFileMapsOrig,
+      allFileMapsEdit: allFileMapsEdit,
+      stagedGitOps: stagedGitOps,
     });
   }
 
@@ -267,8 +286,9 @@ function App() {
           fileEntries: action.fileEntries,
           linkEntries: action.linkEntries,
           labels: action.labels,
+          allFileMapsOrig: action.allFileMapsOrig,
+          allFileMapsEdit: action.allFileMapsEdit,
           stagedGitOps: action.stagedGitOps,
-          perRepoLinkDBs: action.perRepoLinkDBs,
         };
       }
       case ActionKind.UpdateNoteContent: {
@@ -326,6 +346,9 @@ function App() {
           );
 
           // Stage git ops
+          // TODO
+          let newAllFileMapsEdit = state.allFileMapsEdit;
+          /*
           let newStagedGitOps = state.stagedGitOps;
           newStagedGitOps = git_ops.appendUpdateEntry(
             newStagedGitOps,
@@ -336,14 +359,16 @@ function App() {
             newLinkEntries,
             state.perRepoLinkDBs
           );
+          */
           // TODO: We need to stage updates to meta data as well
+          let stagedGitOps = git_ops.diffMultiFileMaps(state.allFileMapsOrig, newAllFileMapsEdit);
 
           return {
             ...state,
             entries: newEntries,
             fileEntries: newFileEntries,
             linkEntries: newLinkEntries,
-            stagedGitOps: newStagedGitOps,
+            stagedGitOps: stagedGitOps,
           };
         } else {
           return state;
@@ -361,7 +386,7 @@ function App() {
         // requires a some time to propagate (eventual consistency...). Delaying the
         // refresh arbitrarily feels like a hack, and if the assumption is valid, we
         // can safe unnecessary API requests / time.
-        return { ...state, stagedGitOps: {} };
+        return { ...state, stagedGitOps: new MultiRepoGitOps() };
       }
 
       default: {
@@ -378,8 +403,9 @@ function App() {
     isReloading: false,
     activeEntryIdx: undefined,
     page: Page.Main,
-    stagedGitOps: {},
-    perRepoLinkDBs: new MultiRepoFile(),
+    stagedGitOps: new MultiRepoGitOps(),
+    allFileMapsOrig: new MultiRepoFileMap(),
+    allFileMapsEdit: new MultiRepoFileMap(),
   });
 
   // *** Derived state

@@ -124,7 +124,7 @@ export function convertFilesToFileContentMap(files: Files) {
 }
 
 // ----------------------------------------------------------------------------
-// Entry Extraction
+// Entry Extraction from FileMap (move to entry_utils?)
 // ----------------------------------------------------------------------------
 
 export function extractFileEntriesAndUpdateFileMap(
@@ -133,10 +133,9 @@ export function extractFileEntriesAndUpdateFileMap(
   let fileEntries: EntryFile[] = [];
   let allFileMapsEdit = allFileMapsOrig.clone();
 
-  allFileMapsOrig.mapMultiRepo((repo, fileMap) => {
+  allFileMapsOrig.forEach((repo, fileMap) => {
     fileMap.forEach((file) => {
       let isNotemarksFile = path_utils.isNotemarksFile(file.path);
-      // let isFetchedFile = file.content != null || file.error != null;
       if (isFileFetched(file) && !isNotemarksFile) {
         // For meta data there are three cases:
         // - No meta file exists => okay, create/stage new

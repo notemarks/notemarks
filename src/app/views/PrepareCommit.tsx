@@ -6,7 +6,7 @@ import styled from "@emotion/styled";
 
 import { UiRow } from "../components/UiRow";
 
-import { GitOpKind, mapMultiRepoGitOpsFlat, flatMapMultiRepoGitOpsGrouped } from "../git_ops";
+import { GitOpKind } from "../git_ops";
 import type { GitOps, MultiRepoGitOps } from "../git_ops";
 import * as octokit from "../octokit";
 import * as fn from "../utils/fn_utils";
@@ -57,19 +57,21 @@ type TableRow = {
 
 function buildTableDataSource(ops: MultiRepoGitOps): TableRow[] {
   var key = 0;
-  return mapMultiRepoGitOpsFlat(ops, (repo, op) => ({
-    key: ++key,
-    repo: repo.name,
-    op: op.kind,
-    file:
-      op.kind !== GitOpKind.Move ? (
-        <Text code>{op.path}</Text>
-      ) : (
-        <>
-          <Text code>{op.pathFrom}</Text> to <Text code>{op.pathTo}</Text>
-        </>
-      ),
-  }));
+  return ops.flatMap((repo, ops) =>
+    ops.map((op) => ({
+      key: ++key,
+      repo: repo.name,
+      op: op.kind,
+      file:
+        op.kind !== GitOpKind.Move ? (
+          <Text code>{op.path}</Text>
+        ) : (
+          <>
+            <Text code>{op.pathFrom}</Text> to <Text code>{op.pathTo}</Text>
+          </>
+        ),
+    }))
+  );
 }
 
 /*
@@ -136,7 +138,7 @@ function PrepareCommit({ ops, onSuccessfulCommit }: PrepareCommitProps) {
   const onCommit = async () => {
     setIsCommitting(true);
 
-    let allResultPromises = flatMapMultiRepoGitOpsGrouped(ops, (repo, singleRepoOps) => {
+    let allResultPromises = ops.flatMap((repo, singleRepoOps) => {
       if (singleRepoOps.length > 0) {
         let perRepoCommitMessage = prepareCommitMessage(singleRepoOps);
         return [
