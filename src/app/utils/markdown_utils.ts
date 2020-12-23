@@ -1,6 +1,24 @@
 import showdown from "showdown";
 import DOMPurify from "dompurify";
 
+/*
+// ----------------------------------------------------------------------------
+// Notes:
+// ----------------------------------------------------------------------------
+
+Setting the innerHTML from the converted markdown is an XSS vulnerability.
+There are two possibilities:
+1. Convert the HTML to pure React VDOM nodes. This is what
+   https://github.com/aknuds1/html-to-react does.
+   This may have downsides in terms of performance due to overhead?
+2. Use a sanitizer on the HTML before setting.
+   DOMPurify seems to be a popular solution.
+
+References:
+- https://stackoverflow.com/a/56394170/1804173
+- https://github.com/cure53/DOMPurify
+*/
+
 export function convertMarkdown(markdown: string): string {
   // https://github.com/showdownjs/showdown#valid-options
   const converter = new showdown.Converter({

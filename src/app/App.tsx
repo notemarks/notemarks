@@ -44,7 +44,7 @@ import * as path_utils from "./utils/path_utils";
 import * as date_utils from "./utils/date_utils";
 
 import List from "./views/List";
-import NoteView from "./views/NoteView";
+import EntryView from "./views/EntryView";
 import NoteEditor, { NoteEditorRef } from "./views/NoteEditor";
 import PrepareCommit from "./views/PrepareCommit";
 import Settings from "./views/Settings";
@@ -98,7 +98,7 @@ enum Page {
   // Real pages
   Main = "Main",
   Settings = "Settings",
-  NoteView = "NoteView",
+  EntryView = "NoteView",
   NoteEditor = "NoteEditor",
   Commit = "Commit",
   // Pseudo pages
@@ -274,7 +274,7 @@ function App() {
         return { ...state, page: action.page };
       }
       case ActionKind.SwitchToEntryViewOnIdx: {
-        return { ...state, page: Page.NoteView, activeEntryIdx: action.idx };
+        return { ...state, page: Page.EntryView, activeEntryIdx: action.idx };
       }
       case ActionKind.StartReloading: {
         return { ...state, isReloading: true };
@@ -506,7 +506,7 @@ function App() {
 
   const prepareSwitchFrom = (pageFrom: Page) => {
     switch (pageFrom) {
-      case Page.NoteView:
+      case Page.EntryView:
         storeNoteViewPosition();
         restoreNoteEditorPosition(); // TODO: Shouldn't the restore go into a separate postprocessSwitchTo?
         break;
@@ -523,13 +523,13 @@ function App() {
 
   keyboardHandlers.handleSwitchEdit = () => {
     switch (state.page) {
-      case Page.NoteView:
+      case Page.EntryView:
         prepareSwitchFrom(state.page);
         dispatch({ kind: ActionKind.SwitchToPage, page: Page.NoteEditor });
         break;
       case Page.NoteEditor:
         prepareSwitchFrom(state.page);
-        dispatch({ kind: ActionKind.SwitchToPage, page: Page.NoteView });
+        dispatch({ kind: ActionKind.SwitchToPage, page: Page.EntryView });
         break;
       default: {
         console.log("Switching not possible");
@@ -621,8 +621,8 @@ function App() {
             }}
           />
         );
-      case Page.NoteView:
-        return <NoteView entry={getActiveEntry()} />;
+      case Page.EntryView:
+        return <EntryView entry={getActiveEntry()} />;
       case Page.NoteEditor:
         return (
           <NoteEditor
@@ -657,7 +657,7 @@ function App() {
               title="Overview"
             />
             <Menu.Item
-              key={Page.NoteView}
+              key={Page.EntryView}
               icon={<ReadOutlined style={{ fontSize: 16 }} />}
               title="Entry Viewer"
             />
