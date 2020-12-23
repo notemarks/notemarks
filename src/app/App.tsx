@@ -201,6 +201,55 @@ type Action =
   | ActionUpdateEntryMeta
   | ActionSuccessfulCommit;
 
+// *** State change helpers
+
+function modifyFileEntry(
+  oldFileEntries: EntryFile[],
+  oldLinkEntries: EntryLink[],
+  oldEntry: EntryFile,
+  newEntry: EntryFile
+): [EntryFile[], EntryLink[], Entry[], number] | undefined {
+  /*
+  Updating a file entry is a slighty tricky operation, because it implies changes to
+  linkEntries, allEntries, and the active index. Initial brainstorming was:
+
+  Since the active entry content may have received new links or links were removed, the
+  length of the combined entries can change. This also means that the activeEntryIdx
+  may longer be valid, and needs to be reset accordingly. Note that it isn't safe to assume
+  that the activeEntryIdx doesn't change because notes are always sorted before links.
+  In general the activeEntryIdx can point to links as well, not only notes, so it does
+  not necessarily "point to a stable area".
+
+  Note: Currently the oldEntry is needed purely for its `key`, but still passed in
+  as a full entry for symmetry reasons.
+  */
+
+  // Identify active entry within old file entries
+  let fileEntryIdx = oldFileEntries.findIndex((entry) => entry.key === oldEntry.key);
+  if (fileEntryIdx === -1) {
+    // Should be unreachable because we have verified that the active entry is a note.
+    console.log("Illegal update: Could not find a file entry for entry key " + oldEntry.key);
+    return;
+  }
+
+  // Modify the file entries
+  let newFileEntries = oldFileEntries.slice(0);
+  newFileEntries[fileEntryIdx] = newEntry;
+
+  // Recompute links and all entries
+  let [newLinkEntries, newEntries] = entry_utils.recomputeEntries(newFileEntries, oldLinkEntries);
+
+  // Recompute active entry idx
+  let newActiveEntryIdx = newEntries.findIndex((entry) => entry.key === oldEntry.key);
+  if (newActiveEntryIdx === -1) {
+    // Should be unreachable, the active entry shouldn't disappear.
+    console.log("Logic error: Active entry has disappeared.");
+    return;
+  }
+
+  return [newFileEntries, newLinkEntries, newEntries, newActiveEntryIdx];
+}
+
 // ----------------------------------------------------------------------------
 // App
 // ----------------------------------------------------------------------------
@@ -315,28 +364,7 @@ function App() {
         if (action.content !== activeEntry.content.text) {
           let [html, links] = markdown_utils.processMarkdownText(action.content);
 
-          /*
-          Tricky: Since the active entry may have received new links or links were removed, the
-          length of the combined entries can change. This also means that the activeEntryIdx
-          may longer be valid, and needs to be reset accordingly. Note that it isn't safe to assume
-          that the activeEntryIdx doesn't change because notes are always sorted before links.
-          In general the activeEntryIdx can point to links as well, not only notes, so it does
-          not necessarily "point to a stable area".
-          */
-
-          // Identify active entry within file entries
-          let fileEntryIdx = state.fileEntries.findIndex((entry) => entry.key === activeEntry.key);
-          if (fileEntryIdx === -1) {
-            // Should be unreachable because we have verified that the active entry is a note.
-            console.log(
-              "Illegal update: Could not find a file entry for index " + state.activeEntryIdx
-            );
-            return state;
-          }
-
-          // Modify the file entries
-          let newFileEntries = state.fileEntries.slice(0);
-          newFileEntries[fileEntryIdx] = {
+          let activeEntryModified = {
             ...activeEntry,
             content: {
               ...activeEntry.content,
@@ -345,20 +373,16 @@ function App() {
               links: links,
             },
           };
-
-          // Recompute links and all entries
-          let [newLinkEntries, newEntries] = entry_utils.recomputeEntries(
-            newFileEntries,
-            state.linkEntries
+          let result = modifyFileEntry(
+            state.fileEntries,
+            state.linkEntries,
+            activeEntry,
+            activeEntryModified
           );
-
-          // Recompute active entry idx
-          let newActiveEntryIdx = newEntries.findIndex((entry) => entry.key === activeEntry.key);
-          if (newActiveEntryIdx === -1) {
-            // Should be unreachable, the active entry shouldn't disappear.
-            console.log("Logic error: Active entry has disappeared.");
+          if (result == null) {
             return state;
           }
+          let [newFileEntries, newLinkEntries, newEntries, newActiveEntryIdx] = result;
 
           // Stage git ops
           let newAllFileMapsEdit = state.allFileMapsEdit.clone();
@@ -383,7 +407,7 @@ function App() {
           // Perhaps a helper function based on the 4 variables oldFile, newFile,
           // oldMetaFile, newMetaFile would be good?
           activeEntry.content.timeUpdated = date_utils.getDateNow();
-          let metaData = entry_utils.extractMetaData(activeEntry);
+          let metaData = entry_utils.extractMetaData(activeEntryModified);
           let metaDataPath = path_utils.getAssociatedMetaPath(path);
           let metaDataContent = io.serializeMetaData(metaData);
           newAllFileMapsEdit.get(repo)?.data.setContent(metaDataPath, metaDataContent);
@@ -422,53 +446,58 @@ function App() {
           let newLabels = action.labels;
 
           let titleChanged = oldTitle !== newTitle;
-          let labelsChanged = label_utils.isSameLabels(oldLabels, newLabels);
+          let labelsChanged = !label_utils.isSameLabels(oldLabels, newLabels);
 
           if (titleChanged || labelsChanged) {
-            // Identify active entry within file entries
-            let fileEntryIdx = state.fileEntries.findIndex(
-              (entry) => entry.key === activeEntry.key
-            );
-            if (fileEntryIdx === -1) {
-              // Should be unreachable because we have verified that the active entry is a note.
-              console.log(
-                "Illegal update: Could not find a file entry for index " + state.activeEntryIdx
-              );
-              return state;
-            }
-
-            // Modify the file entries
-            let newFileEntries = state.fileEntries.slice(0);
-            newFileEntries[fileEntryIdx] = {
+            let activeEntryModified = {
               ...activeEntry,
               title: newTitle,
               labels: action.labels,
             };
-
-            // Recompute links and all entries
-            let [newLinkEntries, newEntries] = entry_utils.recomputeEntries(
-              newFileEntries,
-              state.linkEntries
+            let result = modifyFileEntry(
+              state.fileEntries,
+              state.linkEntries,
+              activeEntry,
+              activeEntryModified
             );
-
-            // Recompute active entry idx
-            let newActiveEntryIdx = newEntries.findIndex((entry) => entry.key === activeEntry.key);
-            if (newActiveEntryIdx === -1) {
-              // Should be unreachable, the active entry shouldn't disappear.
-              console.log("Logic error: Active entry has disappeared.");
+            if (result == null) {
               return state;
             }
+            let [newFileEntries, newLinkEntries, newEntries, newActiveEntryIdx] = result;
 
             // Stage git ops
             let newAllFileMapsEdit = state.allFileMapsEdit.clone();
 
+            let repo = activeEntryModified.content.repo;
+            let oldPaths = path_utils.getPaths(activeEntry);
+            let newPaths = path_utils.getPaths(activeEntryModified);
+            let metaData = entry_utils.extractMetaData(activeEntryModified);
+            let entryContent = activeEntryModified.content.text;
+            let metaDataContent = io.serializeMetaData(metaData);
+            newAllFileMapsEdit.get(repo)?.data.delete(oldPaths.path);
+            newAllFileMapsEdit.get(repo)?.data.delete(oldPaths.metaPath);
+            newAllFileMapsEdit.get(repo)?.data.setContent(newPaths.path, entryContent);
+            newAllFileMapsEdit.get(repo)?.data.setContent(newPaths.metaPath, metaDataContent);
+
             if (titleChanged) {
-              // TODO...
-              // let oldPath = path_utils.getPath(activeEntry);
-              // let newPath =
             }
 
-            return state;
+            if (labelsChanged) {
+            }
+
+            // Diff to determine staged git ops
+            let stagedGitOps = git_ops.diffMultiFileMaps(state.allFileMapsOrig, newAllFileMapsEdit);
+
+            return {
+              ...state,
+              activeEntryIdx: newActiveEntryIdx,
+              entries: newEntries,
+              fileEntries: newFileEntries,
+              linkEntries: newLinkEntries,
+              allFileMapsEdit: newAllFileMapsEdit,
+              stagedGitOps: stagedGitOps,
+              labels: label_utils.extractLabels(newEntries),
+            };
           } else {
             return state;
           }
@@ -702,7 +731,7 @@ function App() {
           <EntryView
             entry={getActiveEntry()}
             onUpdateNoteData={(title, labels) => {
-              dispatch({ kind: ActionKind.SwitchToEntryViewOnIdx, idx: 0 });
+              dispatch({ kind: ActionKind.UpdateEntryMeta, title: title, labels: labels });
             }}
           />
         );

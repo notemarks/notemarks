@@ -132,3 +132,11 @@ export function getPath(entry: EntryFile): string {
   }
   return s;
 }
+
+export function getPaths(entry: EntryFile): { path: string; metaPath: string } {
+  let path = getPath(entry);
+  return {
+    path: path,
+    metaPath: getAssociatedMetaPath(path),
+  };
+}

@@ -68,6 +68,10 @@ export class FileMap {
     this.map[path] = file;
   }
 
+  delete(path: string) {
+    delete this.map[path];
+  }
+
   get(path: string): File | undefined {
     return this.map[path];
   }
