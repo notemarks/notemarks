@@ -285,6 +285,18 @@ function deserializeLinkEntries(repo: Repo, content?: string): Result<EntryLink[
 }
 
 // ----------------------------------------------------------------------------
+// Meta data extraction
+// ----------------------------------------------------------------------------
+
+export function extractMetaData(entry: EntryFile): MetaData {
+  return {
+    labels: entry.labels,
+    timeCreated: entry.content.timeCreated,
+    timeUpdated: entry.content.timeUpdated,
+  };
+}
+
+// ----------------------------------------------------------------------------
 // File + link entry fusion
 // ----------------------------------------------------------------------------
 

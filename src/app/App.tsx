@@ -39,6 +39,7 @@ import { MultiRepoFileMap } from "./filemap";
 
 import { loadEntries } from "./octokit";
 
+import * as io from "./io";
 import * as path_utils from "./utils/path_utils";
 import * as date_utils from "./utils/date_utils";
 
@@ -317,9 +318,7 @@ function App() {
           */
 
           // Identify active entry within file entries
-          let fileEntryIdx = state.fileEntries.findIndex(
-            (entry) => entry.idx === state.activeEntryIdx
-          );
+          let fileEntryIdx = state.fileEntries.findIndex((entry) => entry.key === activeEntry.key);
           if (fileEntryIdx === -1) {
             // Should be unreachable because we have verified that the active entry is a note.
             console.log(
@@ -346,6 +345,14 @@ function App() {
             state.linkEntries
           );
 
+          // Recompute active entry idx
+          let newActiveEntryIdx = newEntries.findIndex((entry) => entry.key === activeEntry.key);
+          if (newActiveEntryIdx === -1) {
+            // Should be unreachable, the active entry shouldn't disappear.
+            console.log("Logic error: Active entry has disappeared.");
+            return state;
+          }
+
           // Stage git ops
           let newAllFileMapsEdit = state.allFileMapsEdit.clone();
 
@@ -354,8 +361,25 @@ function App() {
           let path = path_utils.getPath(activeEntry);
           newAllFileMapsEdit.get(repo)?.data.setContent(path, action.content);
 
-          // TODO: Write meta data
+          // Write meta data
+          // TODO: It would be nice if we would only update the "timeUpdate" in case
+          // the content is different from the original content, i.e., in case of a
+          // revert the timeUpdated gets reverted as well. However that is a bit tricky.
+          // It is not so easy to get the original timestamp. We'd compare the
+          // current note content to the orignal note content. If it is the same
+          // we need the original timestamp. We'd probably have to re-parse the
+          // original meta data and extract it from there. Also we have to be
+          // careful about other modifications to meta data. I.e., if the note
+          // content matches to the original note content, but the labels have
+          // changed, we'd need to set `timeUpdated` as well. So the condition
+          // actually need to be more complex than just content comparison.
+          // Perhaps a helper function based on the 4 variables oldFile, newFile,
+          // oldMetaFile, newMetaFile would be good?
           activeEntry.content.timeUpdated = date_utils.getDateNow();
+          let metaData = entry_utils.extractMetaData(activeEntry);
+          let metaDataPath = path_utils.getAssociatedMetaPath(path);
+          let metaDataContent = io.serializeMetaData(metaData);
+          newAllFileMapsEdit.get(repo)?.data.setContent(metaDataPath, metaDataContent);
 
           // Write new link DB
           entry_utils.stageLinkDBUpdate(newLinkEntries, newAllFileMapsEdit);
@@ -365,6 +389,7 @@ function App() {
 
           return {
             ...state,
+            activeEntryIdx: newActiveEntryIdx,
             entries: newEntries,
             fileEntries: newFileEntries,
             linkEntries: newLinkEntries,
@@ -387,7 +412,11 @@ function App() {
         // requires a some time to propagate (eventual consistency...). Delaying the
         // refresh arbitrarily feels like a hack, and if the assumption is valid, we
         // can safe unnecessary API requests / time.
-        return { ...state, stagedGitOps: new MultiRepoGitOps() };
+        return {
+          ...state,
+          allFileMapsOrig: state.allFileMapsEdit.clone(),
+          stagedGitOps: new MultiRepoGitOps(),
+        };
       }
 
       default: {
