@@ -1,6 +1,9 @@
 import { Labels, Entry, EntryKind } from "../types";
 import { VerificationStatus } from "../repo";
 import {
+  normalizeLabels,
+  extractLabelsFromString,
+  isSameLabels,
   matchesOrIsSublabel,
   extractStatsMap,
   convertStatsMapToLabelArray,
@@ -36,9 +39,62 @@ function createDummyEntry(labels: string[]): Entry {
   };
 }
 
+describe("normalizeLabels", () => {
+  it("should do nothing if not needed", () => {
+    expect(normalizeLabels(["bar", "foo"])).toEqual(["bar", "foo"]);
+  });
+
+  it("should sort", () => {
+    expect(normalizeLabels(["foo", "bar"])).toEqual(["bar", "foo"]);
+  });
+
+  it("should drop duplicates", () => {
+    expect(normalizeLabels(["foo", "foo"])).toEqual(["foo"]);
+  });
+
+  it("should drop empty labels", () => {
+    expect(normalizeLabels(["foo", ""])).toEqual(["foo"]);
+  });
+
+  it("should chop off leading/trailing slashes", () => {
+    expect(normalizeLabels(["foo/foo/", "/bar/bar"])).toEqual(["bar/bar", "foo/foo"]);
+    expect(normalizeLabels(["foo/foo///", "///bar/bar"])).toEqual(["bar/bar", "foo/foo"]);
+  });
+});
+
+describe("extractLabelsFromString", () => {
+  it("should handle basic case", () => {
+    expect(extractLabelsFromString("  foo    foo/bar    baz")).toEqual(["baz", "foo", "foo/bar"]);
+  });
+
+  it("should handle tabs", () => {
+    expect(extractLabelsFromString("	foo	bar	")).toEqual(["bar", "foo"]);
+  });
+
+  it("should handle slashes", () => {
+    expect(extractLabelsFromString("/a /b/ c/ /// d// //e// //f")).toEqual([
+      "a",
+      "b",
+      "c",
+      "d",
+      "e",
+      "f",
+    ]);
+  });
+});
+
 // ----------------------------------------------------------------------------
-// matchesOrIsSublabel
+// Comparison
 // ----------------------------------------------------------------------------
+
+test("isSameLabels", () => {
+  expect(isSameLabels(["foo", "bar"], ["foo", "bar"])).toBe(true);
+  expect(isSameLabels(["foo", "bar"], ["bar", "foo"])).toBe(true);
+
+  expect(isSameLabels(["foo"], [])).toBe(false);
+  expect(isSameLabels([], ["foo"])).toBe(false);
+  expect(isSameLabels(["foo"], ["foo", "bar"])).toBe(false);
+});
 
 test("matchesOrIsSublabel", () => {
   expect(matchesOrIsSublabel("foo", "bar")).toEqual(false);

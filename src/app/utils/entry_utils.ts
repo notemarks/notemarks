@@ -26,6 +26,7 @@ import * as path_utils from "./path_utils";
 import { MultiRepoFileMap, FileFetched, isFileFetched } from "../filemap";
 
 import * as markdown_utils from "./markdown_utils";
+import * as label_utils from "./label_utils";
 
 const entryKindNumericValues = {
   [EntryKind.NoteMarkdown]: 0,
@@ -301,14 +302,7 @@ export function extractMetaData(entry: EntryFile): MetaData {
 // ----------------------------------------------------------------------------
 
 export function mergeLabels(existingLabels: RawLabel[], incomingLabels: RawLabel[]) {
-  for (let incomingLabel of incomingLabels) {
-    if (existingLabels.some((existingLabel) => existingLabel === incomingLabel)) {
-      continue;
-    } else {
-      existingLabels.push(incomingLabel);
-    }
-  }
-  existingLabels.sort();
+  return label_utils.normalizeLabels([...existingLabels, ...incomingLabels]);
 }
 
 export function mergeRepos(existingRepos: Repo[], incomingRepo: Repo) {
@@ -446,6 +440,8 @@ export function recomputeLinkEntries(
   // being sorted on disc?
   // Perhaps it is easier to get rid of sorting them during the merge
   // but rather have an explicit sort post-processing.
+  // **EDIT** Now that mergeLabels internally performs a full normalization
+  // this should be covered, right?
 
   console.timeEnd("link extraction");
   // console.log(linkMap);

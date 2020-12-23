@@ -1,6 +1,6 @@
 import React from "react";
 
-import { Typography, Collapse, Button } from "antd";
+import { Typography, Collapse, Button, Form, Input } from "antd";
 import { EditOutlined } from "@ant-design/icons";
 
 import styled from "@emotion/styled";
@@ -13,6 +13,7 @@ import { Entry, EntryNote } from "../types";
 
 import * as entry_utils from "../utils/entry_utils";
 import * as date_utils from "../utils/date_utils";
+import * as label_utils from "../utils/label_utils";
 
 const { Title } = Typography;
 const { Panel } = Collapse;
@@ -33,13 +34,14 @@ function renderLabels(labels: string[]) {
 
 type EntryViewProps = {
   entry?: Entry;
+  onUpdateNoteData: (title: string, labels: string[]) => void;
 };
 
-function EntryView({ entry }: EntryViewProps) {
+function EntryView({ entry, onUpdateNoteData }: EntryViewProps) {
   if (entry == null) {
     return <NoEntrySelected />;
   } else if (entry_utils.isNote(entry)) {
-    return <NoteView entry={entry} />;
+    return <NoteView entry={entry} onUpdateNoteData={onUpdateNoteData} />;
   } else {
     return <NoEntrySelected />;
   }
@@ -51,9 +53,10 @@ function EntryView({ entry }: EntryViewProps) {
 
 type NoteViewProps = {
   entry: EntryNote;
+  onUpdateNoteData: (title: string, labels: string[]) => void;
 };
 
-function NoteView({ entry }: NoteViewProps) {
+function NoteView({ entry, onUpdateNoteData }: NoteViewProps) {
   return (
     <UiRow
       center={
@@ -91,7 +94,13 @@ function NoteView({ entry }: NoteViewProps) {
                   </>
                 }
                 key={0}
-              ></Panel>
+              >
+                <NoteEditForm
+                  initialTitle={entry.title}
+                  initialLabels={entry.labels}
+                  onUpdateNoteData={onUpdateNoteData}
+                />
+              </Panel>
             </Collapse>
           </div>
           <div
@@ -106,5 +115,57 @@ function NoteView({ entry }: NoteViewProps) {
     />
   );
 }
+
+// ----------------------------------------------------------------------------
+// NoteEditForm
+// ----------------------------------------------------------------------------
+
+const layout = {
+  labelCol: { span: 4 },
+  wrapperCol: { span: 20 },
+};
+const tailLayout = {
+  wrapperCol: { offset: 4, span: 20 },
+};
+
+type NoteEditFormProps = {
+  initialTitle: string;
+  initialLabels: string[];
+  onUpdateNoteData: (title: string, labels: string[]) => void;
+};
+
+const NoteEditForm = ({ initialTitle, initialLabels, onUpdateNoteData }: NoteEditFormProps) => {
+  const onFinish = (values: { title: string; labels: string }) => {
+    onUpdateNoteData(values.title, label_utils.extractLabelsFromString(values.labels));
+  };
+
+  return (
+    <Form
+      {...layout}
+      name="basic"
+      initialValues={{ title: initialTitle, labels: initialLabels.join(" ") }}
+      onFinish={onFinish}
+    >
+      <Form.Item
+        label="Title"
+        name="title"
+        rules={[{ required: true, message: "Note requires a title" }]}
+        style={{ marginBottom: "16px" }}
+      >
+        <Input />
+      </Form.Item>
+
+      <Form.Item label="Labels" name="labels" style={{ marginBottom: "16px" }}>
+        <Input />
+      </Form.Item>
+
+      <Form.Item {...tailLayout} style={{ marginBottom: 0 }}>
+        <Button type="primary" htmlType="submit">
+          Submit
+        </Button>
+      </Form.Item>
+    </Form>
+  );
+};
 
 export default EntryView;

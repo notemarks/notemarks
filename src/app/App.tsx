@@ -26,8 +26,6 @@ import { UploadOutlinedWithStatus } from "./components/HelperComponents";
 import { Entry, Entries, EntryFile, EntryLink, Labels } from "./types";
 import * as fn from "./utils/fn_utils";
 import * as entry_utils from "./utils/entry_utils";
-import * as label_utils from "./utils/label_utils";
-import * as markdown_utils from "./utils/markdown_utils";
 
 import { Repos } from "./repo";
 import * as repo_utils from "./repo";
@@ -42,6 +40,8 @@ import { loadEntries } from "./octokit";
 import * as io from "./io";
 import * as path_utils from "./utils/path_utils";
 import * as date_utils from "./utils/date_utils";
+import * as label_utils from "./utils/label_utils";
+import * as markdown_utils from "./utils/markdown_utils";
 
 import List from "./views/List";
 import EntryView from "./views/EntryView";
@@ -154,6 +154,7 @@ enum ActionKind {
   StartReloading = "StartReloading",
   ReloadingDone = "ReloadingDone",
   UpdateNoteContent = "UpdateNoteContent",
+  UpdateEntryMeta = "UpdateEntryMeta",
   SuccessfulCommit = "SuccessfulCommit",
 }
 
@@ -182,6 +183,11 @@ type ActionUpdateNoteContent = {
   kind: ActionKind.UpdateNoteContent;
   content: string;
 };
+type ActionUpdateEntryMeta = {
+  kind: ActionKind.UpdateEntryMeta;
+  title: string;
+  labels: string[];
+};
 type ActionSuccessfulCommit = {
   kind: ActionKind.SuccessfulCommit;
 };
@@ -192,6 +198,7 @@ type Action =
   | ActionStartReloading
   | ActionReloadingDone
   | ActionUpdateNoteContent
+  | ActionUpdateEntryMeta
   | ActionSuccessfulCommit;
 
 // ----------------------------------------------------------------------------
@@ -396,6 +403,75 @@ function App() {
             allFileMapsEdit: newAllFileMapsEdit,
             stagedGitOps: stagedGitOps,
           };
+        } else {
+          return state;
+        }
+      }
+      case ActionKind.UpdateEntryMeta: {
+        if (state.activeEntryIdx == null) {
+          console.log("Illegal update: UpdateEntryMeta called without an active entry.");
+          return state;
+        }
+
+        let activeEntry = state.entries[state.activeEntryIdx!];
+        if (entry_utils.isNote(activeEntry)) {
+          let oldTitle = activeEntry.title;
+          let newTitle = action.title;
+
+          let oldLabels = activeEntry.labels.slice(0);
+          let newLabels = action.labels;
+
+          let titleChanged = oldTitle !== newTitle;
+          let labelsChanged = label_utils.isSameLabels(oldLabels, newLabels);
+
+          if (titleChanged || labelsChanged) {
+            // Identify active entry within file entries
+            let fileEntryIdx = state.fileEntries.findIndex(
+              (entry) => entry.key === activeEntry.key
+            );
+            if (fileEntryIdx === -1) {
+              // Should be unreachable because we have verified that the active entry is a note.
+              console.log(
+                "Illegal update: Could not find a file entry for index " + state.activeEntryIdx
+              );
+              return state;
+            }
+
+            // Modify the file entries
+            let newFileEntries = state.fileEntries.slice(0);
+            newFileEntries[fileEntryIdx] = {
+              ...activeEntry,
+              title: newTitle,
+              labels: action.labels,
+            };
+
+            // Recompute links and all entries
+            let [newLinkEntries, newEntries] = entry_utils.recomputeEntries(
+              newFileEntries,
+              state.linkEntries
+            );
+
+            // Recompute active entry idx
+            let newActiveEntryIdx = newEntries.findIndex((entry) => entry.key === activeEntry.key);
+            if (newActiveEntryIdx === -1) {
+              // Should be unreachable, the active entry shouldn't disappear.
+              console.log("Logic error: Active entry has disappeared.");
+              return state;
+            }
+
+            // Stage git ops
+            let newAllFileMapsEdit = state.allFileMapsEdit.clone();
+
+            if (titleChanged) {
+              // TODO...
+              // let oldPath = path_utils.getPath(activeEntry);
+              // let newPath =
+            }
+
+            return state;
+          } else {
+            return state;
+          }
         } else {
           return state;
         }
@@ -622,7 +698,14 @@ function App() {
           />
         );
       case Page.EntryView:
-        return <EntryView entry={getActiveEntry()} />;
+        return (
+          <EntryView
+            entry={getActiveEntry()}
+            onUpdateNoteData={(title, labels) => {
+              dispatch({ kind: ActionKind.SwitchToEntryViewOnIdx, idx: 0 });
+            }}
+          />
+        );
       case Page.NoteEditor:
         return (
           <NoteEditor

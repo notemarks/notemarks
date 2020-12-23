@@ -16,6 +16,47 @@ export function getBaseName(fullName: string): string {
   return components[components.length - 1];
 }
 
+// ----------------------------------------------------------------------------
+// Label normalization / extraction
+// ----------------------------------------------------------------------------
+
+export function normalizeLabels(labels: string[]): string[] {
+  let resultLabels = [];
+  let existing = {} as { [label: string]: boolean };
+  for (let label of labels) {
+    let labelSanizized = label.replace(/^\/+|\/+$/g, "");
+    if (!(labelSanizized in existing) && labelSanizized !== "") {
+      resultLabels.push(labelSanizized);
+      existing[labelSanizized] = true;
+    }
+  }
+  resultLabels.sort();
+  return resultLabels;
+}
+
+export function extractLabelsFromString(labelsString: string): string[] {
+  return normalizeLabels(labelsString.split(/\s/));
+}
+
+// ----------------------------------------------------------------------------
+// Comparison
+// ----------------------------------------------------------------------------
+
+export function isSameLabels(labelsA: string[], labelsB: string[]): boolean {
+  labelsA = normalizeLabels(labelsA);
+  labelsB = normalizeLabels(labelsB);
+  if (labelsA.length !== labelsB.length) {
+    return false;
+  } else {
+    for (let i = 0; i < labelsA.length; ++i) {
+      if (labelsA[i] !== labelsB[i]) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
 export function matchesOrIsSublabel(queryLabel: string, referenceLabel: string): boolean {
   if (queryLabel === referenceLabel) {
     return true;
