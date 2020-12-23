@@ -40,6 +40,7 @@ import { MultiRepoFileMap } from "./filemap";
 import { loadEntries } from "./octokit";
 
 import * as path_utils from "./utils/path_utils";
+import * as date_utils from "./utils/date_utils";
 
 import List from "./views/List";
 import NoteView from "./views/NoteView";
@@ -237,7 +238,9 @@ function App() {
       });
     }
 
-    let newLinkEntriesWithoutRefsResoled = entry_utils.convertLinkDBtoLinkEntries(allFileMapsOrig);
+    let newLinkEntriesWithoutRefsResoled = entry_utils.extractLinkEntriesFromLinkDB(
+      allFileMapsOrig
+    );
 
     let [newLinkEntries, newEntries] = entry_utils.recomputeEntries(
       newFileEntries,
@@ -352,6 +355,7 @@ function App() {
           newAllFileMapsEdit.get(repo)?.data.setContent(path, action.content);
 
           // TODO: Write meta data
+          activeEntry.content.timeUpdated = date_utils.getDateNow();
 
           // Write new link DB
           entry_utils.stageLinkDBUpdate(newLinkEntries, newAllFileMapsEdit);

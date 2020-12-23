@@ -68,3 +68,11 @@ export function stringToDate(s: string): Date | undefined {
 
   return new Date(year, month - 1, day, hour, minute, second, millisNumber);
 }
+
+export function getDateNow() {
+  // Returns the current date, but truncates the milliseconds, so that the
+  // data reflects the precision we are using during serialization.
+  let date = new Date();
+  date.setMilliseconds(0);
+  return date;
+}

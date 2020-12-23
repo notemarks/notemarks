@@ -17,12 +17,15 @@ import {
 } from "../types";
 import { Repo, getRepoId } from "../repo";
 
-import { StoredLinks } from "../io";
+import { MetaData, StoredLinks } from "../io";
 import * as io from "../io";
 
-import { MultiRepoFileMap } from "../filemap";
-
+import { FileKind } from "./path_utils";
 import * as path_utils from "./path_utils";
+
+import { MultiRepoFileMap, FileFetched, isFileFetched } from "../filemap";
+
+import * as markdown_utils from "./markdown_utils";
 
 const entryKindNumericValues = {
   [EntryKind.NoteMarkdown]: 0,
@@ -96,7 +99,193 @@ export function getText(entry: Entry): string | undefined {
 }
 
 // ----------------------------------------------------------------------------
-// Entry fusion
+// File entry extraction from FileMap
+// ----------------------------------------------------------------------------
+
+export function extractFileEntriesAndUpdateFileMap(
+  allFileMapsOrig: MultiRepoFileMap
+): [EntryFile[], MultiRepoFileMap] {
+  let fileEntries: EntryFile[] = [];
+  let allFileMapsEdit = allFileMapsOrig.clone();
+
+  allFileMapsOrig.forEach((repo, fileMap) => {
+    fileMap.forEach((file) => {
+      let isNotemarksFile = path_utils.isNotemarksFile(file.path);
+      if (isFileFetched(file) && !isNotemarksFile) {
+        // For meta data there are three cases:
+        // - No meta file exists => okay, create/stage new
+        // - Meta file exists, but fetch fails => create/stage not good, report as error,
+        //   remove the corresponding entry to avoid accidentally overwriting the (possibly
+        //   valid) meta file.
+        // - Meta file exists, fetch is okay, but parse fails => In this case staging seems
+        //   okay. If meta data is broken, users may want to have it fixed anyway. Also
+        //   a user sees this action clearly by the staged change, and git history is
+        //   recoverable anyway.
+
+        let associatedMetaPath = path_utils.getAssociatedMetaPath(file.path);
+        let associatedMetaFile = fileMap.get(associatedMetaPath);
+        let createMetaDataFromScratch = false;
+
+        if (associatedMetaFile != null && associatedMetaFile.content != null) {
+          // Meta file fetch successful
+          let metaData = io.parseMetaData(associatedMetaFile.content);
+          if (metaData.isOk()) {
+            // Parse successful
+            let entry = constructFileEntry(repo, file, metaData.value);
+            fileEntries.push(entry);
+          } else {
+            // Parse failed => load entry + stage fix
+            createMetaDataFromScratch = true;
+          }
+        } else if (associatedMetaFile != null && associatedMetaFile.error != null) {
+          // Meta file fetch failed
+          console.log(
+            `Skipping entry extraction for ${file.path} because associated meta couldn't be fetched.`
+          );
+        } else {
+          // No meta file at all => load entry + stage fix
+          createMetaDataFromScratch = true;
+        }
+
+        if (createMetaDataFromScratch) {
+          let newMetaData = io.createNewMetaData();
+          let newMetaDataContent = io.serializeMetaData(newMetaData);
+          allFileMapsEdit.get(repo)?.data.setContent(associatedMetaPath, newMetaDataContent);
+          let entry = constructFileEntry(repo, file, newMetaData);
+          fileEntries.push(entry);
+        }
+      }
+    });
+  });
+
+  return [fileEntries, allFileMapsEdit];
+}
+
+export function constructFileEntry(repo: Repo, file: FileFetched, metaData: MetaData): EntryFile {
+  let fileKind = path_utils.getFileKind(file.path);
+  let [location, title, extension] = path_utils.splitLocationTitleExtension(file.path);
+
+  let content: Content;
+  // Regarding double enum conversion
+  // https://stackoverflow.com/a/42623905/1804173
+  // https://stackoverflow.com/questions/55377365/what-does-keyof-typeof-mean-in-typescript
+  if (fileKind === FileKind.NoteMarkdown) {
+    let text = file.content;
+    let [html, links] = markdown_utils.processMarkdownText(text);
+
+    content = {
+      kind: (fileKind as keyof typeof FileKind) as EntryKind.NoteMarkdown,
+      repo: repo,
+      location: location,
+      extension: extension,
+      timeCreated: metaData.timeCreated as Date,
+      timeUpdated: metaData.timeUpdated as Date,
+      rawUrl: file.rawUrl,
+      text: text,
+      html: html,
+      links: links,
+    };
+  } else {
+    content = {
+      kind: (fileKind as keyof typeof FileKind) as EntryKind.Document,
+      repo: repo,
+      location: location,
+      extension: extension,
+      timeCreated: metaData.timeCreated as Date,
+      timeUpdated: metaData.timeUpdated as Date,
+      rawUrl: file.rawUrl,
+    };
+  }
+
+  return {
+    title: title,
+    priority: 0,
+    labels: metaData.labels,
+    content: content,
+    key: `${repo.key}:${location}:${title}`,
+  };
+}
+
+// ----------------------------------------------------------------------------
+// High level Link DB loading/storing
+// ----------------------------------------------------------------------------
+
+export function extractLinkEntriesFromLinkDB(allFileMaps: MultiRepoFileMap): EntryLink[] {
+  let allLinkEntriesWithoutRefsResolved = [] as EntryLink[];
+  allFileMaps.forEach((repo, fileMap) => {
+    let fileLinkDB = fileMap.get(path_utils.NOTEMARKS_LINK_DB_PATH);
+    if (fileLinkDB != null && fileLinkDB.content != null) {
+      let linkEntriesWithoutRefsResolvedResult = deserializeLinkEntries(repo, fileLinkDB.content);
+      if (linkEntriesWithoutRefsResolvedResult.isOk()) {
+        // TODO: We need duplicate removal here...
+        allLinkEntriesWithoutRefsResolved = [
+          ...allLinkEntriesWithoutRefsResolved,
+          ...linkEntriesWithoutRefsResolvedResult.value,
+        ];
+      }
+    }
+  });
+  return allLinkEntriesWithoutRefsResolved;
+}
+
+export function stageLinkDBUpdate(linkEntries: EntryLink[], allFileMapsEdit: MultiRepoFileMap) {
+  console.time("stageLinkDBUpdate");
+
+  allFileMapsEdit.forEach((repo, fileMap) => {
+    let serializedLinkEntries = serializeLinkEntries(repo, linkEntries);
+    fileMap.setContent(path_utils.NOTEMARKS_LINK_DB_PATH, serializedLinkEntries);
+  });
+
+  console.timeEnd("stageLinkDBUpdate");
+}
+
+// ----------------------------------------------------------------------------
+// Link entry serialization/deserialization (via StoredLinks conversion)
+// ----------------------------------------------------------------------------
+
+function serializeLinkEntries(repo: Repo, linkEntries: EntryLink[]): string {
+  let storedLinks: StoredLinks = linkEntries
+    .filter(
+      (linkEntry) =>
+        linkEntry.content.refRepos.some((refRepo) => getRepoId(refRepo) === getRepoId(repo)) ||
+        (linkEntry.content.standaloneRepo != null &&
+          getRepoId(linkEntry.content.standaloneRepo) === getRepoId(repo))
+    )
+    .map((linkEntry) => ({
+      title: linkEntry.title,
+      target: linkEntry.content.target,
+      ownLabels: linkEntry.content.ownLabels,
+      standalone:
+        linkEntry.content.standaloneRepo != null &&
+        getRepoId(linkEntry.content.standaloneRepo) === getRepoId(repo),
+    }));
+  return io.serializeStoredLinks(storedLinks);
+}
+
+function deserializeLinkEntries(repo: Repo, content?: string): Result<EntryLink[], Error> {
+  let storedLinks =
+    content != null ? io.parseStoredLinks(content) : (ok([]) as Result<StoredLinks, Error>);
+  return storedLinks.map((storedLinks) =>
+    storedLinks.map((storedLink) => ({
+      title: storedLink.title,
+      priority: 0, // TODO: needs to be stored?
+      labels: storedLink.ownLabels,
+      content: {
+        kind: EntryKind.Link,
+        target: storedLink.target,
+        referencedBy: [],
+        standaloneRepo: storedLink.standalone ? repo : undefined,
+        refRepos: [],
+        refLocations: [],
+        ownLabels: storedLink.ownLabels,
+      },
+      key: `__link_${storedLink.target}`,
+    }))
+  );
+}
+
+// ----------------------------------------------------------------------------
+// File + link entry fusion
 // ----------------------------------------------------------------------------
 
 export function mergeLabels(existingLabels: RawLabel[], incomingLabels: RawLabel[]) {
@@ -261,82 +450,4 @@ export function recomputeEntries(
   sortAndIndexEntries(entries);
 
   return [linkEntries, entries];
-}
-
-// ----------------------------------------------------------------------------
-// Link entries <=> StoredLinks conversion
-// ----------------------------------------------------------------------------
-
-export function serializeLinkEntries(repo: Repo, linkEntries: EntryLink[]): string {
-  let storedLinks: StoredLinks = linkEntries
-    .filter(
-      (linkEntry) =>
-        linkEntry.content.refRepos.some((refRepo) => getRepoId(refRepo) === getRepoId(repo)) ||
-        (linkEntry.content.standaloneRepo != null &&
-          getRepoId(linkEntry.content.standaloneRepo) === getRepoId(repo))
-    )
-    .map((linkEntry) => ({
-      title: linkEntry.title,
-      target: linkEntry.content.target,
-      ownLabels: linkEntry.content.ownLabels,
-      standalone:
-        linkEntry.content.standaloneRepo != null &&
-        getRepoId(linkEntry.content.standaloneRepo) === getRepoId(repo),
-    }));
-  return io.serializeStoredLinks(storedLinks);
-}
-
-export function deserializeLinkEntries(repo: Repo, content?: string): Result<EntryLink[], Error> {
-  let storedLinks =
-    content != null ? io.parseStoredLinks(content) : (ok([]) as Result<StoredLinks, Error>);
-  return storedLinks.map((storedLinks) =>
-    storedLinks.map((storedLink) => ({
-      title: storedLink.title,
-      priority: 0, // TODO: needs to be stored?
-      labels: storedLink.ownLabels,
-      content: {
-        kind: EntryKind.Link,
-        target: storedLink.target,
-        referencedBy: [],
-        standaloneRepo: storedLink.standalone ? repo : undefined,
-        refRepos: [],
-        refLocations: [],
-        ownLabels: storedLink.ownLabels,
-      },
-      key: `__link_${storedLink.target}`,
-    }))
-  );
-}
-
-export function convertLinkDBtoLinkEntries(allFileMaps: MultiRepoFileMap): EntryLink[] {
-  let allLinkEntriesWithoutRefsResolved = [] as EntryLink[];
-  allFileMaps.forEach((repo, fileMap) => {
-    let fileLinkDB = fileMap.get(path_utils.NOTEMARKS_LINK_DB_PATH);
-    if (fileLinkDB != null && fileLinkDB.content != null) {
-      let linkEntriesWithoutRefsResolvedResult = deserializeLinkEntries(repo, fileLinkDB.content);
-      if (linkEntriesWithoutRefsResolvedResult.isOk()) {
-        // TODO: We need duplicate removal here...
-        allLinkEntriesWithoutRefsResolved = [
-          ...allLinkEntriesWithoutRefsResolved,
-          ...linkEntriesWithoutRefsResolvedResult.value,
-        ];
-      }
-    }
-  });
-  return allLinkEntriesWithoutRefsResolved;
-}
-
-// ----------------------------------------------------------------------------
-// Link DB staging
-// ----------------------------------------------------------------------------
-
-export function stageLinkDBUpdate(linkEntries: EntryLink[], allFileMapsEdit: MultiRepoFileMap) {
-  console.time("stageLinkDBUpdate");
-
-  allFileMapsEdit.forEach((repo, fileMap) => {
-    let serializedLinkEntries = serializeLinkEntries(repo, linkEntries);
-    fileMap.setContent(path_utils.NOTEMARKS_LINK_DB_PATH, serializedLinkEntries);
-  });
-
-  console.timeEnd("stageLinkDBUpdate");
 }

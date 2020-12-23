@@ -21,8 +21,7 @@ export type MetaData = {
 };
 
 export function createNewMetaData(): MetaData {
-  let date = new Date();
-  date.setMilliseconds(0);
+  let date = date_utils.getDateNow();
   return {
     labels: [],
     timeCreated: date,

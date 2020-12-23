@@ -13,6 +13,8 @@ import { okAsync, errAsync, ResultAsync } from "neverthrow";
 import { EntryFile, WrappedError } from "./types";
 import { Repo, Repos } from "./repo";
 
+import * as entry_utils from "./utils/entry_utils";
+
 import { File, MultiRepoFileMap } from "./filemap";
 import * as filemap from "./filemap";
 
@@ -311,7 +313,9 @@ export async function loadEntries(
     }
   }
 
-  let [fileEntries, allFileMapsEdit] = filemap.extractFileEntriesAndUpdateFileMap(allFileMapsOrig);
+  let [fileEntries, allFileMapsEdit] = entry_utils.extractFileEntriesAndUpdateFileMap(
+    allFileMapsOrig
+  );
 
   if (allErrors.length > 0) {
     console.log("Fetch errors occurred:");
