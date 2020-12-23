@@ -17,9 +17,6 @@ import {
 } from "../types";
 import { Repo, getRepoId } from "../repo";
 
-import { MultiRepoGitOps } from "../git_ops";
-import * as git_ops from "../git_ops";
-
 import { StoredLinks } from "../io";
 import * as io from "../io";
 
@@ -330,63 +327,16 @@ export function convertLinkDBtoLinkEntries(allFileMaps: MultiRepoFileMap): Entry
 }
 
 // ----------------------------------------------------------------------------
-// Link DB git ops
+// Link DB staging
 // ----------------------------------------------------------------------------
 
-/*
-In general we have a few different ways to determine if the link DB needs
-to stage any git updates as a result of an "recompute link entries". Options
-are:
-1. Determine the need directly within "recompute link entries". In theory this
-   would be the nicest solution. The recomputation could simply return an additional
-   boolean to indicate if there was a link update that needs to be synced back
-   into git. However the check doesn't fit well into how the link recomputation
-   currently works.
-2. Deep compare the existing links with the newly determined links after recomputing.
-3. Serialize the existing links and the newly determined links, and determine the
-   need for updating by checking if the serialized content has changed.
-
-Even though (3) is the least sophisticated, it is also the least error prone.
-Let's start with that.
-
-The above reasoning had a flaw: After deserializing the links directly from the
-repo, the link collection is missing any entry references. The serialization
-however has to filter out links without references in order to achive a correct
-"entry to repo" association. This makes approaches (1) and (2) very awkward.
-
-Perhaps the easiest solution is to focus on (3) and keep track of the raw link
-DB content in the app state, which also gets rid of the re-serialization of the
-existing links.
-*/
-
-// TODO
-/*
-export function stageLinkDBUpdate(
-  stagedGitOps: MultiRepoGitOps,
-  linkEntriesIncoming: EntryLink[],
-  perRepoLinkDBs: MultiRepoFile
-): MultiRepoGitOps {
+export function stageLinkDBUpdate(linkEntries: EntryLink[], allFileMapsEdit: MultiRepoFileMap) {
   console.time("stageLinkDBUpdate");
 
-  let allRepos: { [repoId: string]: Repo } = {};
-  for (let { repo } of perRepoLinkDBs.values()) {
-    allRepos[getRepoId(repo)] = repo;
-  }
-  for (let linkEntry of linkEntriesIncoming) {
-    for (let repo of linkEntry.content.refRepos) {
-      allRepos[getRepoId(repo)] = repo;
-    }
-  }
-
-  for (let repo of Object.values(allRepos)) {
-    let serializedLinkEntriesExisting = perRepoLinkDBs.get(repo)?.data;
-    let serializedLinkEntriesIncoming = serializeLinkEntries(repo, linkEntriesIncoming);
-    if (serializedLinkEntriesExisting !== serializedLinkEntriesIncoming) {
-      stagedGitOps = git_ops.appendUpdateLinkDB(stagedGitOps, repo, serializedLinkEntriesIncoming);
-    }
-  }
+  allFileMapsEdit.forEach((repo, fileMap) => {
+    let serializedLinkEntries = serializeLinkEntries(repo, linkEntries);
+    fileMap.setContent(path_utils.NOTEMARKS_LINK_DB_PATH, serializedLinkEntries);
+  });
 
   console.timeEnd("stageLinkDBUpdate");
-  return stagedGitOps;
 }
-*/

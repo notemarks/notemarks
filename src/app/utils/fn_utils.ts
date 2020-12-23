@@ -31,3 +31,26 @@ export function computeSelectedIndex(listLength: number, current: number, delta:
     return newValue;
   }
 }
+
+export function clone<T>(obj: T): T {
+  // Influenced by:
+  // https://stackoverflow.com/a/30503290/1804173
+  // https://stackoverflow.com/a/40294058/1804173
+  if (obj == null || typeof obj != "object") {
+    return obj;
+  }
+
+  if (obj instanceof Date) {
+    return new Date(obj) as any;
+  }
+
+  var result = new (obj as any).constructor();
+
+  for (var key in obj) {
+    if ((obj as any).hasOwnProperty(key)) {
+      result[key] = clone(obj[key]);
+    }
+  }
+
+  return result;
+}

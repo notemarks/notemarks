@@ -27,6 +27,21 @@ describe("diffFileMaps", () => {
     expect(diffFileMaps(fm1, fm2)).toEqual(expected);
   });
 
+  it("should update a file", () => {
+    let fm1 = new FileMap();
+    let fm2 = new FileMap();
+    fm1.setContent("foo/bar", "old");
+    fm2.setContent("foo/bar", "new");
+    let expected: GitOps = [
+      {
+        kind: GitOpKind.Write,
+        path: "foo/bar",
+        content: "new",
+      },
+    ];
+    expect(diffFileMaps(fm1, fm2)).toEqual(expected);
+  });
+
   it("should delete a file", () => {
     let fm1 = new FileMap();
     let fm2 = new FileMap();

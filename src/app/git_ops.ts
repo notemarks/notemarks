@@ -38,6 +38,8 @@ export function diffMultiFileMaps(
   multiFileMapOld: MultiRepoFileMap,
   multiFileMapNew: MultiRepoFileMap
 ): MultiRepoGitOps {
+  console.time("diffMultiFileMaps");
+
   let multiRepoGitOps = new MultiRepoGitOps();
 
   let allRepos: { [repoId: string]: Repo } = {};
@@ -50,7 +52,7 @@ export function diffMultiFileMaps(
 
   for (let repo of Object.values(allRepos)) {
     let oldRepoFileMap = multiFileMapOld.get(repo)?.data;
-    let newRepoFileMap = multiFileMapOld.get(repo)?.data;
+    let newRepoFileMap = multiFileMapNew.get(repo)?.data;
     // For now only support case with overlapping repos.
     // If we don't see a 'before' vs 'after' of a repo, we cannot
     // infer meaningful git ops anyway.
@@ -58,6 +60,8 @@ export function diffMultiFileMaps(
       multiRepoGitOps.set(repo, diffFileMaps(oldRepoFileMap, newRepoFileMap));
     }
   }
+
+  console.timeEnd("diffMultiFileMaps");
   return multiRepoGitOps;
 }
 

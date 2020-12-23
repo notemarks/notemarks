@@ -39,6 +39,8 @@ import { MultiRepoFileMap } from "./filemap";
 
 import { loadEntries } from "./octokit";
 
+import * as path_utils from "./utils/path_utils";
+
 import List from "./views/List";
 import NoteView from "./views/NoteView";
 import NoteEditor, { NoteEditorRef } from "./views/NoteEditor";
@@ -242,14 +244,10 @@ function App() {
       newLinkEntriesWithoutRefsResoled
     );
 
-    /*
-    // TODO Update link DB
-    let newStagedGitOps = entry_utils.stageLinkDBUpdate(
-      newStagedGitOps,
-      newLinkEntries,
-      newPerRepoLinkDBs
-    );
-    */
+    // Write new link DB
+    entry_utils.stageLinkDBUpdate(newLinkEntries, allFileMapsEdit);
+
+    // Diff to determine staged git ops
     let stagedGitOps = git_ops.diffMultiFileMaps(allFileMapsOrig, allFileMapsEdit);
 
     dispatch({
@@ -346,21 +344,19 @@ function App() {
           );
 
           // Stage git ops
-          // TODO
-          let newAllFileMapsEdit = state.allFileMapsEdit;
-          /*
-          let newStagedGitOps = state.stagedGitOps;
-          newStagedGitOps = git_ops.appendUpdateEntry(
-            newStagedGitOps,
-            newFileEntries[fileEntryIdx]
-          );
-          newStagedGitOps = entry_utils.stageLinkDBUpdate(
-            newStagedGitOps,
-            newLinkEntries,
-            state.perRepoLinkDBs
-          );
-          */
-          // TODO: We need to stage updates to meta data as well
+          let newAllFileMapsEdit = state.allFileMapsEdit.clone();
+
+          // Write entry content
+          let repo = activeEntry.content.repo;
+          let path = path_utils.getPath(activeEntry);
+          newAllFileMapsEdit.get(repo)?.data.setContent(path, action.content);
+
+          // TODO: Write meta data
+
+          // Write new link DB
+          entry_utils.stageLinkDBUpdate(newLinkEntries, newAllFileMapsEdit);
+
+          // Diff to determine staged git ops
           let stagedGitOps = git_ops.diffMultiFileMaps(state.allFileMapsOrig, newAllFileMapsEdit);
 
           return {
@@ -368,6 +364,7 @@ function App() {
             entries: newEntries,
             fileEntries: newFileEntries,
             linkEntries: newLinkEntries,
+            allFileMapsEdit: newAllFileMapsEdit,
             stagedGitOps: stagedGitOps,
           };
         } else {
@@ -417,7 +414,7 @@ function App() {
   };
 
   const anyStagedChange = () => {
-    return Object.keys(state.stagedGitOps).length > 0;
+    return state.stagedGitOps.map((repo, ops) => ops.length).reduce((a, b) => a + b, 0) > 0;
   };
 
   // *** Refs

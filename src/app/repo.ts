@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from "uuid";
+import * as fn from "./utils/fn_utils";
 
 export enum VerificationStatus {
   unknown,
@@ -172,15 +173,11 @@ export class MultiRepoData<T> {
     return Object.values(this.mapData);
   }
 
+  size(): number {
+    return Object.keys(this.mapData).length;
+  }
+
   clone(): MultiRepoData<T> {
-    let m = new MultiRepoData<T>();
-    this.forEach((repo, data) => {
-      if ("clone" in data) {
-        m.set(repo, (data as any).clone());
-      } else {
-        m.set(repo, data);
-      }
-    });
-    return m;
+    return fn.clone(this);
   }
 }

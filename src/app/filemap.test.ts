@@ -18,6 +18,10 @@ describe("FileMap", () => {
     fileMap2.setContent("baz", "bazContent");
     expect(fileMap2.get("baz")?.content).toEqual("bazContent");
     expect(fileMap1.get("baz")?.content).toBeUndefined();
+
+    fileMap2.setContent("foo", "fooContentModified");
+    expect(fileMap1.get("foo")?.content).toEqual("fooContent");
+    expect(fileMap2.get("foo")?.content).toEqual("fooContentModified");
   });
 });
 
@@ -40,5 +44,9 @@ describe("MultiRepoFileMap", () => {
     multiRepoFileMap2.get(repo)?.data.setContent("baz", "bazContent");
     expect(multiRepoFileMap2.get(repo)?.data.get("baz")?.content).toEqual("bazContent");
     expect(multiRepoFileMap1.get(repo)?.data.get("baz")?.content).toBeUndefined();
+
+    multiRepoFileMap2.get(repo)?.data.setContent("foo", "fooContentModified");
+    expect(multiRepoFileMap1.get(repo)?.data.get("foo")?.content).toEqual("fooContent");
+    expect(multiRepoFileMap2.get(repo)?.data.get("foo")?.content).toEqual("fooContentModified");
   });
 });

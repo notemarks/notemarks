@@ -8,6 +8,7 @@ import { FileKind } from "./utils/path_utils";
 import * as path_utils from "./utils/path_utils";
 
 import * as markdown_utils from "./utils/markdown_utils";
+import * as fn from "./utils/fn_utils";
 
 export type File = {
   path: string;
@@ -87,7 +88,7 @@ export class FileMap {
   }
 
   clone(): FileMap {
-    return new FileMap({ ...this.map });
+    return fn.clone(this);
   }
 
   forEach(fn: (file: File) => void) {

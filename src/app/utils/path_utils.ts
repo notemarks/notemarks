@@ -1,4 +1,4 @@
-import { Entry, EntryKind } from "../types";
+import { EntryFile } from "../types";
 
 export const NOTEMARKS_FOLDER = ".notemarks";
 export const NOTEMARKS_LINK_DB_PATH = `${NOTEMARKS_FOLDER}/link_db.yaml`;
@@ -125,12 +125,10 @@ export function escapeTitle(s: string): string {
 // Higher level helpers on Entry
 // ----------------------------------------------------------------------------
 
-export function getPath(entry: Entry): string | undefined {
-  if (entry.content.kind === EntryKind.Document || entry.content.kind === EntryKind.NoteMarkdown) {
-    let s = `${entry.content.location}/${escapeTitle(entry.title)}`;
-    if (entry.content.extension !== "") {
-      s += "." + entry.content.extension;
-    }
-    return s;
+export function getPath(entry: EntryFile): string {
+  let s = `${entry.content.location}/${escapeTitle(entry.title)}`;
+  if (entry.content.extension !== "") {
+    s += "." + entry.content.extension;
   }
+  return s;
 }
