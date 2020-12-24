@@ -9,7 +9,7 @@ import { NoEntrySelected } from "../components/HelperComponents";
 import { UiRow } from "../components/UiRow";
 import { DefaultTag } from "../components/ColorTag";
 
-import { Entry, EntryNote } from "../types";
+import { Entry, EntryNote, EntryLink } from "../types";
 
 import * as entry_utils from "../utils/entry_utils";
 import * as date_utils from "../utils/date_utils";
@@ -29,6 +29,83 @@ function renderLabels(labels: string[]) {
 }
 
 // ----------------------------------------------------------------------------
+// EntryHeader
+// ----------------------------------------------------------------------------
+
+type EntryHeaderProps = {
+  entry: Entry;
+  editForm: React.ReactNode;
+};
+
+function EntryHeader({ entry, editForm }: EntryHeaderProps) {
+  const noteEntrySpecific = (entry: EntryNote) => (
+    <span>
+      created on {date_utils.formatDateHuman(entry.content.timeCreated)}, updated on{" "}
+      {date_utils.formatDateHuman(entry.content.timeUpdated)}
+    </span>
+  );
+
+  const linkEntrySpecific = (entry: EntryLink) => {
+    if (entry.content.referencedBy.length > 0) {
+      return (
+        <div>
+          Referenced by:
+          <ul style={{ paddingLeft: "20px" }}>
+            {entry.content.referencedBy.map((entry) => (
+              <li>{entry.title}</li>
+            ))}
+          </ul>
+        </div>
+      );
+    }
+  };
+
+  return (
+    <div
+      style={{
+        marginTop: "20px",
+        marginBottom: "20px",
+      }}
+    >
+      <Collapse
+        defaultActiveKey={[]}
+        expandIconPosition="right"
+        expandIcon={() => <Button shape="circle" icon={<EditOutlined />} />}
+        style={{
+          background: "#f6fbfe",
+          //borderColor: "#209cee",
+          borderRadius: "4px",
+        }}
+      >
+        <Panel
+          header={
+            <>
+              <Title level={3}>{entry.title}</Title>
+              <div>{renderLabels(entry.labels)}</div>
+              <div
+                style={{
+                  marginTop: "10px",
+                  fontSize: "9px",
+                }}
+              >
+                {entry_utils.isNote(entry)
+                  ? noteEntrySpecific(entry)
+                  : entry_utils.isLink(entry)
+                  ? linkEntrySpecific(entry)
+                  : null}
+              </div>
+            </>
+          }
+          key={0}
+        >
+          {editForm}
+        </Panel>
+      </Collapse>
+    </div>
+  );
+}
+
+// ----------------------------------------------------------------------------
 // EntryView
 // ----------------------------------------------------------------------------
 
@@ -42,6 +119,8 @@ function EntryView({ entry, onUpdateNoteData }: EntryViewProps) {
     return <NoEntrySelected />;
   } else if (entry_utils.isNote(entry)) {
     return <NoteView entry={entry} onUpdateNoteData={onUpdateNoteData} />;
+  } else if (entry_utils.isLink(entry)) {
+    return <LinkView entry={entry} onUpdateLinkData={(a, b) => {}} />;
   } else {
     return <NoEntrySelected />;
   }
@@ -61,48 +140,16 @@ function NoteView({ entry, onUpdateNoteData }: NoteViewProps) {
     <UiRow
       center={
         <>
-          <div
-            style={{
-              marginTop: "20px",
-              marginBottom: "20px",
-            }}
-          >
-            <Collapse
-              defaultActiveKey={[]}
-              expandIconPosition="right"
-              expandIcon={() => <Button shape="circle" icon={<EditOutlined />} />}
-              style={{
-                background: "#f6fbfe",
-                //borderColor: "#209cee",
-                borderRadius: "4px",
-              }}
-            >
-              <Panel
-                header={
-                  <>
-                    <Title level={3}>{entry.title}</Title>
-                    <div>{renderLabels(entry.labels)}</div>
-                    <div
-                      style={{
-                        marginTop: "10px",
-                        fontSize: "9px",
-                      }}
-                    >
-                      created on {date_utils.formatDateHuman(entry.content.timeCreated)}, updated on{" "}
-                      {date_utils.formatDateHuman(entry.content.timeUpdated)}
-                    </div>
-                  </>
-                }
-                key={0}
-              >
-                <NoteEditForm
-                  initialTitle={entry.title}
-                  initialLabels={entry.labels}
-                  onUpdateNoteData={onUpdateNoteData}
-                />
-              </Panel>
-            </Collapse>
-          </div>
+          <EntryHeader
+            entry={entry}
+            editForm={
+              <NoteEditForm
+                initialTitle={entry.title}
+                initialLabels={entry.labels}
+                onUpdateNoteData={onUpdateNoteData}
+              />
+            }
+          />
           <div
             dangerouslySetInnerHTML={{
               __html: entry_utils.isNote(entry) ? entry.content.html : "",
@@ -167,5 +214,44 @@ const NoteEditForm = ({ initialTitle, initialLabels, onUpdateNoteData }: NoteEdi
     </Form>
   );
 };
+
+// ----------------------------------------------------------------------------
+// LinkView
+// ----------------------------------------------------------------------------
+
+type LinkViewProps = {
+  entry: EntryLink;
+  onUpdateLinkData: (title: string, labels: string[]) => void;
+};
+
+function LinkView({ entry, onUpdateLinkData }: LinkViewProps) {
+  return (
+    <UiRow
+      center={
+        <>
+          <EntryHeader entry={entry} editForm={null} />
+          <div style={{ width: "100%", display: "flex", justifyContent: "center" }}>
+            <Button
+              href={entry.content.target}
+              target="_blank"
+              rel="noreferrer noopener"
+              autoFocus
+              type="primary"
+              size="large"
+              style={{
+                marginTop: "40px",
+                display: "inline-block",
+              }}
+            >
+              <div style={{ marginLeft: "20px", marginRight: "20px" }}>open</div>
+            </Button>
+          </div>
+          <Footer />
+        </>
+      }
+      style={{ height: "100%" }}
+    />
+  );
+}
 
 export default EntryView;
