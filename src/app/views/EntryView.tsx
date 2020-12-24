@@ -5,8 +5,8 @@ import { EditOutlined } from "@ant-design/icons";
 
 import styled from "@emotion/styled";
 
-import { NoEntrySelected } from "../components/HelperComponents";
-import { UiRow } from "../components/UiRow";
+import { NoEntrySelected, ScrollContent } from "../components/HelperComponents";
+import { VerticalContainer, UiRow, StretchedUiRow } from "../components/UiRow";
 import { DefaultTag } from "../components/ColorTag";
 
 import { Entry, EntryNote, EntryLink } from "../types";
@@ -130,6 +130,31 @@ function EntryView({ entry, onUpdateNoteData }: EntryViewProps) {
 // NoteView
 // ----------------------------------------------------------------------------
 
+const NoteContent = styled.div`
+  // width: 100%;
+
+  pre {
+    font-family: "Ubuntu mono, monospace";
+    padding: 0.5rem 0.7rem;
+    font-size: 0.75rem; // 12 px
+    margin: 0.4rem 0;
+    width: 100%;
+  }
+  pre > code {
+    // width: 100%;
+    display: inline-block;
+  }
+
+  & :not(pre) > code {
+    background-color: whitesmoke;
+    color: #ff3860;
+    font-size: 0.875em;
+    font-weight: normal;
+    padding: 0.15em 0.4em 0.15em;
+    border: 1px solid #e0e0e0;
+  }
+`;
+
 type NoteViewProps = {
   entry: EntryNote;
   onUpdateNoteData: (title: string, labels: string[]) => void;
@@ -137,29 +162,36 @@ type NoteViewProps = {
 
 function NoteView({ entry, onUpdateNoteData }: NoteViewProps) {
   return (
-    <UiRow
-      center={
-        <>
-          <EntryHeader
-            entry={entry}
-            editForm={
-              <NoteEditForm
-                initialTitle={entry.title}
-                initialLabels={entry.labels}
-                onUpdateNoteData={onUpdateNoteData}
-              />
-            }
-          />
-          <div
-            dangerouslySetInnerHTML={{
-              __html: entry_utils.isNote(entry) ? entry.content.html : "",
-            }}
-          />
-          <Footer />
-        </>
-      }
-      style={{ height: "100%" }}
-    />
+    <VerticalContainer>
+      <UiRow
+        center={
+          <>
+            <EntryHeader
+              entry={entry}
+              editForm={
+                <NoteEditForm
+                  initialTitle={entry.title}
+                  initialLabels={entry.labels}
+                  onUpdateNoteData={onUpdateNoteData}
+                />
+              }
+            />
+          </>
+        }
+      />
+      <StretchedUiRow
+        center={
+          <ScrollContent>
+            <NoteContent
+              dangerouslySetInnerHTML={{
+                __html: entry_utils.isNote(entry) ? entry.content.html : "",
+              }}
+            />
+            <Footer />
+          </ScrollContent>
+        }
+      />
+    </VerticalContainer>
   );
 }
 

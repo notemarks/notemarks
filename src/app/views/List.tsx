@@ -6,7 +6,7 @@ import { EditOutlined, GlobalOutlined, LinkOutlined, DownOutlined } from "@ant-d
 import styled from "@emotion/styled";
 
 import { ScrollContent } from "../components/HelperComponents";
-import { UiRow } from "../components/UiRow";
+import { VerticalContainer, UiRow, StretchedUiRow } from "../components/UiRow";
 import { LabelTree } from "../components/LabelTree";
 import { DefaultTag } from "../components/ColorTag";
 
@@ -103,17 +103,6 @@ entire row.
 See also Q/A here:
 https://stackoverflow.com/questions/48494045/how-to-add-dynamic-link-to-table-data
 */
-
-const Container = styled.div`
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-`;
-
-const StretchedUiRow = styled(UiRow)`
-  flex-grow: 1;
-  height: 100%;
-`;
 
 const StyledInput = styled(Input)`
   margin-top: 20px;
@@ -285,7 +274,7 @@ const List = React.forwardRef(
     }, [ref]);
 
     return (
-      <Container>
+      <VerticalContainer>
         <UiRow
           center={
             <StyledInput
@@ -327,7 +316,7 @@ const List = React.forwardRef(
             </ScrollContent>
           }
         />
-      </Container>
+      </VerticalContainer>
     );
   }
 );

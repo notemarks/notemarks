@@ -82,3 +82,14 @@ export function UiRow({ className, left, center, right, style }: UiRowProps) {
     </RowContainer>
   );
 }
+
+export const VerticalContainer = styled.div`
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+`;
+
+export const StretchedUiRow = styled(UiRow)`
+  flex-grow: 1;
+  height: 100%;
+`;
