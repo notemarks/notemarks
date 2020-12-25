@@ -364,7 +364,7 @@ function App() {
         if (action.content !== activeEntry.content.text) {
           let [html, links] = markdown_utils.processMarkdownText(action.content);
 
-          let activeEntryModified = {
+          let activeEntryModified = entry_utils.recomputeKey({
             ...activeEntry,
             content: {
               ...activeEntry.content,
@@ -372,7 +372,7 @@ function App() {
               html: html,
               links: links,
             },
-          };
+          });
           let result = modifyFileEntry(
             state.fileEntries,
             state.linkEntries,
@@ -449,11 +449,11 @@ function App() {
           let labelsChanged = !label_utils.isSameLabels(oldLabels, newLabels);
 
           if (titleChanged || labelsChanged) {
-            let activeEntryModified = {
+            let activeEntryModified = entry_utils.recomputeKey({
               ...activeEntry,
               title: newTitle,
               labels: action.labels,
-            };
+            });
             let result = modifyFileEntry(
               state.fileEntries,
               state.linkEntries,
@@ -574,13 +574,13 @@ function App() {
   const storeNoteViewPosition = () => {
     let activeEntry = getActiveEntry();
     if (activeEntry != null) {
-      noteViewPositions[activeEntry.key] = getScrollPosition();
+      noteViewPositions[activeEntry.key!] = getScrollPosition();
     }
   };
   const restoreNoteViewPosition = () => {
     let activeEntry = getActiveEntry();
-    if (activeEntry != null && activeEntry.key in noteViewPositions) {
-      targetBodyPosition.current = noteViewPositions[activeEntry.key];
+    if (activeEntry != null && activeEntry.key! in noteViewPositions) {
+      targetBodyPosition.current = noteViewPositions[activeEntry.key!];
     }
   };
   const storeNoteEditorPosition = () => {
@@ -589,7 +589,7 @@ function App() {
     if (activeEntry != null && editorRef.current != null) {
       let editorScrollPos = editorRef.current.getScrollPosition();
       let editorCursorPos = editorRef.current.getCursorPosition();
-      noteEditorPositions[activeEntry.key] = {
+      noteEditorPositions[activeEntry.key!] = {
         scroll: editorScrollPos,
         cursor: editorCursorPos,
       };
@@ -602,8 +602,8 @@ function App() {
     // immediately. The actual restoring has to be postponed until the onEditorDidMount
     // callback
     let activeEntry = getActiveEntry();
-    if (activeEntry != null && activeEntry.key in noteEditorPositions) {
-      targetEditorPosition.current = noteEditorPositions[activeEntry.key];
+    if (activeEntry != null && activeEntry.key! in noteEditorPositions) {
+      targetEditorPosition.current = noteEditorPositions[activeEntry.key!];
     }
   };
 

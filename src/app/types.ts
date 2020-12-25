@@ -23,12 +23,12 @@ export type ContentDoc = {
   kind: EntryKind.Document;
 } & FileEntryProps;
 
-export type ContentNote = FileEntryProps & {
+export type ContentNote = {
   kind: EntryKind.NoteMarkdown;
   text: string;
   html: string;
   links: string[];
-};
+} & FileEntryProps;
 
 export type ContentLink = {
   kind: EntryKind.Link;
@@ -73,7 +73,7 @@ export type Entry = {
   content: Content;
   // React specific key to use Entry in lists. Will typically be a composition of
   // repoId + location + title
-  key: string;
+  key?: string;
   // Internal index within ordered/unfiltered entries array.
   // Allows for easier/faster lookups compared to using `key`.
   idx?: number;

@@ -47,6 +47,17 @@ export function sortAndIndexEntries(entries: Entries) {
   }
 }
 
+export function recomputeKey<T extends Entry>(entry: T): T {
+  // For some reason the compiler doesn't understand isFile(entry) here...
+  if (isFileContent(entry.content)) {
+    let path = path_utils.getPath(entry as EntryFile);
+    entry.key = `${entry.content.repo.key}:${path}`;
+  } else {
+    entry.key = `__link_${entry.content.target}`;
+  }
+  return entry;
+}
+
 /*
 User defined type guard helpers:
 https://www.typescriptlang.org/docs/handbook/advanced-types.html#user-defined-type-guards
@@ -198,13 +209,12 @@ export function constructFileEntry(repo: Repo, file: FileFetched, metaData: Meta
     };
   }
 
-  return {
+  return recomputeKey({
     title: title,
     priority: 0,
     labels: metaData.labels,
     content: content,
-    key: `${repo.key}:${location}:${title}`,
-  };
+  });
 }
 
 // ----------------------------------------------------------------------------
@@ -267,21 +277,22 @@ function deserializeLinkEntries(repo: Repo, content?: string): Result<EntryLink[
   let storedLinks =
     content != null ? io.parseStoredLinks(content) : (ok([]) as Result<StoredLinks, Error>);
   return storedLinks.map((storedLinks) =>
-    storedLinks.map((storedLink) => ({
-      title: storedLink.title,
-      priority: 0, // TODO: needs to be stored?
-      labels: storedLink.ownLabels,
-      content: {
-        kind: EntryKind.Link,
-        target: storedLink.target,
-        referencedBy: [],
-        standaloneRepo: storedLink.standalone ? repo : undefined,
-        refRepos: [],
-        refLocations: [],
-        ownLabels: storedLink.ownLabels,
-      },
-      key: `__link_${storedLink.target}`,
-    }))
+    storedLinks.map((storedLink) =>
+      recomputeKey({
+        title: storedLink.title,
+        priority: 0, // TODO: needs to be stored?
+        labels: storedLink.ownLabels,
+        content: {
+          kind: EntryKind.Link,
+          target: storedLink.target,
+          referencedBy: [],
+          standaloneRepo: storedLink.standalone ? repo : undefined,
+          refRepos: [],
+          refLocations: [],
+          ownLabels: storedLink.ownLabels,
+        },
+      })
+    )
   );
 }
 
@@ -400,7 +411,7 @@ export function recomputeLinkEntries(
       for (let linkTarget of entry.content.links) {
         // TODO: rename entry.content.links to linkTargets because they aren't "real" links?
         if (!(linkTarget in linkMap)) {
-          let linkEntry: EntryLink = {
+          let linkEntry: EntryLink = recomputeKey({
             title: linkTarget, // TODO fetch here but then this whole thing becomes async and slow?
             priority: 0,
             labels: entry.labels.slice(0),
@@ -412,8 +423,7 @@ export function recomputeLinkEntries(
               refLocations: [entry.content.location],
               ownLabels: [],
             },
-            key: `__link_${linkTarget}`,
-          };
+          });
           linkEntries.push(linkEntry);
           linkInserted[linkTarget] = true;
           linkMap[linkTarget] = linkEntry;
