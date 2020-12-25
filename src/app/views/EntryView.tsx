@@ -23,6 +23,14 @@ const Footer = styled.div`
   margin-bottom: 150px;
 `;
 
+const editFormLayout = {
+  labelCol: { span: 4 },
+  wrapperCol: { span: 20 },
+};
+const editFormTailLayout = {
+  wrapperCol: { offset: 4, span: 20 },
+};
+
 // TODO: Move to central place, same as in List?
 function renderLabels(labels: string[]) {
   return labels.map((label, i) => <DefaultTag key={label}>{label}</DefaultTag>);
@@ -199,14 +207,6 @@ function NoteView({ entry, onUpdateNoteData }: NoteViewProps) {
 // NoteEditForm
 // ----------------------------------------------------------------------------
 
-const layout = {
-  labelCol: { span: 4 },
-  wrapperCol: { span: 20 },
-};
-const tailLayout = {
-  wrapperCol: { offset: 4, span: 20 },
-};
-
 type NoteEditFormProps = {
   initialTitle: string;
   initialLabels: string[];
@@ -220,7 +220,7 @@ const NoteEditForm = ({ initialTitle, initialLabels, onUpdateNoteData }: NoteEdi
 
   return (
     <Form
-      {...layout}
+      {...editFormLayout}
       name="basic"
       initialValues={{ title: initialTitle, labels: initialLabels.join(" ") }}
       onFinish={onFinish}
@@ -238,9 +238,9 @@ const NoteEditForm = ({ initialTitle, initialLabels, onUpdateNoteData }: NoteEdi
         <Input />
       </Form.Item>
 
-      <Form.Item {...tailLayout} style={{ marginBottom: 0 }}>
+      <Form.Item {...editFormTailLayout} style={{ marginBottom: 0 }}>
         <Button type="primary" htmlType="submit">
-          Submit
+          Update
         </Button>
       </Form.Item>
     </Form>
@@ -261,7 +261,16 @@ function LinkView({ entry, onUpdateLinkData }: LinkViewProps) {
     <UiRow
       center={
         <>
-          <EntryHeader entry={entry} editForm={null} />
+          <EntryHeader
+            entry={entry}
+            editForm={
+              <LinkEditForm
+                initialTitle={entry.title}
+                initialLabels={entry.labels}
+                onUpdateLinkData={onUpdateLinkData}
+              />
+            }
+          />
           <div style={{ width: "100%", display: "flex", justifyContent: "center" }}>
             <Button
               href={entry.content.target}
@@ -287,3 +296,47 @@ function LinkView({ entry, onUpdateLinkData }: LinkViewProps) {
 }
 
 export default EntryView;
+
+// ----------------------------------------------------------------------------
+// LinkEditForm
+// ----------------------------------------------------------------------------
+
+type LinkEditFormProps = {
+  initialTitle: string;
+  initialLabels: string[];
+  onUpdateLinkData: (title: string, labels: string[]) => void;
+};
+
+const LinkEditForm = ({ initialTitle, initialLabels, onUpdateLinkData }: LinkEditFormProps) => {
+  const onFinish = (values: { title: string; labels: string }) => {
+    onUpdateLinkData(values.title, label_utils.extractLabelsFromString(values.labels));
+  };
+
+  return (
+    <Form
+      {...editFormLayout}
+      name="basic"
+      initialValues={{ title: initialTitle, labels: initialLabels.join(" ") }}
+      onFinish={onFinish}
+    >
+      <Form.Item
+        label="Title"
+        name="title"
+        rules={[{ required: true, message: "Note requires a title" }]}
+        style={{ marginBottom: "16px" }}
+      >
+        <Input />
+      </Form.Item>
+
+      <Form.Item label="Labels" name="labels" style={{ marginBottom: "16px" }}>
+        <Input />
+      </Form.Item>
+
+      <Form.Item {...editFormTailLayout} style={{ marginBottom: 0 }}>
+        <Button type="primary" htmlType="submit">
+          Update
+        </Button>
+      </Form.Item>
+    </Form>
+  );
+};
