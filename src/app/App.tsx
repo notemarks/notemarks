@@ -155,6 +155,7 @@ enum ActionKind {
   ReloadingDone = "ReloadingDone",
   UpdateNoteContent = "UpdateNoteContent",
   UpdateEntryMeta = "UpdateEntryMeta",
+  UpdateLinkEntryMeta = "UpdateLinkEntryMeta",
   SuccessfulCommit = "SuccessfulCommit",
 }
 
@@ -188,6 +189,11 @@ type ActionUpdateEntryMeta = {
   title: string;
   labels: string[];
 };
+type ActionUpdateLinkEntryMeta = {
+  kind: ActionKind.UpdateLinkEntryMeta;
+  title: string;
+  ownLabels: string[];
+};
 type ActionSuccessfulCommit = {
   kind: ActionKind.SuccessfulCommit;
 };
@@ -199,6 +205,7 @@ type Action =
   | ActionReloadingDone
   | ActionUpdateNoteContent
   | ActionUpdateEntryMeta
+  | ActionUpdateLinkEntryMeta
   | ActionSuccessfulCommit;
 
 // *** State change helpers
@@ -240,7 +247,8 @@ function modifyFileEntry(
   let [newLinkEntries, newEntries] = entry_utils.recomputeEntries(newFileEntries, oldLinkEntries);
 
   // Recompute active entry idx
-  let newActiveEntryIdx = newEntries.findIndex((entry) => entry.key === oldEntry.key);
+  // Note: Identifiation must not use `oldEntry.key` because it can change.
+  let newActiveEntryIdx = newEntries.findIndex((entry) => entry === newEntry);
   if (newActiveEntryIdx === -1) {
     // Should be unreachable, the active entry shouldn't disappear.
     console.log("Logic error: Active entry has disappeared.");
@@ -248,6 +256,39 @@ function modifyFileEntry(
   }
 
   return [newFileEntries, newLinkEntries, newEntries, newActiveEntryIdx];
+}
+
+function modifyLinkEntry(
+  oldFileEntries: EntryFile[],
+  oldLinkEntries: EntryLink[],
+  oldEntry: EntryLink,
+  newEntry: EntryLink
+): [EntryLink[], Entry[], number] | undefined {
+  // Identify active entry within old link entries
+  let linkEntryIdx = oldLinkEntries.findIndex((entry) => entry.key === oldEntry.key);
+  if (linkEntryIdx === -1) {
+    // Should be unreachable because we have verified that the active entry is a note.
+    console.log("Illegal update: Could not find a link entry for entry key " + oldEntry.key);
+    return;
+  }
+
+  // Modify the link entries
+  let tmpLinkEntries = oldLinkEntries.slice(0);
+  tmpLinkEntries[linkEntryIdx] = newEntry;
+
+  // Recompute links and all entries
+  let [newLinkEntries, newEntries] = entry_utils.recomputeEntries(oldFileEntries, tmpLinkEntries);
+
+  // Recompute active entry idx
+  // Note: Resetting the index is needed because title changes can imply order changes.
+  let newActiveEntryIdx = newEntries.findIndex((entry) => entry === newEntry);
+  if (newActiveEntryIdx === -1) {
+    // Should be unreachable, the active entry shouldn't disappear.
+    console.log("Logic error: Active entry has disappeared.");
+    return;
+  }
+
+  return [newLinkEntries, newEntries, newActiveEntryIdx];
 }
 
 // ----------------------------------------------------------------------------
@@ -466,6 +507,8 @@ function App() {
             let [newFileEntries, newLinkEntries, newEntries, newActiveEntryIdx] = result;
 
             // Stage git ops
+            // Note: Currently we don't care about titleChanged/labelsChanged values
+            // and just delete + re-add the files unconditionally for simplicity.
             let newAllFileMapsEdit = state.allFileMapsEdit.clone();
 
             let repo = activeEntryModified.content.repo;
@@ -479,12 +522,6 @@ function App() {
             newAllFileMapsEdit.get(repo)?.data.setContent(newPaths.path, entryContent);
             newAllFileMapsEdit.get(repo)?.data.setContent(newPaths.metaPath, metaDataContent);
 
-            if (titleChanged) {
-            }
-
-            if (labelsChanged) {
-            }
-
             // Diff to determine staged git ops
             let stagedGitOps = git_ops.diffMultiFileMaps(state.allFileMapsOrig, newAllFileMapsEdit);
 
@@ -493,6 +530,63 @@ function App() {
               activeEntryIdx: newActiveEntryIdx,
               entries: newEntries,
               fileEntries: newFileEntries,
+              linkEntries: newLinkEntries,
+              allFileMapsEdit: newAllFileMapsEdit,
+              stagedGitOps: stagedGitOps,
+              labels: label_utils.extractLabels(newEntries),
+            };
+          } else {
+            return state;
+          }
+        } else {
+          return state;
+        }
+      }
+      case ActionKind.UpdateLinkEntryMeta: {
+        let activeEntry = state.entries[state.activeEntryIdx!];
+        if (entry_utils.isLink(activeEntry)) {
+          let oldTitle = activeEntry.title;
+          let newTitle = action.title;
+
+          let oldOwnLabels = activeEntry.content.ownLabels.slice(0);
+          let newOwnLabels = action.ownLabels;
+
+          let titleChanged = oldTitle !== newTitle;
+          let labelsChanged = !label_utils.isSameLabels(oldOwnLabels, newOwnLabels);
+
+          if (titleChanged || labelsChanged) {
+            let activeEntryModified = entry_utils.recomputeKey({
+              ...activeEntry,
+              title: newTitle,
+              content: {
+                ...activeEntry.content,
+                ownLabels: newOwnLabels,
+              },
+            });
+            let result = modifyLinkEntry(
+              state.fileEntries,
+              state.linkEntries,
+              activeEntry,
+              activeEntryModified
+            );
+            if (result == null) {
+              return state;
+            }
+            let [newLinkEntries, newEntries, newActiveEntryIdx] = result;
+
+            // Stage git ops
+            let newAllFileMapsEdit = state.allFileMapsEdit.clone();
+
+            // Write new link DB
+            entry_utils.stageLinkDBUpdate(newLinkEntries, newAllFileMapsEdit);
+
+            // Diff to determine staged git ops
+            let stagedGitOps = git_ops.diffMultiFileMaps(state.allFileMapsOrig, newAllFileMapsEdit);
+
+            return {
+              ...state,
+              activeEntryIdx: newActiveEntryIdx,
+              entries: newEntries,
               linkEntries: newLinkEntries,
               allFileMapsEdit: newAllFileMapsEdit,
               stagedGitOps: stagedGitOps,
@@ -732,6 +826,13 @@ function App() {
             entry={getActiveEntry()}
             onUpdateNoteData={(title, labels) => {
               dispatch({ kind: ActionKind.UpdateEntryMeta, title: title, labels: labels });
+            }}
+            onUpdateLinkData={(title, ownLabels) => {
+              dispatch({
+                kind: ActionKind.UpdateLinkEntryMeta,
+                title: title,
+                ownLabels: ownLabels,
+              });
             }}
           />
         );

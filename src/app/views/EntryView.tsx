@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-import { Typography, Collapse, Button, Form, Input } from "antd";
+import { Typography, Collapse, Button, Form, Input, Modal } from "antd";
 import { EditOutlined, LoadingOutlined } from "@ant-design/icons";
 
 import styled from "@emotion/styled";
@@ -60,8 +60,8 @@ function EntryHeader({ entry, editForm }: EntryHeaderProps) {
         <div>
           Referenced by:
           <ul style={{ paddingLeft: "20px" }}>
-            {entry.content.referencedBy.map((entry) => (
-              <li>{entry.title}</li>
+            {entry.content.referencedBy.map((entry, i) => (
+              <li key={i}>{entry.title}</li>
             ))}
           </ul>
         </div>
@@ -121,15 +121,16 @@ function EntryHeader({ entry, editForm }: EntryHeaderProps) {
 type EntryViewProps = {
   entry?: Entry;
   onUpdateNoteData: (title: string, labels: string[]) => void;
+  onUpdateLinkData: (title: string, ownLabels: string[]) => void;
 };
 
-function EntryView({ entry, onUpdateNoteData }: EntryViewProps) {
+function EntryView({ entry, onUpdateNoteData, onUpdateLinkData }: EntryViewProps) {
   if (entry == null) {
     return <NoEntrySelected />;
   } else if (entry_utils.isNote(entry)) {
     return <NoteView entry={entry} onUpdateNoteData={onUpdateNoteData} />;
   } else if (entry_utils.isLink(entry)) {
-    return <LinkView entry={entry} onUpdateLinkData={(a, b) => {}} />;
+    return <LinkView entry={entry} onUpdateLinkData={onUpdateLinkData} />;
   } else {
     return <NoEntrySelected />;
   }
@@ -254,7 +255,7 @@ const NoteEditForm = ({ initialTitle, initialLabels, onUpdateNoteData }: NoteEdi
 
 type LinkViewProps = {
   entry: EntryLink;
-  onUpdateLinkData: (title: string, labels: string[]) => void;
+  onUpdateLinkData: (title: string, ownLabels: string[]) => void;
 };
 
 function LinkView({ entry, onUpdateLinkData }: LinkViewProps) {
@@ -348,6 +349,13 @@ const LinkEditForm = ({
               if (title != null) {
                 form.setFieldsValue({ title: title });
               }
+            } catch (e) {
+              console.log(e);
+              Modal.error({
+                title: "Fetch failed",
+                content:
+                  "Could not fetch the website title. This could be due to an unavailable link target, network errors, or the website is malformed.",
+              });
             } finally {
               setIsTitleFetching(false);
             }

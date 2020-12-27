@@ -372,8 +372,9 @@ export function recomputeLinkEntries(
   let linkInserted: { [link: string]: boolean } = {};
 
   for (let link of existingLinkEntries) {
+    /*
     // We need to 'reset' the link data so that the infered fields can be computed from scratch.
-    // TODO: Perhaps pull this out into a `cloneResetLink` helper function for better testability.
+    // Perhaps pull this out into a `cloneResetLink` helper function for better testability.
     let resetLinkEntry: EntryLink = {
       title: link.title,
       priority: link.priority,
@@ -389,6 +390,14 @@ export function recomputeLinkEntries(
       },
       key: link.key,
     };
+    */
+    // EDIT: We need to keep the identity of link entries to re-identify their
+    // index after `recomputeEntries`, therere we currently mutate instead of
+    // clone.
+    link.content.referencedBy = [];
+    link.content.refRepos = [];
+    link.content.refLocations = [];
+
     // We assume that existingLinks do not contain duplicate links? I.e., no different link
     // data (title/labels) for the same link target. If existingLinks is the result of a
     // previous processing this should be satisfied, because identical link targets would
@@ -397,10 +406,10 @@ export function recomputeLinkEntries(
     // invariant. We simply ignore any duplicate link record here.
     if (!(link.content.target in linkMap)) {
       if (link.content.standaloneRepo != null) {
-        linkEntries.push(resetLinkEntry);
+        linkEntries.push(link);
         linkInserted[link.content.target] = true;
       }
-      linkMap[link.content.target] = resetLinkEntry;
+      linkMap[link.content.target] = link;
     } else {
       console.log(`WARNING: Existing links contains duplicate ${link.content.target}. Discarding.`);
     }
