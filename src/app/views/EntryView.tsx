@@ -1,7 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
 
 import { Typography, Collapse, Button, Form, Input } from "antd";
-import { EditOutlined } from "@ant-design/icons";
+import { EditOutlined, LoadingOutlined } from "@ant-design/icons";
 
 import styled from "@emotion/styled";
 
@@ -14,6 +14,7 @@ import { Entry, EntryNote, EntryLink } from "../types";
 import * as entry_utils from "../utils/entry_utils";
 import * as date_utils from "../utils/date_utils";
 import * as label_utils from "../utils/label_utils";
+import * as web_utils from "../utils/web_utils";
 
 const { Title } = Typography;
 const { Panel } = Collapse;
@@ -265,8 +266,9 @@ function LinkView({ entry, onUpdateLinkData }: LinkViewProps) {
             entry={entry}
             editForm={
               <LinkEditForm
+                linkTarget={entry.content.target}
                 initialTitle={entry.title}
-                initialLabels={entry.labels}
+                initialLabels={entry.content.ownLabels}
                 onUpdateLinkData={onUpdateLinkData}
               />
             }
@@ -302,12 +304,22 @@ export default EntryView;
 // ----------------------------------------------------------------------------
 
 type LinkEditFormProps = {
+  linkTarget: string;
   initialTitle: string;
   initialLabels: string[];
   onUpdateLinkData: (title: string, labels: string[]) => void;
 };
 
-const LinkEditForm = ({ initialTitle, initialLabels, onUpdateLinkData }: LinkEditFormProps) => {
+const LinkEditForm = ({
+  linkTarget,
+  initialTitle,
+  initialLabels,
+  onUpdateLinkData,
+}: LinkEditFormProps) => {
+  const [form] = Form.useForm();
+
+  const [isTitleFetching, setIsTitleFetching] = useState(false);
+
   const onFinish = (values: { title: string; labels: string }) => {
     onUpdateLinkData(values.title, label_utils.extractLabelsFromString(values.labels));
   };
@@ -317,6 +329,7 @@ const LinkEditForm = ({ initialTitle, initialLabels, onUpdateLinkData }: LinkEdi
       {...editFormLayout}
       name="basic"
       initialValues={{ title: initialTitle, labels: initialLabels.join(" ") }}
+      form={form}
       onFinish={onFinish}
     >
       <Form.Item
@@ -325,10 +338,29 @@ const LinkEditForm = ({ initialTitle, initialLabels, onUpdateLinkData }: LinkEdi
         rules={[{ required: true, message: "Note requires a title" }]}
         style={{ marginBottom: "16px" }}
       >
-        <Input />
+        {/*<Input addonAfter={<Button type="primary">Fetch title</Button>} />*/}
+        <Input.Search
+          enterButton={<span>{isTitleFetching ? <LoadingOutlined /> : null} Fetch</span>}
+          onSearch={async () => {
+            setIsTitleFetching(true);
+            try {
+              let title = await web_utils.getTitle(linkTarget);
+              if (title != null) {
+                form.setFieldsValue({ title: title });
+              }
+            } finally {
+              setIsTitleFetching(false);
+            }
+          }}
+        />
       </Form.Item>
 
-      <Form.Item label="Labels" name="labels" style={{ marginBottom: "16px" }}>
+      <Form.Item
+        label="Own labels"
+        name="labels"
+        style={{ marginBottom: "16px" }}
+        extra="Links inherit labels from notes implicitly. This field allows to set additional explicit labels."
+      >
         <Input />
       </Form.Item>
 
