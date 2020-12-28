@@ -47,6 +47,7 @@ import List from "./views/List";
 import EntryView from "./views/EntryView";
 import NoteEditor, { NoteEditorRef } from "./views/NoteEditor";
 import PrepareCommit from "./views/PrepareCommit";
+import AddEntry from "./views/AddEntry";
 import Settings from "./views/Settings";
 
 const { Content } = Layout;
@@ -753,7 +754,7 @@ function App() {
 
     let clickedPage = menuInfo.key as Page;
     switch (clickedPage) {
-      case Page.Reload:
+      case Page.Reload: {
         if (!state.isReloading) {
           if (anyStagedChange() === false) {
             reloadEntries(repos);
@@ -770,9 +771,11 @@ function App() {
           }
         }
         break;
-      default:
+      }
+      default: {
         prepareSwitchFrom(state.page);
         dispatch({ kind: ActionKind.SwitchToPage, page: clickedPage });
+      }
     }
   };
 
@@ -853,6 +856,8 @@ function App() {
             }}
           />
         );
+      case Page.Add:
+        return <AddEntry onAdded={() => {}} />;
       case Page.Settings:
         return <Settings repos={repos} setRepos={setRepos} />;
     }
