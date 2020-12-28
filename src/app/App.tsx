@@ -23,11 +23,20 @@ import { useEffectOnce } from "./utils/react_utils";
 import { UiRow } from "./components/UiRow";
 import { UploadOutlinedWithStatus } from "./components/HelperComponents";
 
-import { Entry, Entries, EntryFile, EntryLink, Labels } from "./types";
+import {
+  EntryKind,
+  Entry,
+  Entries,
+  EntryNote,
+  EntryDoc,
+  EntryFile,
+  EntryLink,
+  Labels,
+} from "./types";
 import * as fn from "./utils/fn_utils";
 import * as entry_utils from "./utils/entry_utils";
 
-import { Repos } from "./repo";
+import { Repo, Repos } from "./repo";
 import * as repo_utils from "./repo";
 
 import { MultiRepoGitOps } from "./git_ops";
@@ -157,6 +166,7 @@ enum ActionKind {
   UpdateNoteContent = "UpdateNoteContent",
   UpdateEntryMeta = "UpdateEntryMeta",
   UpdateLinkEntryMeta = "UpdateLinkEntryMeta",
+  CreateEntry = "CreateEntry",
   SuccessfulCommit = "SuccessfulCommit",
 }
 
@@ -195,6 +205,17 @@ type ActionUpdateLinkEntryMeta = {
   title: string;
   ownLabels: string[];
 };
+
+type ActionCreateEntry = {
+  kind: ActionKind.CreateEntry;
+  entryKind: EntryKind;
+  title: string;
+  labels: string[];
+  content: string;
+  repo: Repo;
+  location?: string;
+  extension?: string;
+};
 type ActionSuccessfulCommit = {
   kind: ActionKind.SuccessfulCommit;
 };
@@ -207,6 +228,7 @@ type Action =
   | ActionUpdateNoteContent
   | ActionUpdateEntryMeta
   | ActionUpdateLinkEntryMeta
+  | ActionCreateEntry
   | ActionSuccessfulCommit;
 
 // *** State change helpers
@@ -290,6 +312,120 @@ function modifyLinkEntry(
   }
 
   return [newLinkEntries, newEntries, newActiveEntryIdx];
+}
+
+function addEntry(
+  oldFileEntries: EntryFile[],
+  oldLinkEntries: EntryLink[],
+  newAllFileMapsEdit: MultiRepoFileMap,
+  addEntryAction: ActionCreateEntry,
+  activeEntry?: Entry
+): [EntryFile[], EntryLink[], Entry[], number | undefined] {
+  const tuple = <T extends any[]>(...args: T): T => args;
+
+  const getNewEntriesForAddNote = () => {
+    let newFileEntries = oldFileEntries.slice(0);
+    let date = date_utils.getDateNow();
+    let newEntry: EntryNote = entry_utils.recomputeKey({
+      title: addEntryAction.title,
+      priority: 0,
+      labels: addEntryAction.labels,
+      content: {
+        kind: EntryKind.NoteMarkdown,
+        repo: addEntryAction.repo!,
+        location: addEntryAction.location!,
+        extension: "md",
+        timeCreated: date,
+        timeUpdated: date,
+        text: addEntryAction.content,
+        html: "",
+        links: [],
+      },
+    });
+    newFileEntries.push(newEntry);
+    let [newLinkEntries, newEntries] = entry_utils.recomputeEntries(newFileEntries, oldLinkEntries);
+
+    // Stage content
+    let path = path_utils.getPath(newEntry);
+    newAllFileMapsEdit.get(addEntryAction.repo!)?.data.setContent(path, addEntryAction.content);
+
+    // TODO: Stage meta
+
+    return tuple(newFileEntries, newLinkEntries, newEntries);
+  };
+
+  const getNewEntriesForAddDocument = () => {
+    let newFileEntries = oldFileEntries.slice(0);
+    let date = date_utils.getDateNow();
+    let newEntry: EntryDoc = entry_utils.recomputeKey({
+      title: addEntryAction.title,
+      priority: 0,
+      labels: addEntryAction.labels,
+      content: {
+        kind: EntryKind.Document,
+        repo: addEntryAction.repo!,
+        location: addEntryAction.location!,
+        extension: addEntryAction.extension!,
+        timeCreated: date,
+        timeUpdated: date,
+      },
+    });
+    newFileEntries.push(newEntry);
+    let [newLinkEntries, newEntries] = entry_utils.recomputeEntries(newFileEntries, oldLinkEntries);
+
+    // Stage content
+    let path = path_utils.getPath(newEntry);
+    newAllFileMapsEdit.get(addEntryAction.repo!)?.data.setContent(path, addEntryAction.content);
+
+    // TODO: Stage meta
+
+    return tuple(newFileEntries, newLinkEntries, newEntries);
+  };
+
+  const getNewEntriesForAddLink = () => {
+    let newFileEntries = oldFileEntries; // keep
+    let tmpLinkEntries = oldLinkEntries.slice(0);
+    let newEntry: EntryLink = entry_utils.recomputeKey({
+      title: addEntryAction.title,
+      priority: 0,
+      labels: addEntryAction.labels,
+      content: {
+        kind: EntryKind.Link,
+        target: addEntryAction.content,
+        referencedBy: [],
+        standaloneRepo: addEntryAction.repo,
+        refRepos: [],
+        refLocations: [],
+        ownLabels: addEntryAction.labels,
+      },
+    });
+    tmpLinkEntries.push(newEntry);
+    let [newLinkEntries, newEntries] = entry_utils.recomputeEntries(newFileEntries, tmpLinkEntries);
+    return tuple(newFileEntries, newLinkEntries, newEntries);
+  };
+
+  let [newFileEntries, newLinkEntries, newEntries] =
+    addEntryAction.entryKind === EntryKind.NoteMarkdown
+      ? getNewEntriesForAddNote()
+      : addEntryAction.entryKind === EntryKind.Document
+      ? getNewEntriesForAddDocument()
+      : getNewEntriesForAddLink();
+
+  // Recompute active entry idx
+  let newActiveEntryIdx = undefined as number | undefined;
+  if (activeEntry != null) {
+    newActiveEntryIdx = newEntries.findIndex((entry) => entry === activeEntry);
+    if (newActiveEntryIdx === -1) {
+      // Should be unreachable, the active entry shouldn't disappear.
+      console.log("Logic error: Active entry has disappeared.");
+      newActiveEntryIdx = undefined;
+    }
+  }
+
+  // Write new link DB
+  entry_utils.stageLinkDBUpdate(newLinkEntries, newAllFileMapsEdit);
+
+  return [newFileEntries, newLinkEntries, newEntries, newActiveEntryIdx];
 }
 
 // ----------------------------------------------------------------------------
@@ -529,6 +665,30 @@ function reducer(state: State, action: Action): State {
       } else {
         return state;
       }
+    }
+    case ActionKind.CreateEntry: {
+      let newAllFileMapsEdit = state.allFileMapsEdit.clone();
+      let activeEntry =
+        state.activeEntryIdx != null ? state.entries[state.activeEntryIdx] : undefined;
+
+      let [newFileEntries, newLinkEntries, newEntries, newActiveEntryIdx] = addEntry(
+        state.fileEntries,
+        state.linkEntries,
+        newAllFileMapsEdit,
+        action,
+        activeEntry
+      );
+
+      return {
+        ...state,
+        activeEntryIdx: newActiveEntryIdx != null ? newActiveEntryIdx : state.activeEntryIdx,
+        entries: newEntries,
+        fileEntries: newFileEntries,
+        linkEntries: newLinkEntries,
+        allFileMapsEdit: newAllFileMapsEdit,
+        stagedGitOps: git_ops.diffMultiFileMaps(state.allFileMapsOrig, newAllFileMapsEdit),
+        labels: label_utils.extractLabels(newEntries),
+      };
     }
     case ActionKind.SuccessfulCommit: {
       // Design decision: On a successful commit, we treat the current memory
@@ -816,7 +976,7 @@ function App() {
   // *** Render helpers
   const renderCenter = () => {
     switch (state.page) {
-      case Page.Main:
+      case Page.Main: {
         return (
           <List
             ref={searchInputRef}
@@ -827,7 +987,8 @@ function App() {
             }}
           />
         );
-      case Page.EntryView:
+      }
+      case Page.EntryView: {
         return (
           <EntryView
             entry={getActiveEntry()}
@@ -843,7 +1004,8 @@ function App() {
             }}
           />
         );
-      case Page.NoteEditor:
+      }
+      case Page.NoteEditor: {
         return (
           <NoteEditor
             entry={getActiveEntry()}
@@ -851,7 +1013,8 @@ function App() {
             onEditorDidMount={onEditorDidMount}
           />
         );
-      case Page.Commit:
+      }
+      case Page.Commit: {
         return (
           <PrepareCommit
             ops={state.stagedGitOps}
@@ -860,10 +1023,29 @@ function App() {
             }}
           />
         );
-      case Page.Add:
-        return <AddEntry onAdded={() => {}} />;
-      case Page.Settings:
+      }
+      case Page.Add: {
+        return (
+          <AddEntry
+            repos={repo_utils.filterActiveRepos(repos)}
+            onAdded={({ entryKind, repo, title, labels, content, location, extension }) => {
+              dispatch({
+                kind: ActionKind.CreateEntry,
+                entryKind,
+                repo,
+                title,
+                labels,
+                content,
+                location,
+                extension,
+              });
+            }}
+          />
+        );
+      }
+      case Page.Settings: {
         return <Settings repos={repos} setRepos={setRepos} />;
+      }
     }
   };
 

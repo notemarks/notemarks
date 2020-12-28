@@ -16,7 +16,7 @@ export type FileEntryProps = {
   extension: string;
   timeCreated: Date;
   timeUpdated: Date;
-  rawUrl: string;
+  rawUrl?: string;
 };
 
 export type ContentDoc = {
