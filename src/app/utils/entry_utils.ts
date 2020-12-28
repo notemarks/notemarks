@@ -312,20 +312,22 @@ export function extractMetaData(entry: EntryFile): MetaData {
 // File + link entry fusion
 // ----------------------------------------------------------------------------
 
-export function mergeLabels(existingLabels: RawLabel[], incomingLabels: RawLabel[]) {
+export function mergeLabels(existingLabels: RawLabel[], incomingLabels: RawLabel[]): RawLabel[] {
   return label_utils.normalizeLabels([...existingLabels, ...incomingLabels]);
 }
 
-export function mergeRepos(existingRepos: Repo[], incomingRepo: Repo) {
+export function mergeRepos(existingRepos: Repo[], incomingRepo: Repo): Repo[] {
   if (!existingRepos.some((existingRepo) => getRepoId(existingRepo) === getRepoId(incomingRepo))) {
     existingRepos.push(incomingRepo);
   }
+  return existingRepos;
 }
 
-export function mergeLocations(existingLocations: string[], incomingLocation: string) {
+export function mergeLocations(existingLocations: string[], incomingLocation: string): string[] {
   if (!existingLocations.some((existingLocation) => existingLocation === incomingLocation)) {
     existingLocations.push(incomingLocation);
   }
+  return existingLocations;
 }
 
 export function recomputeLinkEntries(
@@ -397,6 +399,7 @@ export function recomputeLinkEntries(
     link.content.referencedBy = [];
     link.content.refRepos = [];
     link.content.refLocations = [];
+    link.labels = link.content.ownLabels.slice(0);
 
     // We assume that existingLinks do not contain duplicate links? I.e., no different link
     // data (title/labels) for the same link target. If existingLinks is the result of a
@@ -439,9 +442,12 @@ export function recomputeLinkEntries(
         } else {
           let linkEntry = linkMap[linkTarget];
           linkEntry.content.referencedBy.push(entry);
-          mergeLabels(linkEntry.labels, entry.labels);
-          mergeRepos(linkEntry.content.refRepos, entry.content.repo);
-          mergeLocations(linkEntry.content.refLocations, entry.content.location);
+          linkEntry.content.refRepos = mergeRepos(linkEntry.content.refRepos, entry.content.repo);
+          linkEntry.content.refLocations = mergeLocations(
+            linkEntry.content.refLocations,
+            entry.content.location
+          );
+          linkEntry.labels = mergeLabels(linkEntry.labels, entry.labels);
           if (!(linkTarget in linkInserted)) {
             linkEntries.push(linkEntry);
             linkInserted[linkEntry.content.target] = true;
