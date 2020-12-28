@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 
 import { Card, Input, Button, Form, Tabs } from "antd";
 
@@ -95,18 +95,12 @@ function CreateNoteForm({ repos, onAdded }: AddEntryProps) {
     labels: "",
     location: "",
   };
+  type FormVars = typeof initialValues;
 
-  type FormVars = {
-    repo: Repo;
-    title: string;
-    labels: string;
-    location: string;
-  };
   const onFinish = ({ repo, title, labels, location }: FormVars) => {
-    console.log({ repo, title, labels, location });
     onAdded({
       entryKind: EntryKind.NoteMarkdown,
-      repo: repo,
+      repo: repo!,
       title: title,
       labels: label_utils.extractLabelsFromString(labels),
       location: location,
@@ -116,12 +110,30 @@ function CreateNoteForm({ repos, onAdded }: AddEntryProps) {
   };
 
   return (
-    <Form {...formLayout} initialValues={initialValues} form={form} onFinish={onFinish}>
-      <Form.Item label="Repository" name="repo">
-        <RepoSelect repos={repos} onChange={(repo) => form.setFieldsValue({ repo: repo })} />
+    <Form
+      {...formLayout}
+      initialValues={initialValues}
+      form={form}
+      onFinish={onFinish}
+      requiredMark={false}
+    >
+      <Form.Item
+        label="Repository"
+        name="repo"
+        rules={[{ required: true, message: "Repo is required" }]}
+      >
+        <RepoSelect
+          value={form.getFieldValue("repo")}
+          repos={repos}
+          onChange={(repo) => form.setFieldsValue({ repo: repo })}
+        />
       </Form.Item>
 
-      <Form.Item label="Title" name="title">
+      <Form.Item
+        label="Title"
+        name="title"
+        rules={[{ required: true, message: "Title is required" }]}
+      >
         <Input placeholder="Note title" />
       </Form.Item>
 
@@ -145,30 +157,50 @@ function CreateNoteForm({ repos, onAdded }: AddEntryProps) {
 function CreateLinkForm({ repos, onAdded }: AddEntryProps) {
   const [form] = Form.useForm();
 
-  type FormVars = {
-    repo: Repo;
-    title: string;
-    labels: string;
-    url: string;
+  const initialValues = {
+    repo: repos.length > 0 ? repos[0] : undefined,
+    title: "",
+    labels: "",
+    url: "",
   };
+  type FormVars = typeof initialValues;
 
   const onFinish = ({ repo, title, labels, url }: FormVars) => {
     onAdded({
       entryKind: EntryKind.Link,
-      repo: repo,
+      repo: repo!,
       title: title,
       labels: label_utils.extractLabelsFromString(labels),
       content: url,
     });
+    form.resetFields();
   };
 
   return (
-    <Form {...formLayout} name="basic" form={form} onFinish={onFinish}>
-      <Form.Item label="Repository" name="repo">
-        <RepoSelect repos={repos} onChange={(repo) => form.setFieldsValue({ repo: repo })} />
+    <Form
+      {...formLayout}
+      initialValues={initialValues}
+      form={form}
+      onFinish={onFinish}
+      requiredMark={false}
+    >
+      <Form.Item
+        label="Repository"
+        name="repo"
+        rules={[{ required: true, message: "Repo is required" }]}
+      >
+        <RepoSelect
+          value={form.getFieldValue("repo")}
+          repos={repos}
+          onChange={(repo) => form.setFieldsValue({ repo: repo })}
+        />
       </Form.Item>
 
-      <Form.Item label="Title" name="title">
+      <Form.Item
+        label="Title"
+        name="title"
+        rules={[{ required: true, message: "Title is required" }]}
+      >
         <Input placeholder="Bookmark title" />
       </Form.Item>
 
@@ -176,11 +208,11 @@ function CreateLinkForm({ repos, onAdded }: AddEntryProps) {
         <Input placeholder="Labels" />
       </Form.Item>
 
-      <Form.Item label="Folder path" name="location">
-        <Input placeholder="Folder path" />
-      </Form.Item>
-
-      <Form.Item label="Bookmark URL" name="url">
+      <Form.Item
+        label="Bookmark URL"
+        name="url"
+        rules={[{ required: true, message: "URL is required" }]}
+      >
         <Input placeholder="Bookmark target URL" />
       </Form.Item>
 
@@ -196,34 +228,54 @@ function CreateLinkForm({ repos, onAdded }: AddEntryProps) {
 function CreateDocumentForm({ repos, onAdded }: AddEntryProps) {
   const [form] = Form.useForm();
 
-  type FormVars = {
-    title: string;
-    labels: string;
-    url: string;
-    repo: Repo;
-    location: string;
+  const initialValues = {
+    repo: repos.length > 0 ? repos[0] : undefined,
+    title: "",
+    labels: "",
+    url: "",
+    location: "",
   };
+  type FormVars = typeof initialValues;
 
-  const onFinish = async ({ title, labels, url, repo, location }: FormVars) => {
+  const onFinish = async ({ repo, title, labels, url, location }: FormVars) => {
     // TODO implement download statefully...
     let content = await web_utils.fetchBodyProxied(url);
     onAdded({
       entryKind: EntryKind.NoteMarkdown,
-      repo: repo,
+      repo: repo!,
       title: title,
       labels: label_utils.extractLabelsFromString(labels),
       content: content,
       location: location,
     });
+    form.resetFields();
   };
 
   return (
-    <Form {...formLayout} name="basic" form={form} onFinish={onFinish}>
-      <Form.Item label="Repository" name="repo">
-        <RepoSelect repos={repos} onChange={(repo) => form.setFieldsValue({ repo: repo })} />
+    <Form
+      {...formLayout}
+      initialValues={initialValues}
+      form={form}
+      onFinish={onFinish}
+      requiredMark={false}
+    >
+      <Form.Item
+        label="Repository"
+        name="repo"
+        rules={[{ required: true, message: "Repo is required" }]}
+      >
+        <RepoSelect
+          value={form.getFieldValue("repo")}
+          repos={repos}
+          onChange={(repo) => form.setFieldsValue({ repo: repo })}
+        />
       </Form.Item>
 
-      <Form.Item label="Title" name="title">
+      <Form.Item
+        label="Title"
+        name="title"
+        rules={[{ required: true, message: "Title is required" }]}
+      >
         <Input placeholder="Document title" />
       </Form.Item>
 
@@ -231,7 +283,15 @@ function CreateDocumentForm({ repos, onAdded }: AddEntryProps) {
         <Input placeholder="Labels" />
       </Form.Item>
 
-      <Form.Item label="Data URL" name="url">
+      <Form.Item label="Folder path" name="location">
+        <Input placeholder="Folder path" />
+      </Form.Item>
+
+      <Form.Item
+        label="Data URL"
+        name="url"
+        rules={[{ required: true, message: "URL is required" }]}
+      >
         <Input placeholder="URL from which to download document" />
       </Form.Item>
 

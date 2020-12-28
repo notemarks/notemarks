@@ -7,13 +7,15 @@ import { Repo, Repos } from "../repo";
 const { Option } = Select;
 
 export type RepoSelectProps = {
+  value: Repo | undefined;
   repos: Repos;
   onChange: (repo: Repo) => void;
 };
 
-export function RepoSelect({ repos, onChange }: RepoSelectProps) {
+export function RepoSelect({ value, repos, onChange }: RepoSelectProps) {
   return (
     <Select
+      value={value?.name}
       onChange={(value) => {
         let repo = repos.find((repo) => repo.name === value);
         if (repo != null) {
