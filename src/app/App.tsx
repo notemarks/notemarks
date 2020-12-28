@@ -293,6 +293,269 @@ function modifyLinkEntry(
 }
 
 // ----------------------------------------------------------------------------
+// Main state reducer
+// ----------------------------------------------------------------------------
+
+function reducer(state: State, action: Action): State {
+  switch (action.kind) {
+    case ActionKind.SwitchToPage: {
+      return { ...state, page: action.page };
+    }
+    case ActionKind.SwitchToEntryViewOnIdx: {
+      return { ...state, page: Page.EntryView, activeEntryIdx: action.idx };
+    }
+    case ActionKind.StartReloading: {
+      return { ...state, isReloading: true };
+    }
+    case ActionKind.ReloadingDone: {
+      // Note that a reload discards existing stagedGitOps due to the reset semantics.
+      return {
+        ...state,
+        isReloading: false,
+        entries: action.entries,
+        fileEntries: action.fileEntries,
+        linkEntries: action.linkEntries,
+        labels: action.labels,
+        allFileMapsOrig: action.allFileMapsOrig,
+        allFileMapsEdit: action.allFileMapsEdit,
+        stagedGitOps: action.stagedGitOps,
+      };
+    }
+    case ActionKind.UpdateNoteContent: {
+      if (state.activeEntryIdx == null) {
+        console.log("Illegal update: UpdateNoteContent called without an active entry.");
+        return state;
+      }
+
+      let activeEntry = state.entries[state.activeEntryIdx!];
+      if (!entry_utils.isNote(activeEntry)) {
+        console.log("Illegal update: UpdateNoteContent called when active entry wasn't a note.");
+        return state;
+      }
+
+      if (action.content !== activeEntry.content.text) {
+        let [html, links] = markdown_utils.processMarkdownText(action.content);
+
+        let activeEntryModified = entry_utils.recomputeKey({
+          ...activeEntry,
+          content: {
+            ...activeEntry.content,
+            text: action.content,
+            html: html,
+            links: links,
+          },
+        });
+        let result = modifyFileEntry(
+          state.fileEntries,
+          state.linkEntries,
+          activeEntry,
+          activeEntryModified
+        );
+        if (result == null) {
+          return state;
+        }
+        let [newFileEntries, newLinkEntries, newEntries, newActiveEntryIdx] = result;
+
+        // Stage git ops
+        let newAllFileMapsEdit = state.allFileMapsEdit.clone();
+
+        // Write entry content
+        let repo = activeEntry.content.repo;
+        let path = path_utils.getPath(activeEntry);
+        newAllFileMapsEdit.get(repo)?.data.setContent(path, action.content);
+
+        // Write meta data
+        // TODO: It would be nice if we would only update the "timeUpdate" in case
+        // the content is different from the original content, i.e., in case of a
+        // revert the timeUpdated gets reverted as well. However that is a bit tricky.
+        // It is not so easy to get the original timestamp. We'd compare the
+        // current note content to the orignal note content. If it is the same
+        // we need the original timestamp. We'd probably have to re-parse the
+        // original meta data and extract it from there. Also we have to be
+        // careful about other modifications to meta data. I.e., if the note
+        // content matches to the original note content, but the labels have
+        // changed, we'd need to set `timeUpdated` as well. So the condition
+        // actually need to be more complex than just content comparison.
+        // Perhaps a helper function based on the 4 variables oldFile, newFile,
+        // oldMetaFile, newMetaFile would be good?
+        activeEntry.content.timeUpdated = date_utils.getDateNow();
+        let metaData = entry_utils.extractMetaData(activeEntryModified);
+        let metaDataPath = path_utils.getAssociatedMetaPath(path);
+        let metaDataContent = io.serializeMetaData(metaData);
+        newAllFileMapsEdit.get(repo)?.data.setContent(metaDataPath, metaDataContent);
+
+        // Write new link DB
+        entry_utils.stageLinkDBUpdate(newLinkEntries, newAllFileMapsEdit);
+
+        // Diff to determine staged git ops
+        let stagedGitOps = git_ops.diffMultiFileMaps(state.allFileMapsOrig, newAllFileMapsEdit);
+
+        return {
+          ...state,
+          activeEntryIdx: newActiveEntryIdx,
+          entries: newEntries,
+          fileEntries: newFileEntries,
+          linkEntries: newLinkEntries,
+          allFileMapsEdit: newAllFileMapsEdit,
+          stagedGitOps: stagedGitOps,
+        };
+      } else {
+        return state;
+      }
+    }
+    case ActionKind.UpdateEntryMeta: {
+      if (state.activeEntryIdx == null) {
+        console.log("Illegal update: UpdateEntryMeta called without an active entry.");
+        return state;
+      }
+
+      let activeEntry = state.entries[state.activeEntryIdx!];
+      if (entry_utils.isNote(activeEntry)) {
+        let oldTitle = activeEntry.title;
+        let newTitle = action.title;
+
+        let oldLabels = activeEntry.labels.slice(0);
+        let newLabels = action.labels;
+
+        let titleChanged = oldTitle !== newTitle;
+        let labelsChanged = !label_utils.isSameLabels(oldLabels, newLabels);
+
+        if (titleChanged || labelsChanged) {
+          let activeEntryModified = entry_utils.recomputeKey({
+            ...activeEntry,
+            title: newTitle,
+            labels: action.labels,
+          });
+          let result = modifyFileEntry(
+            state.fileEntries,
+            state.linkEntries,
+            activeEntry,
+            activeEntryModified
+          );
+          if (result == null) {
+            return state;
+          }
+          let [newFileEntries, newLinkEntries, newEntries, newActiveEntryIdx] = result;
+
+          // Stage git ops
+          // Note: Currently we don't care about titleChanged/labelsChanged values
+          // and just delete + re-add the files unconditionally for simplicity.
+          let newAllFileMapsEdit = state.allFileMapsEdit.clone();
+
+          let repo = activeEntryModified.content.repo;
+          let oldPaths = path_utils.getPaths(activeEntry);
+          let newPaths = path_utils.getPaths(activeEntryModified);
+          let metaData = entry_utils.extractMetaData(activeEntryModified);
+          let entryContent = activeEntryModified.content.text;
+          let metaDataContent = io.serializeMetaData(metaData);
+          newAllFileMapsEdit.get(repo)?.data.delete(oldPaths.path);
+          newAllFileMapsEdit.get(repo)?.data.delete(oldPaths.metaPath);
+          newAllFileMapsEdit.get(repo)?.data.setContent(newPaths.path, entryContent);
+          newAllFileMapsEdit.get(repo)?.data.setContent(newPaths.metaPath, metaDataContent);
+
+          // Diff to determine staged git ops
+          let stagedGitOps = git_ops.diffMultiFileMaps(state.allFileMapsOrig, newAllFileMapsEdit);
+
+          return {
+            ...state,
+            activeEntryIdx: newActiveEntryIdx,
+            entries: newEntries,
+            fileEntries: newFileEntries,
+            linkEntries: newLinkEntries,
+            allFileMapsEdit: newAllFileMapsEdit,
+            stagedGitOps: stagedGitOps,
+            labels: label_utils.extractLabels(newEntries),
+          };
+        } else {
+          return state;
+        }
+      } else {
+        return state;
+      }
+    }
+    case ActionKind.UpdateLinkEntryMeta: {
+      let activeEntry = state.entries[state.activeEntryIdx!];
+      if (entry_utils.isLink(activeEntry)) {
+        let oldTitle = activeEntry.title;
+        let newTitle = action.title;
+
+        let oldOwnLabels = activeEntry.content.ownLabels.slice(0);
+        let newOwnLabels = action.ownLabels;
+
+        let titleChanged = oldTitle !== newTitle;
+        let labelsChanged = !label_utils.isSameLabels(oldOwnLabels, newOwnLabels);
+
+        if (titleChanged || labelsChanged) {
+          let activeEntryModified = entry_utils.recomputeKey({
+            ...activeEntry,
+            title: newTitle,
+            content: {
+              ...activeEntry.content,
+              ownLabels: newOwnLabels,
+            },
+          });
+          let result = modifyLinkEntry(
+            state.fileEntries,
+            state.linkEntries,
+            activeEntry,
+            activeEntryModified
+          );
+          if (result == null) {
+            return state;
+          }
+          let [newLinkEntries, newEntries, newActiveEntryIdx] = result;
+
+          // Stage git ops
+          let newAllFileMapsEdit = state.allFileMapsEdit.clone();
+
+          // Write new link DB
+          entry_utils.stageLinkDBUpdate(newLinkEntries, newAllFileMapsEdit);
+
+          // Diff to determine staged git ops
+          let stagedGitOps = git_ops.diffMultiFileMaps(state.allFileMapsOrig, newAllFileMapsEdit);
+
+          return {
+            ...state,
+            activeEntryIdx: newActiveEntryIdx,
+            entries: newEntries,
+            linkEntries: newLinkEntries,
+            allFileMapsEdit: newAllFileMapsEdit,
+            stagedGitOps: stagedGitOps,
+            labels: label_utils.extractLabels(newEntries),
+          };
+        } else {
+          return state;
+        }
+      } else {
+        return state;
+      }
+    }
+    case ActionKind.SuccessfulCommit: {
+      // Design decision: On a successful commit, we treat the current memory
+      // content of the app as the ground truth of the repo content. This assumes
+      // that the commit indeed has exactly resulted in what the app state is.
+      // Let's see how valid this assumption is...
+      // The alternative would be to re-trigger a reload entries after the commit
+      // succeeded. The problem with that could be that there might be a delay in
+      // the visibility of the changes. I.e., if we refresh too quickly, perhaps
+      // the fetch would not pick up the change even if it succeeded, but still
+      // requires a some time to propagate (eventual consistency...). Delaying the
+      // refresh arbitrarily feels like a hack, and if the assumption is valid, we
+      // can safe unnecessary API requests / time.
+      return {
+        ...state,
+        allFileMapsOrig: state.allFileMapsEdit.clone(),
+        stagedGitOps: new MultiRepoGitOps(),
+      };
+    }
+
+    default: {
+      fn.assertUnreachable(action);
+    }
+  }
+}
+
+// ----------------------------------------------------------------------------
 // App
 // ----------------------------------------------------------------------------
 
@@ -365,265 +628,6 @@ function App() {
   }
 
   // *** Main state
-
-  function reducer(state: State, action: Action): State {
-    switch (action.kind) {
-      case ActionKind.SwitchToPage: {
-        return { ...state, page: action.page };
-      }
-      case ActionKind.SwitchToEntryViewOnIdx: {
-        return { ...state, page: Page.EntryView, activeEntryIdx: action.idx };
-      }
-      case ActionKind.StartReloading: {
-        return { ...state, isReloading: true };
-      }
-      case ActionKind.ReloadingDone: {
-        // Note that a reload discards existing stagedGitOps due to the reset semantics.
-        return {
-          ...state,
-          isReloading: false,
-          entries: action.entries,
-          fileEntries: action.fileEntries,
-          linkEntries: action.linkEntries,
-          labels: action.labels,
-          allFileMapsOrig: action.allFileMapsOrig,
-          allFileMapsEdit: action.allFileMapsEdit,
-          stagedGitOps: action.stagedGitOps,
-        };
-      }
-      case ActionKind.UpdateNoteContent: {
-        if (state.activeEntryIdx == null) {
-          console.log("Illegal update: UpdateNoteContent called without an active entry.");
-          return state;
-        }
-
-        let activeEntry = state.entries[state.activeEntryIdx!];
-        if (!entry_utils.isNote(activeEntry)) {
-          console.log("Illegal update: UpdateNoteContent called when active entry wasn't a note.");
-          return state;
-        }
-
-        if (action.content !== activeEntry.content.text) {
-          let [html, links] = markdown_utils.processMarkdownText(action.content);
-
-          let activeEntryModified = entry_utils.recomputeKey({
-            ...activeEntry,
-            content: {
-              ...activeEntry.content,
-              text: action.content,
-              html: html,
-              links: links,
-            },
-          });
-          let result = modifyFileEntry(
-            state.fileEntries,
-            state.linkEntries,
-            activeEntry,
-            activeEntryModified
-          );
-          if (result == null) {
-            return state;
-          }
-          let [newFileEntries, newLinkEntries, newEntries, newActiveEntryIdx] = result;
-
-          // Stage git ops
-          let newAllFileMapsEdit = state.allFileMapsEdit.clone();
-
-          // Write entry content
-          let repo = activeEntry.content.repo;
-          let path = path_utils.getPath(activeEntry);
-          newAllFileMapsEdit.get(repo)?.data.setContent(path, action.content);
-
-          // Write meta data
-          // TODO: It would be nice if we would only update the "timeUpdate" in case
-          // the content is different from the original content, i.e., in case of a
-          // revert the timeUpdated gets reverted as well. However that is a bit tricky.
-          // It is not so easy to get the original timestamp. We'd compare the
-          // current note content to the orignal note content. If it is the same
-          // we need the original timestamp. We'd probably have to re-parse the
-          // original meta data and extract it from there. Also we have to be
-          // careful about other modifications to meta data. I.e., if the note
-          // content matches to the original note content, but the labels have
-          // changed, we'd need to set `timeUpdated` as well. So the condition
-          // actually need to be more complex than just content comparison.
-          // Perhaps a helper function based on the 4 variables oldFile, newFile,
-          // oldMetaFile, newMetaFile would be good?
-          activeEntry.content.timeUpdated = date_utils.getDateNow();
-          let metaData = entry_utils.extractMetaData(activeEntryModified);
-          let metaDataPath = path_utils.getAssociatedMetaPath(path);
-          let metaDataContent = io.serializeMetaData(metaData);
-          newAllFileMapsEdit.get(repo)?.data.setContent(metaDataPath, metaDataContent);
-
-          // Write new link DB
-          entry_utils.stageLinkDBUpdate(newLinkEntries, newAllFileMapsEdit);
-
-          // Diff to determine staged git ops
-          let stagedGitOps = git_ops.diffMultiFileMaps(state.allFileMapsOrig, newAllFileMapsEdit);
-
-          return {
-            ...state,
-            activeEntryIdx: newActiveEntryIdx,
-            entries: newEntries,
-            fileEntries: newFileEntries,
-            linkEntries: newLinkEntries,
-            allFileMapsEdit: newAllFileMapsEdit,
-            stagedGitOps: stagedGitOps,
-          };
-        } else {
-          return state;
-        }
-      }
-      case ActionKind.UpdateEntryMeta: {
-        if (state.activeEntryIdx == null) {
-          console.log("Illegal update: UpdateEntryMeta called without an active entry.");
-          return state;
-        }
-
-        let activeEntry = state.entries[state.activeEntryIdx!];
-        if (entry_utils.isNote(activeEntry)) {
-          let oldTitle = activeEntry.title;
-          let newTitle = action.title;
-
-          let oldLabels = activeEntry.labels.slice(0);
-          let newLabels = action.labels;
-
-          let titleChanged = oldTitle !== newTitle;
-          let labelsChanged = !label_utils.isSameLabels(oldLabels, newLabels);
-
-          if (titleChanged || labelsChanged) {
-            let activeEntryModified = entry_utils.recomputeKey({
-              ...activeEntry,
-              title: newTitle,
-              labels: action.labels,
-            });
-            let result = modifyFileEntry(
-              state.fileEntries,
-              state.linkEntries,
-              activeEntry,
-              activeEntryModified
-            );
-            if (result == null) {
-              return state;
-            }
-            let [newFileEntries, newLinkEntries, newEntries, newActiveEntryIdx] = result;
-
-            // Stage git ops
-            // Note: Currently we don't care about titleChanged/labelsChanged values
-            // and just delete + re-add the files unconditionally for simplicity.
-            let newAllFileMapsEdit = state.allFileMapsEdit.clone();
-
-            let repo = activeEntryModified.content.repo;
-            let oldPaths = path_utils.getPaths(activeEntry);
-            let newPaths = path_utils.getPaths(activeEntryModified);
-            let metaData = entry_utils.extractMetaData(activeEntryModified);
-            let entryContent = activeEntryModified.content.text;
-            let metaDataContent = io.serializeMetaData(metaData);
-            newAllFileMapsEdit.get(repo)?.data.delete(oldPaths.path);
-            newAllFileMapsEdit.get(repo)?.data.delete(oldPaths.metaPath);
-            newAllFileMapsEdit.get(repo)?.data.setContent(newPaths.path, entryContent);
-            newAllFileMapsEdit.get(repo)?.data.setContent(newPaths.metaPath, metaDataContent);
-
-            // Diff to determine staged git ops
-            let stagedGitOps = git_ops.diffMultiFileMaps(state.allFileMapsOrig, newAllFileMapsEdit);
-
-            return {
-              ...state,
-              activeEntryIdx: newActiveEntryIdx,
-              entries: newEntries,
-              fileEntries: newFileEntries,
-              linkEntries: newLinkEntries,
-              allFileMapsEdit: newAllFileMapsEdit,
-              stagedGitOps: stagedGitOps,
-              labels: label_utils.extractLabels(newEntries),
-            };
-          } else {
-            return state;
-          }
-        } else {
-          return state;
-        }
-      }
-      case ActionKind.UpdateLinkEntryMeta: {
-        let activeEntry = state.entries[state.activeEntryIdx!];
-        if (entry_utils.isLink(activeEntry)) {
-          let oldTitle = activeEntry.title;
-          let newTitle = action.title;
-
-          let oldOwnLabels = activeEntry.content.ownLabels.slice(0);
-          let newOwnLabels = action.ownLabels;
-
-          let titleChanged = oldTitle !== newTitle;
-          let labelsChanged = !label_utils.isSameLabels(oldOwnLabels, newOwnLabels);
-
-          if (titleChanged || labelsChanged) {
-            let activeEntryModified = entry_utils.recomputeKey({
-              ...activeEntry,
-              title: newTitle,
-              content: {
-                ...activeEntry.content,
-                ownLabels: newOwnLabels,
-              },
-            });
-            let result = modifyLinkEntry(
-              state.fileEntries,
-              state.linkEntries,
-              activeEntry,
-              activeEntryModified
-            );
-            if (result == null) {
-              return state;
-            }
-            let [newLinkEntries, newEntries, newActiveEntryIdx] = result;
-
-            // Stage git ops
-            let newAllFileMapsEdit = state.allFileMapsEdit.clone();
-
-            // Write new link DB
-            entry_utils.stageLinkDBUpdate(newLinkEntries, newAllFileMapsEdit);
-
-            // Diff to determine staged git ops
-            let stagedGitOps = git_ops.diffMultiFileMaps(state.allFileMapsOrig, newAllFileMapsEdit);
-
-            return {
-              ...state,
-              activeEntryIdx: newActiveEntryIdx,
-              entries: newEntries,
-              linkEntries: newLinkEntries,
-              allFileMapsEdit: newAllFileMapsEdit,
-              stagedGitOps: stagedGitOps,
-              labels: label_utils.extractLabels(newEntries),
-            };
-          } else {
-            return state;
-          }
-        } else {
-          return state;
-        }
-      }
-      case ActionKind.SuccessfulCommit: {
-        // Design decision: On a successful commit, we treat the current memory
-        // content of the app as the ground truth of the repo content. This assumes
-        // that the commit indeed has exactly resulted in what the app state is.
-        // Let's see how valid this assumption is...
-        // The alternative would be to re-trigger a reload entries after the commit
-        // succeeded. The problem with that could be that there might be a delay in
-        // the visibility of the changes. I.e., if we refresh too quickly, perhaps
-        // the fetch would not pick up the change even if it succeeded, but still
-        // requires a some time to propagate (eventual consistency...). Delaying the
-        // refresh arbitrarily feels like a hack, and if the assumption is valid, we
-        // can safe unnecessary API requests / time.
-        return {
-          ...state,
-          allFileMapsOrig: state.allFileMapsEdit.clone(),
-          stagedGitOps: new MultiRepoGitOps(),
-        };
-      }
-
-      default: {
-        fn.assertUnreachable(action);
-      }
-    }
-  }
 
   const [state, dispatch] = useReducer(reducer, {
     entries: [],
