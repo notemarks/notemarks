@@ -1,16 +1,16 @@
 import React, { useEffect, useState, useCallback } from "react";
 
 import { Input, Row, Button, Empty } from "antd";
-import { EditOutlined, GlobalOutlined, LinkOutlined, DownOutlined } from "@ant-design/icons";
+import { DownOutlined } from "@ant-design/icons";
 
 import styled from "@emotion/styled";
 
-import { ScrollContent } from "../components/HelperComponents";
+import { ScrollContent, EntryKindSymbol } from "../components/HelperComponents";
 import { VerticalContainer, UiRow, StretchedUiRow } from "../components/UiRow";
 import { LabelTree } from "../components/LabelTree";
 import { DefaultTag } from "../components/ColorTag";
 
-import { Entries, EntryKind, Label, Labels } from "../types";
+import { Entries, Label, Labels } from "../types";
 import { doesLabelMatchLabels } from "../utils/label_utils";
 import * as fn from "../utils/fn_utils";
 import { MutableRef } from "../utils/react_utils";
@@ -381,17 +381,6 @@ type CustomTableProps = {
   onEnterEntry: (i: number) => void;
 };
 
-function renderEntryKindSymbol(entryKind: EntryKind) {
-  switch (entryKind) {
-    case EntryKind.Link:
-      return <GlobalOutlined style={{ fontSize: 14 }} />;
-    case EntryKind.NoteMarkdown:
-      return <EditOutlined style={{ fontSize: 14 }} />;
-    case EntryKind.Document:
-      return <LinkOutlined style={{ fontSize: 14 }} />;
-  }
-}
-
 function renderLabels(labels: string[]) {
   return labels.map((label, i) => <DefaultTag key={label}>{label}</DefaultTag>);
 }
@@ -411,7 +400,9 @@ const CustomTable = React.memo(({ entries, highlighted, onEnterEntry }: CustomTa
             }}
           >
             <TitleWrapper>{entry.title}</TitleWrapper>
-            <SymbolWrapper>{renderEntryKindSymbol(entry.content.kind)}</SymbolWrapper>
+            <SymbolWrapper>
+              <EntryKindSymbol entryKind={entry.content.kind} style={{ fontSize: 14 }} />
+            </SymbolWrapper>
             <LabelsWrapper>{renderLabels(entry.labels)}</LabelsWrapper>
           </PseudoTableRow>
         ))}

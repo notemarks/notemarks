@@ -2,9 +2,8 @@ import React, { useState } from "react";
 
 import { Card, Input, Button, Form, Tabs } from "antd";
 
-// import styled from "@emotion/styled";
-
 import { UiRow } from "../components/UiRow";
+import { EntryKindSymbol } from "../components/HelperComponents";
 import { RepoSelect } from "../components/RepoSelect";
 
 import { EntryKind } from "../types";
@@ -50,13 +49,34 @@ function AddEntry({ onAdded, repos }: AddEntryProps) {
           }}
         >
           <Tabs defaultActiveKey="1">
-            <TabPane tab="Note" key="note">
+            <TabPane
+              tab={
+                <span style={{ marginRight: "24px" }}>
+                  <EntryKindSymbol entryKind={EntryKind.NoteMarkdown} /> Note
+                </span>
+              }
+              key="note"
+            >
               <CreateNoteForm onAdded={onAdded} repos={repos} />
             </TabPane>
-            <TabPane tab="Document" key="doc">
+            <TabPane
+              tab={
+                <span style={{ marginRight: "24px" }}>
+                  <EntryKindSymbol entryKind={EntryKind.Document} /> Document
+                </span>
+              }
+              key="doc"
+            >
               <CreateDocumentForm onAdded={onAdded} repos={repos} />
             </TabPane>
-            <TabPane tab="Bookmark" key="link">
+            <TabPane
+              tab={
+                <span style={{ marginRight: "24px" }}>
+                  <EntryKindSymbol entryKind={EntryKind.Link} /> Bookmark
+                </span>
+              }
+              key="link"
+            >
               <CreateLinkForm onAdded={onAdded} repos={repos} />
             </TabPane>
           </Tabs>
@@ -69,17 +89,21 @@ function AddEntry({ onAdded, repos }: AddEntryProps) {
 function CreateNoteForm({ repos, onAdded }: AddEntryProps) {
   const [form] = Form.useForm();
 
-  const onFinish = ({
-    title,
-    labels,
-    repo,
-    location,
-  }: {
+  const initialValues = {
+    repo: repos.length > 0 ? repos[0] : undefined,
+    title: "",
+    labels: "",
+    location: "",
+  };
+
+  type FormVars = {
+    repo: Repo;
     title: string;
     labels: string;
-    repo: Repo;
     location: string;
-  }) => {
+  };
+  const onFinish = ({ repo, title, labels, location }: FormVars) => {
+    console.log({ repo, title, labels, location });
     onAdded({
       entryKind: EntryKind.NoteMarkdown,
       repo: repo,
@@ -88,10 +112,11 @@ function CreateNoteForm({ repos, onAdded }: AddEntryProps) {
       location: location,
       content: "",
     });
+    form.resetFields();
   };
 
   return (
-    <Form {...formLayout} name="basic" form={form} onFinish={onFinish}>
+    <Form {...formLayout} initialValues={initialValues} form={form} onFinish={onFinish}>
       <Form.Item label="Repository" name="repo">
         <RepoSelect repos={repos} onChange={(repo) => form.setFieldsValue({ repo: repo })} />
       </Form.Item>
@@ -120,17 +145,14 @@ function CreateNoteForm({ repos, onAdded }: AddEntryProps) {
 function CreateLinkForm({ repos, onAdded }: AddEntryProps) {
   const [form] = Form.useForm();
 
-  const onFinish = ({
-    title,
-    labels,
-    url,
-    repo,
-  }: {
+  type FormVars = {
+    repo: Repo;
     title: string;
     labels: string;
     url: string;
-    repo: Repo;
-  }) => {
+  };
+
+  const onFinish = ({ repo, title, labels, url }: FormVars) => {
     onAdded({
       entryKind: EntryKind.Link,
       repo: repo,
@@ -174,19 +196,15 @@ function CreateLinkForm({ repos, onAdded }: AddEntryProps) {
 function CreateDocumentForm({ repos, onAdded }: AddEntryProps) {
   const [form] = Form.useForm();
 
-  const onFinish = async ({
-    title,
-    labels,
-    url,
-    repo,
-    location,
-  }: {
+  type FormVars = {
     title: string;
     labels: string;
     url: string;
     repo: Repo;
     location: string;
-  }) => {
+  };
+
+  const onFinish = async ({ title, labels, url, repo, location }: FormVars) => {
     // TODO implement download statefully...
     let content = await web_utils.fetchBodyProxied(url);
     onAdded({

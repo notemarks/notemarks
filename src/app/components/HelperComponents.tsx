@@ -1,9 +1,12 @@
 import React from "react";
 
 import { Empty } from "antd";
-import { UploadOutlined } from "@ant-design/icons";
+import { UploadOutlined, EditOutlined, GlobalOutlined, LinkOutlined } from "@ant-design/icons";
 
 import styled from "@emotion/styled";
+
+import { EntryKind } from "../types";
+import * as fn from "../utils/fn_utils";
 
 export const NoEntrySelected = () => (
   <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No entry selected" />
@@ -64,4 +67,23 @@ export function UploadOutlinedWithStatus({ status }: { status: boolean }) {
       </span>
     </>
   );
+}
+
+export function EntryKindSymbol({
+  entryKind,
+  style,
+}: {
+  entryKind: EntryKind;
+  style?: React.CSSProperties;
+}) {
+  switch (entryKind) {
+    case EntryKind.Link:
+      return <GlobalOutlined style={style} />;
+    case EntryKind.NoteMarkdown:
+      return <EditOutlined style={style} />;
+    case EntryKind.Document:
+      return <LinkOutlined style={style} />;
+    default:
+      fn.assertUnreachable(entryKind);
+  }
 }
