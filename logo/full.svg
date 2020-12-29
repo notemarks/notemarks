@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="740"
+   height="220"
+   viewBox="0 0 740.00001 220"
+   version="1.1"
+   id="SVGRoot"
+   inkscape:version="0.92.3 (2405546, 2018-03-11)"
+   sodipodi:docname="full.svg"
+   inkscape:export-filename="/home/fabian/git/NotemarksSource/logo/full.png"
+   inkscape:export-xdpi="96"
+   inkscape:export-ydpi="96">
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="1"
+     inkscape:cx="521.29352"
+     inkscape:cy="-142.6599"
+     inkscape:document-units="px"
+     inkscape:current-layer="layer1"
+     showgrid="false"
+     inkscape:window-width="2509"
+     inkscape:window-height="1385"
+     inkscape:window-x="51"
+     inkscape:window-y="27"
+     inkscape:window-maximized="1"
+     inkscape:snap-bbox="true"
+     fit-margin-top="0"
+     fit-margin-left="0"
+     fit-margin-right="0"
+     fit-margin-bottom="0"
+     viewbox-width="2187.38"
+     scale-x="0.2">
+    <inkscape:grid
+       type="xygrid"
+       id="grid1941"
+       originx="-147.17909"
+       originy="170.41354" />
+  </sodipodi:namedview>
+  <defs
+     id="defs1382">
+    <filter
+       style="color-interpolation-filters:sRGB"
+       inkscape:label="Drop Shadow"
+       id="filter1981"
+       x="-0.5"
+       y="-0.5"
+       width="2"
+       height="2">
+      <feFlood
+         flood-opacity="1"
+         flood-color="rgb(0,0,0)"
+         result="flood"
+         id="feFlood1971" />
+      <feComposite
+         in="flood"
+         in2="SourceGraphic"
+         operator="in"
+         result="composite1"
+         id="feComposite1973" />
+      <feGaussianBlur
+         in="composite1"
+         stdDeviation="10"
+         result="blur"
+         id="feGaussianBlur1975" />
+      <feOffset
+         dx="0"
+         dy="0"
+         result="offset"
+         id="feOffset1977" />
+      <feComposite
+         in="SourceGraphic"
+         in2="offset"
+         operator="over"
+         result="fbSourceGraphic"
+         id="feComposite1979" />
+      <feColorMatrix
+         result="fbSourceGraphicAlpha"
+         in="fbSourceGraphic"
+         values="0 0 0 -1 0 0 0 0 -1 0 0 0 0 -1 0 0 0 0 1 0"
+         id="feColorMatrix827" />
+      <feFlood
+         id="feFlood829"
+         flood-opacity="1"
+         flood-color="rgb(0,0,0)"
+         result="flood"
+         in="fbSourceGraphic" />
+      <feComposite
+         in2="fbSourceGraphic"
+         id="feComposite831"
+         in="flood"
+         operator="in"
+         result="composite1" />
+      <feGaussianBlur
+         id="feGaussianBlur833"
+         in="composite1"
+         stdDeviation="20"
+         result="blur" />
+      <feOffset
+         id="feOffset835"
+         dx="0"
+         dy="0"
+         result="offset" />
+      <feComposite
+         in2="offset"
+         id="feComposite837"
+         in="fbSourceGraphic"
+         operator="over"
+         result="composite2" />
+    </filter>
+    <filter
+       style="color-interpolation-filters:sRGB"
+       inkscape:label="Drop Shadow"
+       id="filter2005">
+      <feFlood
+         flood-opacity="0.666667"
+         flood-color="rgb(0,0,0)"
+         result="flood"
+         id="feFlood1995" />
+      <feComposite
+         in="flood"
+         in2="SourceGraphic"
+         operator="in"
+         result="composite1"
+         id="feComposite1997" />
+      <feGaussianBlur
+         in="composite1"
+         stdDeviation="10"
+         result="blur"
+         id="feGaussianBlur1999" />
+      <feOffset
+         dx="0"
+         dy="0"
+         result="offset"
+         id="feOffset2001" />
+      <feComposite
+         in="SourceGraphic"
+         in2="offset"
+         operator="over"
+         result="composite2"
+         id="feComposite2003" />
+    </filter>
+  </defs>
+  <metadata
+     id="metadata1385">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     id="layer1"
+     inkscape:groupmode="layer"
+     inkscape:label="Layer 1"
+     transform="translate(-44.541061,-293.3231)">
+    <path
+       style="opacity:1;vector-effect:none;fill:#222225;fill-opacity:1;stroke:none;stroke-width:0.37156415;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:0.37156416, 0.37156416;stroke-dashoffset:0;stroke-opacity:1"
+       d="M 90.369491,315.44156 H 180.26102 C 185.3766,315.44156 189.49492,319.55988 189.49492,324.67546 V 491.20463 L 135.31525,474.02213 81.135592,491.20463 V 324.67557 C 81.135592,319.56 85.253907,315.44156 90.369491,315.44156 Z"
+       id="rect1943"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="ssscccss" />
+    <path
+       inkscape:connector-curvature="0"
+       style="fill:none;stroke:#61dafb;stroke-width:21.45873833;stroke-linecap:round;stroke-linejoin:round;stroke-opacity:1;filter:url(#filter1981)"
+       d="M 306.01314,174.23471 173.29572,307.27889 165.25357,326.74783 184.72249,318.70568 317.76668,185.98825 Z M 332.56833,147.6844 326.81837,153.42948 338.5719,165.18302 344.32187,159.43305 A 8.0519043,8.0519043 0 0 0 344.32187,148.05017 L 343.95611,147.6844 A 8.0519043,8.0519043 0 0 0 332.56833,147.6844 Z"
+       id="path4"
+       transform="matrix(0.40023819,0,0,0.40023819,32.856797,301.56088)" />
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:300;font-stretch:normal;font-size:3.66342568px;line-height:1.25;font-family:Roboto;-inkscape-font-specification:'Roboto Light';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.3434462"
+       x="234.22833"
+       y="434.70459"
+       id="text835"><tspan
+         sodipodi:role="line"
+         id="tspan833"
+         x="234.22833"
+         y="434.70459"
+         style="font-style:normal;font-variant:normal;font-weight:300;font-stretch:normal;font-size:114.48206329px;font-family:Roboto;-inkscape-font-specification:'Roboto Light';stroke-width:0.3434462">notemarks</tspan></text>
+  </g>
+</svg>

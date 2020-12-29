@@ -1,5 +1,22 @@
 
-## Features
+![logo/full.png](logo/full.png)
+
+A git based labeling app to manage notes, documents, and bookmarks.
+
+## Why notemarks?
+
+- **Mixing notes, documents, and bookmarks**: My note-taking approach is an interplay of notes, documents (e.g. papers), and bookmarks. For instance, in some cases a note revolves around a bookmark or document (e.g. a paper), in other cases a note evolves into a collection of links. In notemarks they can be mananged in a coherent system.
+- **Hierarchical label system**:
+- **Access notes & bookmarks from everywhere**
+- **Full git integration**
+- **Keyboard friendly UI**
+- **No vendor lock in / open source**
+
+## Usage notes
+
+### Concepts
+
+### Keyboard shortcuts
 
 - Keyboard friendly user interface
 
@@ -10,6 +27,8 @@
 - Easy search: Title + easy label search via inclusion/exclusion
 
 - Paste links with title
+
+### GitHub Access
 
 
 ## Planned features
@@ -43,5 +62,5 @@
 
 ### Longer term
 
-- Other data strage backends like Bitbucket or even Dropbox
+- Other data backends like Bitbucket or even Dropbox
 - Native apps
