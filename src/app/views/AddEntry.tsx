@@ -7,7 +7,7 @@ import { EntryKindSymbol } from "../components/HelperComponents";
 import { RepoSelect } from "../components/RepoSelect";
 
 import { EntryKind } from "../types";
-import { Repo } from "../repo";
+import { Repo, getDefaultRepo } from "../repo";
 
 import * as label_utils from "../utils/label_utils";
 import * as web_utils from "../utils/web_utils";
@@ -90,7 +90,7 @@ function CreateNoteForm({ repos, onAdded }: AddEntryProps) {
   const [form] = Form.useForm();
 
   const initialValues = {
-    repo: repos.length > 0 ? repos[0] : undefined,
+    repo: getDefaultRepo(repos),
     title: "",
     labels: "",
     location: "",
@@ -122,11 +122,7 @@ function CreateNoteForm({ repos, onAdded }: AddEntryProps) {
         name="repo"
         rules={[{ required: true, message: "Repo is required" }]}
       >
-        <RepoSelect
-          value={form.getFieldValue("repo")}
-          repos={repos}
-          onChange={(repo) => form.setFieldsValue({ repo: repo })}
-        />
+        <RepoSelect repos={repos} />
       </Form.Item>
 
       <Form.Item
@@ -158,7 +154,7 @@ function CreateLinkForm({ repos, onAdded }: AddEntryProps) {
   const [form] = Form.useForm();
 
   const initialValues = {
-    repo: repos.length > 0 ? repos[0] : undefined,
+    repo: getDefaultRepo(repos),
     title: "",
     labels: "",
     url: "",
@@ -189,11 +185,7 @@ function CreateLinkForm({ repos, onAdded }: AddEntryProps) {
         name="repo"
         rules={[{ required: true, message: "Repo is required" }]}
       >
-        <RepoSelect
-          value={form.getFieldValue("repo")}
-          repos={repos}
-          onChange={(repo) => form.setFieldsValue({ repo: repo })}
-        />
+        <RepoSelect repos={repos} />
       </Form.Item>
 
       <Form.Item
@@ -229,7 +221,7 @@ function CreateDocumentForm({ repos, onAdded }: AddEntryProps) {
   const [form] = Form.useForm();
 
   const initialValues = {
-    repo: repos.length > 0 ? repos[0] : undefined,
+    repo: getDefaultRepo(repos),
     title: "",
     labels: "",
     url: "",
@@ -264,11 +256,7 @@ function CreateDocumentForm({ repos, onAdded }: AddEntryProps) {
         name="repo"
         rules={[{ required: true, message: "Repo is required" }]}
       >
-        <RepoSelect
-          value={form.getFieldValue("repo")}
-          repos={repos}
-          onChange={(repo) => form.setFieldsValue({ repo: repo })}
-        />
+        <RepoSelect repos={repos} />
       </Form.Item>
 
       <Form.Item

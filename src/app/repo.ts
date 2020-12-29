@@ -65,6 +65,15 @@ export function filterActiveRepos(repos: Repos): Repos {
   return repos.filter((repo) => repo.enabled && repo.verified);
 }
 
+export function getDefaultRepo(repos: Repos): Repo | undefined {
+  let defaultRepo = repos.find((repo) => repo.default);
+  if (defaultRepo != null) {
+    return defaultRepo;
+  } else {
+    return repos.length > 0 ? repos[0] : undefined;
+  }
+}
+
 // ----------------------------------------------------------------------------
 // Storage I/O
 // ----------------------------------------------------------------------------
