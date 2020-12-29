@@ -238,6 +238,8 @@ const List = React.forwardRef(
           if (selectedIndex !== -1) {
             onEnterEntry(filteredEntries[selectedIndex].idx!);
           }
+          // This is needed otherwise the "Enter" can also fire on the auto-focused "open" button
+          event.preventDefault();
           break;
       }
     }

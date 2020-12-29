@@ -8,9 +8,9 @@ import {
   ReposGetContentResponseData,
 } from "@octokit/types/dist-types/generated/Endpoints";
 
-import { okAsync, errAsync, ResultAsync } from "neverthrow";
+import { ok, okAsync, errAsync, ResultAsync, err } from "neverthrow";
 
-import { EntryFile, WrappedError } from "./types";
+import { EntryFile, EntryDoc, WrappedError } from "./types";
 import { Repo, Repos } from "./repo";
 
 import * as entry_utils from "./utils/entry_utils";
@@ -79,6 +79,7 @@ export async function verifyRepo(repo: Repo) {
 // Encoding reference:
 // https://stackoverflow.com/questions/30106476/using-javascripts-atob-to-decode-base64-doesnt-properly-decode-utf-8-strings
 
+// TODO: This function is currently not used before uploading? Does uploading of UTF-8 work properly?
 export function base64EncodeUnicode(s: string): string {
   // first we use encodeURIComponent to get percent-encoded UTF-8,
   // then we convert the percent encodings into raw bytes which
@@ -133,13 +134,20 @@ function cachedFetch(
           path: path,
         }),
         "Failure during fetching file from GitHub."
-      ).map((response) => {
+      ).andThen((response) => {
         console.log(`${key} fetched successfully`);
         //console.log(content)
 
-        // TODO: Turn these into Result errors...
-        console.assert(response.data.sha === sha, "SHA mismatch");
-        console.assert(response.data.encoding === "base64", "Encoding mismatch");
+        if (response.data.sha !== sha) {
+          return err({
+            msg: "Downloaded SHA does not match.",
+          });
+        }
+        if (response.data.encoding !== "base64") {
+          return err({
+            msg: `GitHub API returned content that is not base64 encoded but: ${response.data.encoding}.`,
+          });
+        }
 
         // The following simple base64 -> string decoding has problem if the content is actually UTF-8.
         // let plainContent = atob(content.data.content)
@@ -153,7 +161,7 @@ function cachedFetch(
 
         localforage.setItem(key, plainContent);
 
-        return plainContent;
+        return ok(plainContent);
       });
     }
   });
@@ -280,7 +288,7 @@ async function downloadFiles(
 }
 
 // ----------------------------------------------------------------------------
-// Load high level API
+// loadEntries high level API
 // ----------------------------------------------------------------------------
 
 // Possible extension of return values:
@@ -327,6 +335,38 @@ export async function loadEntries(
   console.log(allFileMapsEdit);
 
   return [fileEntries, allFileMapsOrig, allFileMapsEdit, allErrors];
+}
+
+// ----------------------------------------------------------------------------
+// Document download API
+// ----------------------------------------------------------------------------
+
+export function downloadDocument(
+  entry: EntryDoc,
+  decodeBase64: boolean
+): ResultAsync<string, WrappedError> {
+  let repo = entry.content.repo;
+  let path = path_utils.getPath(entry);
+
+  const octokit = new Octokit({
+    auth: repo.token,
+  });
+
+  return wrapPromise(
+    octokit.repos.getContent({
+      owner: repo.userName,
+      repo: repo.repoName,
+      path: path,
+    }),
+    `Could not fetch file '${path}'.`
+  ).map((response) => {
+    let content = response.data.content;
+    if (decodeBase64) {
+      return base64DecodeUnicode(content);
+    } else {
+      return response.data.content;
+    }
+  });
 }
 
 // ----------------------------------------------------------------------------

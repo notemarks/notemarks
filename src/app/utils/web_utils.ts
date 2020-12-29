@@ -57,3 +57,43 @@ export const getTitle = async (url: string) => {
     return undefined;
   }
 };
+
+function getMediaType(extension: string) {
+  // https://en.wikipedia.org/wiki/Media_type
+  // https://stackoverflow.com/a/6783972/1804173
+  extension = extension.toLowerCase();
+  switch (extension) {
+    case "pdf":
+      return "application/pdf";
+    case "jpg":
+    case "jpeg":
+      return "image/jpeg";
+    case "png":
+      return "image/png";
+    case "svg":
+      return "image/svg";
+    case "zip":
+      return "application/zip";
+    default:
+      return "application/octet-stream";
+  }
+}
+
+export function downloadFromMemory(filename: string, extension: string, dataBase64: string) {
+  // https://stackoverflow.com/questions/3665115/how-to-create-a-file-in-memory-for-user-to-download-but-not-through-server
+  // https://ourcodeworld.com/articles/read/189/how-to-create-a-file-and-generate-a-download-with-javascript-in-the-browser-without-a-server
+  // https://en.wikipedia.org/wiki/Data_URI_scheme
+
+  let mediaType = getMediaType(extension);
+
+  var element = document.createElement("a");
+  element.setAttribute("href", `data:${mediaType};base64,${dataBase64}`);
+  element.setAttribute("download", filename);
+
+  element.style.display = "none";
+  document.body.appendChild(element);
+
+  element.click();
+
+  document.body.removeChild(element);
+}

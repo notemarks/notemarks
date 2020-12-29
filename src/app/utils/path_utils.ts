@@ -125,15 +125,18 @@ export function escapeTitle(s: string): string {
 // Higher level helpers on Entry
 // ----------------------------------------------------------------------------
 
-export function getPath(entry: EntryFile): string {
-  let s =
-    entry.content.location.trim().length === 0
-      ? escapeTitle(entry.title)
-      : `${entry.content.location}/${escapeTitle(entry.title)}`;
+export function getBasename(entry: EntryFile): string {
+  let s = escapeTitle(entry.title);
   if (entry.content.extension !== "") {
     s += "." + entry.content.extension;
   }
   return s;
+}
+
+export function getPath(entry: EntryFile): string {
+  return entry.content.location.trim().length === 0
+    ? getBasename(entry)
+    : `${entry.content.location}/${getBasename(entry)}`;
 }
 
 export function getPaths(entry: EntryFile): { path: string; metaPath: string } {

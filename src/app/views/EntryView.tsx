@@ -9,12 +9,15 @@ import { NoEntrySelected, ScrollContent } from "../components/HelperComponents";
 import { VerticalContainer, UiRow, StretchedUiRow } from "../components/UiRow";
 import { DefaultTag } from "../components/ColorTag";
 
-import { Entry, EntryNote, EntryLink } from "../types";
+import { Entry, EntryNote, EntryDoc, EntryLink } from "../types";
 
 import * as entry_utils from "../utils/entry_utils";
 import * as date_utils from "../utils/date_utils";
 import * as label_utils from "../utils/label_utils";
+import * as path_utils from "../utils/path_utils";
 import * as web_utils from "../utils/web_utils";
+
+import * as octokit from "../octokit";
 
 const { Title } = Typography;
 const { Panel } = Collapse;
@@ -129,6 +132,8 @@ function EntryView({ entry, onUpdateNoteData, onUpdateLinkData }: EntryViewProps
     return <NoEntrySelected />;
   } else if (entry_utils.isNote(entry)) {
     return <NoteView entry={entry} onUpdateNoteData={onUpdateNoteData} />;
+  } else if (entry_utils.isDoc(entry)) {
+    return <DocView entry={entry} onUpdateNoteData={onUpdateNoteData} />;
   } else if (entry_utils.isLink(entry)) {
     return <LinkView entry={entry} onUpdateLinkData={onUpdateLinkData} />;
   } else {
@@ -223,7 +228,6 @@ const NoteEditForm = ({ initialTitle, initialLabels, onUpdateNoteData }: NoteEdi
   return (
     <Form
       {...editFormLayout}
-      name="basic"
       initialValues={{ title: initialTitle, labels: initialLabels.join(" ") }}
       onFinish={onFinish}
     >
@@ -248,6 +252,60 @@ const NoteEditForm = ({ initialTitle, initialLabels, onUpdateNoteData }: NoteEdi
     </Form>
   );
 };
+
+// ----------------------------------------------------------------------------
+// DocView
+// ----------------------------------------------------------------------------
+
+type DocViewProps = {
+  entry: EntryDoc;
+  onUpdateNoteData: (title: string, labels: string[]) => void;
+};
+
+function DocView({ entry, onUpdateNoteData }: DocViewProps) {
+  return (
+    <VerticalContainer>
+      <UiRow
+        center={
+          <>
+            <EntryHeader
+              entry={entry}
+              editForm={
+                <NoteEditForm
+                  initialTitle={entry.title}
+                  initialLabels={entry.labels}
+                  onUpdateNoteData={onUpdateNoteData}
+                />
+              }
+            />
+            <div style={{ width: "100%", display: "flex", justifyContent: "center" }}>
+              <Button
+                autoFocus
+                type="primary"
+                size="large"
+                style={{
+                  marginTop: "40px",
+                  display: "inline-block",
+                }}
+                onClick={async () => {
+                  let contentBase64 = await octokit.downloadDocument(entry, false);
+                  if (contentBase64.isOk()) {
+                    let filename = path_utils.getBasename(entry);
+                    let extension = entry.content.extension;
+                    web_utils.downloadFromMemory(filename, extension, contentBase64.value);
+                  }
+                }}
+              >
+                <div style={{ marginLeft: "20px", marginRight: "20px" }}>open</div>
+              </Button>
+            </div>
+            <Footer />
+          </>
+        }
+      />
+    </VerticalContainer>
+  );
+}
 
 // ----------------------------------------------------------------------------
 // LinkView
@@ -328,7 +386,6 @@ const LinkEditForm = ({
   return (
     <Form
       {...editFormLayout}
-      name="basic"
       initialValues={{ title: initialTitle, labels: initialLabels.join(" ") }}
       form={form}
       onFinish={onFinish}
