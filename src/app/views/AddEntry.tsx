@@ -37,6 +37,14 @@ type AddEntryProps = {
   repos: Repo[];
 };
 
+function TabHeader({ entryKind, text }: { entryKind: EntryKind; text: string }) {
+  return (
+    <span style={{ marginRight: "24px", userSelect: "none" }}>
+      <EntryKindSymbol entryKind={entryKind} /> {text}
+    </span>
+  );
+}
+
 function AddEntry({ onAdded, repos }: AddEntryProps) {
   return (
     <UiRow
@@ -49,34 +57,13 @@ function AddEntry({ onAdded, repos }: AddEntryProps) {
           }}
         >
           <Tabs defaultActiveKey="1">
-            <TabPane
-              tab={
-                <span style={{ marginRight: "24px" }}>
-                  <EntryKindSymbol entryKind={EntryKind.NoteMarkdown} /> Note
-                </span>
-              }
-              key="note"
-            >
+            <TabPane tab={<TabHeader entryKind={EntryKind.NoteMarkdown} text="Note" />} key="note">
               <CreateNoteForm onAdded={onAdded} repos={repos} />
             </TabPane>
-            <TabPane
-              tab={
-                <span style={{ marginRight: "24px" }}>
-                  <EntryKindSymbol entryKind={EntryKind.Document} /> Document
-                </span>
-              }
-              key="doc"
-            >
+            <TabPane tab={<TabHeader entryKind={EntryKind.Document} text="Document" />} key="doc">
               <CreateDocumentForm onAdded={onAdded} repos={repos} />
             </TabPane>
-            <TabPane
-              tab={
-                <span style={{ marginRight: "24px" }}>
-                  <EntryKindSymbol entryKind={EntryKind.Link} /> Bookmark
-                </span>
-              }
-              key="link"
-            >
+            <TabPane tab={<TabHeader entryKind={EntryKind.Link} text="Bookmark" />} key="link">
               <CreateLinkForm onAdded={onAdded} repos={repos} />
             </TabPane>
           </Tabs>
@@ -133,12 +120,12 @@ function CreateNoteForm({ repos, onAdded }: AddEntryProps) {
         <Input placeholder="Note title" />
       </Form.Item>
 
-      <Form.Item label="Labels" name="labels">
-        <Input placeholder="Labels" />
-      </Form.Item>
-
       <Form.Item label="Folder path" name="location">
         <Input placeholder="Folder path" />
+      </Form.Item>
+
+      <Form.Item label="Labels" name="labels">
+        <Input placeholder="Labels" />
       </Form.Item>
 
       <Form.Item {...fromTailLayout} style={{ marginBottom: 0 }}>
@@ -223,22 +210,24 @@ function CreateDocumentForm({ repos, onAdded }: AddEntryProps) {
   const initialValues = {
     repo: getDefaultRepo(repos),
     title: "",
+    extension: "",
+    location: "",
     labels: "",
     url: "",
-    location: "",
   };
   type FormVars = typeof initialValues;
 
-  const onFinish = async ({ repo, title, labels, url, location }: FormVars) => {
+  const onFinish = async ({ repo, title, extension, location, labels, url }: FormVars) => {
     // TODO implement download statefully...
     let content = await web_utils.fetchBodyProxied(url);
     onAdded({
       entryKind: EntryKind.NoteMarkdown,
       repo: repo!,
       title: title,
+      extension: extension,
+      location: location,
       labels: label_utils.extractLabelsFromString(labels),
       content: content,
-      location: location,
     });
     form.resetFields();
   };
@@ -267,12 +256,20 @@ function CreateDocumentForm({ repos, onAdded }: AddEntryProps) {
         <Input placeholder="Document title" />
       </Form.Item>
 
-      <Form.Item label="Labels" name="labels">
-        <Input placeholder="Labels" />
+      <Form.Item
+        label="File extension"
+        name="extension"
+        rules={[{ required: true, message: "File extension is required" }]}
+      >
+        <Input placeholder="File extension" />
       </Form.Item>
 
       <Form.Item label="Folder path" name="location">
         <Input placeholder="Folder path" />
+      </Form.Item>
+
+      <Form.Item label="Labels" name="labels">
+        <Input placeholder="Labels" />
       </Form.Item>
 
       <Form.Item

@@ -318,8 +318,7 @@ function addEntry(
   oldFileEntries: EntryFile[],
   oldLinkEntries: EntryLink[],
   newAllFileMapsEdit: MultiRepoFileMap,
-  addEntryAction: ActionCreateEntry,
-  activeEntry?: Entry
+  addEntryAction: ActionCreateEntry
 ): [EntryFile[], EntryLink[], Entry[], number | undefined] {
   const tuple = <T extends any[]>(...args: T): T => args;
 
@@ -351,7 +350,7 @@ function addEntry(
 
     // TODO: Stage meta
 
-    return tuple(newFileEntries, newLinkEntries, newEntries);
+    return tuple(newFileEntries, newLinkEntries, newEntries, newEntry);
   };
 
   const getNewEntriesForAddDocument = () => {
@@ -379,7 +378,7 @@ function addEntry(
 
     // TODO: Stage meta
 
-    return tuple(newFileEntries, newLinkEntries, newEntries);
+    return tuple(newFileEntries, newLinkEntries, newEntries, newEntry);
   };
 
   const getNewEntriesForAddLink = () => {
@@ -401,25 +400,22 @@ function addEntry(
     });
     tmpLinkEntries.push(newEntry);
     let [newLinkEntries, newEntries] = entry_utils.recomputeEntries(newFileEntries, tmpLinkEntries);
-    return tuple(newFileEntries, newLinkEntries, newEntries);
+    return tuple(newFileEntries, newLinkEntries, newEntries, newEntry);
   };
 
-  let [newFileEntries, newLinkEntries, newEntries] =
+  let [newFileEntries, newLinkEntries, newEntries, newEntry] =
     addEntryAction.entryKind === EntryKind.NoteMarkdown
       ? getNewEntriesForAddNote()
       : addEntryAction.entryKind === EntryKind.Document
       ? getNewEntriesForAddDocument()
       : getNewEntriesForAddLink();
 
-  // Recompute active entry idx
-  let newActiveEntryIdx = undefined as number | undefined;
-  if (activeEntry != null) {
-    newActiveEntryIdx = newEntries.findIndex((entry) => entry === activeEntry);
-    if (newActiveEntryIdx === -1) {
-      // Should be unreachable, the active entry shouldn't disappear.
-      console.log("Logic error: Active entry has disappeared.");
-      newActiveEntryIdx = undefined;
-    }
+  // Compute active entry idx for new entry
+  let newActiveEntryIdx = newEntries.findIndex((entry) => entry === newEntry) as number | undefined;
+  if (newActiveEntryIdx === -1) {
+    // Should be unreachable.
+    console.log("Logic error: New entry has disappeared.");
+    newActiveEntryIdx = undefined;
   }
 
   // Write new link DB
@@ -668,20 +664,18 @@ function reducer(state: State, action: Action): State {
     }
     case ActionKind.CreateEntry: {
       let newAllFileMapsEdit = state.allFileMapsEdit.clone();
-      let activeEntry =
-        state.activeEntryIdx != null ? state.entries[state.activeEntryIdx] : undefined;
 
       let [newFileEntries, newLinkEntries, newEntries, newActiveEntryIdx] = addEntry(
         state.fileEntries,
         state.linkEntries,
         newAllFileMapsEdit,
-        action,
-        activeEntry
+        action
       );
 
       return {
         ...state,
-        activeEntryIdx: newActiveEntryIdx != null ? newActiveEntryIdx : state.activeEntryIdx,
+        activeEntryIdx: newActiveEntryIdx,
+        page: Page.EntryView,
         entries: newEntries,
         fileEntries: newFileEntries,
         linkEntries: newLinkEntries,
