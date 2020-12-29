@@ -1,7 +1,7 @@
 /* eslint-disable jest/no-conditional-expect */
 import * as path_utils from "./path_utils";
 
-import { EntryNote, EntryDoc, EntryKind } from "../types";
+import { EntryDoc, EntryKind } from "../types";
 import { Repo, VerificationStatus } from "../repo";
 
 test("splitLocationFilename", () => {

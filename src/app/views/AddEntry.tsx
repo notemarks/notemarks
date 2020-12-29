@@ -137,73 +137,6 @@ function CreateNoteForm({ repos, onAdded }: AddEntryProps) {
   );
 }
 
-function CreateLinkForm({ repos, onAdded }: AddEntryProps) {
-  const [form] = Form.useForm();
-
-  const initialValues = {
-    repo: getDefaultRepo(repos),
-    title: "",
-    labels: "",
-    url: "",
-  };
-  type FormVars = typeof initialValues;
-
-  const onFinish = ({ repo, title, labels, url }: FormVars) => {
-    onAdded({
-      entryKind: EntryKind.Link,
-      repo: repo!,
-      title: title,
-      labels: label_utils.extractLabelsFromString(labels),
-      content: url,
-    });
-    form.resetFields();
-  };
-
-  return (
-    <Form
-      {...formLayout}
-      initialValues={initialValues}
-      form={form}
-      onFinish={onFinish}
-      requiredMark={false}
-    >
-      <Form.Item
-        label="Repository"
-        name="repo"
-        rules={[{ required: true, message: "Repo is required" }]}
-      >
-        <RepoSelect repos={repos} />
-      </Form.Item>
-
-      <Form.Item
-        label="Title"
-        name="title"
-        rules={[{ required: true, message: "Title is required" }]}
-      >
-        <Input placeholder="Bookmark title" />
-      </Form.Item>
-
-      <Form.Item label="Labels" name="labels">
-        <Input placeholder="Labels" />
-      </Form.Item>
-
-      <Form.Item
-        label="Bookmark URL"
-        name="url"
-        rules={[{ required: true, message: "URL is required" }]}
-      >
-        <Input placeholder="Bookmark target URL" />
-      </Form.Item>
-
-      <Form.Item {...fromTailLayout} style={{ marginBottom: 0 }}>
-        <Button type="primary" htmlType="submit">
-          Create
-        </Button>
-      </Form.Item>
-    </Form>
-  );
-}
-
 function CreateDocumentForm({ repos, onAdded }: AddEntryProps) {
   const [form] = Form.useForm();
 
@@ -221,7 +154,7 @@ function CreateDocumentForm({ repos, onAdded }: AddEntryProps) {
     // TODO implement download statefully...
     let content = await web_utils.fetchBodyProxied(url);
     onAdded({
-      entryKind: EntryKind.NoteMarkdown,
+      entryKind: EntryKind.Document,
       repo: repo!,
       title: title,
       extension: extension,
@@ -283,6 +216,73 @@ function CreateDocumentForm({ repos, onAdded }: AddEntryProps) {
       <Form.Item {...fromTailLayout} style={{ marginBottom: 0 }}>
         <Button type="primary" htmlType="submit">
           Download & Create
+        </Button>
+      </Form.Item>
+    </Form>
+  );
+}
+
+function CreateLinkForm({ repos, onAdded }: AddEntryProps) {
+  const [form] = Form.useForm();
+
+  const initialValues = {
+    repo: getDefaultRepo(repos),
+    title: "",
+    labels: "",
+    url: "",
+  };
+  type FormVars = typeof initialValues;
+
+  const onFinish = ({ repo, title, labels, url }: FormVars) => {
+    onAdded({
+      entryKind: EntryKind.Link,
+      repo: repo!,
+      title: title,
+      labels: label_utils.extractLabelsFromString(labels),
+      content: url,
+    });
+    form.resetFields();
+  };
+
+  return (
+    <Form
+      {...formLayout}
+      initialValues={initialValues}
+      form={form}
+      onFinish={onFinish}
+      requiredMark={false}
+    >
+      <Form.Item
+        label="Repository"
+        name="repo"
+        rules={[{ required: true, message: "Repo is required" }]}
+      >
+        <RepoSelect repos={repos} />
+      </Form.Item>
+
+      <Form.Item
+        label="Title"
+        name="title"
+        rules={[{ required: true, message: "Title is required" }]}
+      >
+        <Input placeholder="Bookmark title" />
+      </Form.Item>
+
+      <Form.Item label="Labels" name="labels">
+        <Input placeholder="Labels" />
+      </Form.Item>
+
+      <Form.Item
+        label="Bookmark URL"
+        name="url"
+        rules={[{ required: true, message: "URL is required" }]}
+      >
+        <Input placeholder="Bookmark target URL" />
+      </Form.Item>
+
+      <Form.Item {...fromTailLayout} style={{ marginBottom: 0 }}>
+        <Button type="primary" htmlType="submit">
+          Create
         </Button>
       </Form.Item>
     </Form>
