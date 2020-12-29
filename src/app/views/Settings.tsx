@@ -1,9 +1,6 @@
-import React from "react";
-import { useCallback } from "react";
+import React, { useCallback } from "react";
 
-import { Button } from "antd";
-import { Typography } from "antd";
-import { Space, Input, Row, Col, Switch, Card } from "antd";
+import { Space, Input, Row, Col, Switch, Card, Button, Divider } from "antd";
 import { RowProps } from "antd/lib/row";
 
 import {
@@ -20,12 +17,6 @@ import { UiRow } from "../components/UiRow";
 
 import { Repo, Repos, VerificationStatus, createDefaultInitializedRepo } from "../repo";
 import * as octokit from "../octokit";
-
-const { Title } = Typography;
-
-const StyledTitle = styled(Title)`
-  margin-top: 20px;
-`;
 
 const StyledRepoTitle = styled.span`
   font-size: 16px;
@@ -51,68 +42,9 @@ function Header(repo: Repo) {
 }
 
 // ----------------------------------------------------------------------------
-// Repo form
+// RepoForm
 // ----------------------------------------------------------------------------
 
-/*
-function RepoForm({
-  onDelete,
-}: {
-  onDelete: () => void,
-}) {
-
-  const layout = {
-    labelCol: { span: 8 },
-    wrapperCol: { span: 16 },
-  };
-  const tailLayout = {
-    wrapperCol: { offset: 8, span: 16 },
-  };
-  return (
-    <Form
-      {...layout}
-      name="basic"
-      initialValues={{ remember: true }}
-    >
-      <Form.Item
-        label="User"
-        name="user"
-        rules={[{ required: true, message: 'GitHub user name' }]}
-      >
-        <Input />
-      </Form.Item>
-      <Form.Item
-        label="Repository"
-        name="repository"
-        rules={[{ required: true, message: 'GitHub repository name' }]}
-      >
-        <Input />
-      </Form.Item>
-      <Form.Item
-        label="Token"
-        name="token"
-        rules={[{ required: true, message: 'GitHub token' }]}
-      >
-        <Input />
-      </Form.Item>
-      <Form.Item {...tailLayout}>
-        <Row justify="space-between">
-          <Col>
-            <Button type="primary" htmlType="submit">
-              Verify Access
-            </Button>
-          </Col>
-          <Col>
-            <Button danger onClick={onDelete}>
-              Delete
-            </Button>
-          </Col>
-        </Row>
-      </Form.Item>
-    </Form>
-  )
-}
-*/
 function RepoForm({
   repo,
   onDelete,
@@ -139,7 +71,7 @@ function RepoForm({
         </Col>
       </Row>
       <Row {...rowProps}>
-        <Col>User:</Col>
+        <Col>User/Organization:</Col>
         <Col span={16}>
           <Input
             placeholder="GitHub user name"
@@ -205,15 +137,15 @@ function RepoForm({
 }
 
 // ----------------------------------------------------------------------------
-// Settings
+// MultiRepoForm
 // ----------------------------------------------------------------------------
 
-type SettingsProps = {
+type MultiRepoFormProps = {
   repos: Repos;
   setRepos: (repos: Repos) => void;
 };
 
-function Settings({ repos, setRepos }: SettingsProps) {
+function MultiRepoForm({ repos, setRepos }: MultiRepoFormProps) {
   const addRepo = useCallback(() => {
     let newRepo = createDefaultInitializedRepo(repos.length === 0 ? true : false);
     setRepos([...repos, newRepo]);
@@ -251,50 +183,58 @@ function Settings({ repos, setRepos }: SettingsProps) {
     setRepos(newRepos);
   };
 
-  const onClearBrowserCache = () => {
-    octokit.clearBrowserCache();
-  };
+  return (
+    <>
+      {repos.map((repo, i) => (
+        <Row key={repo.key} gutter={[24, 24]}>
+          <Col span={24}>
+            <Card
+              title={Header(repo)}
+              size="small"
+              hoverable
+              //extra={<Switch checked={repo.enabled} onClick={() => toggleEnableRepo(i)}></Switch>}
+              extra={<VerificationStatusIcon status={repo.verified} />}
+            >
+              <RepoForm
+                repo={repo}
+                onDelete={() => deleteRepo(i)}
+                onEdited={(updatedRepo) => updateRepo(i, updatedRepo)}
+                onMakeDefault={() => makeRepoDefault(i)}
+              />
+            </Card>
+          </Col>
+        </Row>
+      ))}
+      <Row justify="center">
+        <Col>
+          <Button type="dashed" size="large" onClick={addRepo}>
+            <PlusOutlined /> Add Repository
+          </Button>
+        </Col>
+      </Row>
+    </>
+  );
+}
 
+// ----------------------------------------------------------------------------
+// Settings
+// ----------------------------------------------------------------------------
+
+type SettingsProps = {
+  repos: Repos;
+  setRepos: (repos: Repos) => void;
+};
+
+function Settings({ repos, setRepos }: SettingsProps) {
   return (
     <UiRow
       center={
         <>
-          <StyledTitle level={4}>Repositories</StyledTitle>
-          {/*<Collapse defaultActiveKey={[0]} onChange={callback} bordered={true}>*/}
-          {repos.map((repo, i) => (
-            <Row key={repo.key} gutter={[24, 24]}>
-              <Col span={24}>
-                <Card
-                  title={Header(repo)}
-                  size="small"
-                  hoverable
-                  //extra={<Switch checked={repo.enabled} onClick={() => toggleEnableRepo(i)}></Switch>}
-                  extra={<VerificationStatusIcon status={repo.verified} />}
-                >
-                  <RepoForm
-                    repo={repo}
-                    onDelete={() => deleteRepo(i)}
-                    onEdited={(updatedRepo) => updateRepo(i, updatedRepo)}
-                    onMakeDefault={() => makeRepoDefault(i)}
-                  />
-                </Card>
-              </Col>
-            </Row>
-          ))}
-          {/*
-          <SpacedRow>
-            <Button type="primary" shape="circle" size="large" icon={<PlusOutlined />} onClick={this.addRepo}/>
-          </SpacedRow>
-          */}
-          <Row justify="center">
-            <Col>
-              <Button type="dashed" size="large" onClick={addRepo}>
-                <PlusOutlined /> Add Repository
-              </Button>
-            </Col>
-          </Row>
-          <StyledTitle level={4}>Browser cache</StyledTitle>
-          <Button danger onClick={onClearBrowserCache}>
+          <Divider orientation="left">Repositories</Divider>
+          <MultiRepoForm repos={repos} setRepos={setRepos} />
+
+          <Divider orientation="left">Browser cache</Divider>
+          <Button danger onClick={octokit.clearBrowserCache}>
             Clear all cache data
           </Button>
         </>
@@ -320,3 +260,65 @@ function VerificationStatusIcon({ status }: { status: VerificationStatus }) {
 }
 
 export default Settings;
+
+// First take on RepoForm -- still any relevance?
+
+/*
+function RepoForm({
+  onDelete,
+}: {
+  onDelete: () => void,
+}) {
+
+  const layout = {
+    labelCol: { span: 8 },
+    wrapperCol: { span: 16 },
+  };
+  const tailLayout = {
+    wrapperCol: { offset: 8, span: 16 },
+  };
+  return (
+    <Form
+      {...layout}
+      name="basic"
+      initialValues={{ remember: true }}
+    >
+      <Form.Item
+        label="User"
+        name="user"
+        rules={[{ required: true, message: 'GitHub user name' }]}
+      >
+        <Input />
+      </Form.Item>
+      <Form.Item
+        label="Repository"
+        name="repository"
+        rules={[{ required: true, message: 'GitHub repository name' }]}
+      >
+        <Input />
+      </Form.Item>
+      <Form.Item
+        label="Token"
+        name="token"
+        rules={[{ required: true, message: 'GitHub token' }]}
+      >
+        <Input />
+      </Form.Item>
+      <Form.Item {...tailLayout}>
+        <Row justify="space-between">
+          <Col>
+            <Button type="primary" htmlType="submit">
+              Verify Access
+            </Button>
+          </Col>
+          <Col>
+            <Button danger onClick={onDelete}>
+              Delete
+            </Button>
+          </Col>
+        </Row>
+      </Form.Item>
+    </Form>
+  )
+}
+*/
