@@ -15,24 +15,27 @@ export type Files = File[];
 
 // File type flavors
 
-export type FileFetched = {
+export type FileInGit = {
   path: string;
   sha: string;
   rawUrl: string;
+};
+export function isFileInGit(file: File): file is FileInGit {
+  return file.sha != null && file.rawUrl != null;
+}
+
+export type FileFetched = FileInGit & {
   content: string;
 };
 export function isFileFetched(file: File): file is FileFetched {
-  return file.sha != null && file.rawUrl != null && file.content != null;
+  return file.content != null && isFileInGit(file);
 }
 
-export type FileFetchedFailed = {
-  path: string;
-  sha: string;
-  rawUrl: string;
+export type FileFetchedFailed = FileInGit & {
   error: WrappedError;
 };
 export function isFileFetchedFailed(file: File): file is FileFetchedFailed {
-  return file.sha != null && file.rawUrl != null && file.error != null;
+  return file.error != null && isFileInGit(file);
 }
 
 export type FileVirtual = {

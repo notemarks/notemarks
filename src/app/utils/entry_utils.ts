@@ -23,7 +23,7 @@ import * as io from "../io";
 import { FileKind } from "./path_utils";
 import * as path_utils from "./path_utils";
 
-import { MultiRepoFileMap, FileFetched, isFileFetched } from "../filemap";
+import { File, isFileInGit, isFileFetched, MultiRepoFileMap } from "../filemap";
 
 import * as markdown_utils from "./markdown_utils";
 import * as label_utils from "./label_utils";
@@ -123,7 +123,7 @@ export function extractFileEntriesAndUpdateFileMap(
   allFileMapsOrig.forEach((repo, fileMap) => {
     fileMap.forEach((file) => {
       let isNotemarksFile = path_utils.isNotemarksFile(file.path);
-      if (isFileFetched(file) && !isNotemarksFile) {
+      if (!isNotemarksFile) {
         // For meta data there are three cases:
         // - No meta file exists => okay, create/stage new
         // - Meta file exists, but fetch fails => create/stage not good, report as error,
@@ -144,7 +144,9 @@ export function extractFileEntriesAndUpdateFileMap(
           if (metaData.isOk()) {
             // Parse successful
             let entry = constructFileEntry(repo, file, metaData.value);
-            fileEntries.push(entry);
+            if (entry != null) {
+              fileEntries.push(entry);
+            }
           } else {
             // Parse failed => load entry + stage fix
             createMetaDataFromScratch = true;
@@ -162,10 +164,14 @@ export function extractFileEntriesAndUpdateFileMap(
         if (createMetaDataFromScratch) {
           let newMetaData = io.createNewMetaData();
           let newMetaDataContent = io.serializeMetaData(newMetaData);
-          allFileMapsEdit.get(repo)?.data.setContent(associatedMetaPath, newMetaDataContent);
           let entry = constructFileEntry(repo, file, newMetaData);
-          fileEntries.push(entry);
+          if (entry != null) {
+            fileEntries.push(entry);
+            allFileMapsEdit.get(repo)?.data.setContent(associatedMetaPath, newMetaDataContent);
+          }
         }
+      } else if (!isFileFetched(file)) {
+        console.log(file);
       }
     });
   });
@@ -173,7 +179,11 @@ export function extractFileEntriesAndUpdateFileMap(
   return [fileEntries, allFileMapsEdit];
 }
 
-export function constructFileEntry(repo: Repo, file: FileFetched, metaData: MetaData): EntryFile {
+export function constructFileEntry(
+  repo: Repo,
+  file: File,
+  metaData: MetaData
+): EntryFile | undefined {
   let fileKind = path_utils.getFileKind(file.path);
   let [location, title, extension] = path_utils.splitLocationTitleExtension(file.path);
 
@@ -181,7 +191,7 @@ export function constructFileEntry(repo: Repo, file: FileFetched, metaData: Meta
   // Regarding double enum conversion
   // https://stackoverflow.com/a/42623905/1804173
   // https://stackoverflow.com/questions/55377365/what-does-keyof-typeof-mean-in-typescript
-  if (fileKind === FileKind.NoteMarkdown) {
+  if (fileKind === FileKind.NoteMarkdown && isFileFetched(file)) {
     let text = file.content;
     let [html, links] = markdown_utils.processMarkdownText(text);
 
@@ -197,7 +207,7 @@ export function constructFileEntry(repo: Repo, file: FileFetched, metaData: Meta
       html: html,
       links: links,
     };
-  } else {
+  } else if (fileKind === FileKind.Document && isFileInGit(file)) {
     content = {
       kind: (fileKind as keyof typeof FileKind) as EntryKind.Document,
       repo: repo,
@@ -207,6 +217,9 @@ export function constructFileEntry(repo: Repo, file: FileFetched, metaData: Meta
       timeUpdated: metaData.timeUpdated as Date,
       rawUrl: file.rawUrl,
     };
+  } else {
+    console.log("ERROR: Could not create file entry for:", file);
+    return undefined;
   }
 
   return recomputeKey({
