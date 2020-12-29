@@ -336,7 +336,7 @@ function addEntry(
         extension: "md",
         timeCreated: date,
         timeUpdated: date,
-        text: addEntryAction.content,
+        text: "",
         html: "",
         links: [],
       },
@@ -344,11 +344,9 @@ function addEntry(
     newFileEntries.push(newEntry);
     let [newLinkEntries, newEntries] = entry_utils.recomputeEntries(newFileEntries, oldLinkEntries);
 
-    // Stage content
-    let path = path_utils.getPath(newEntry);
-    newAllFileMapsEdit.get(addEntryAction.repo!)?.data.setContent(path, addEntryAction.content);
-
-    // TODO: Stage meta
+    // Staging
+    stageContent(newEntry, newAllFileMapsEdit);
+    stageMeta(newEntry, newAllFileMapsEdit);
 
     return tuple(newFileEntries, newLinkEntries, newEntries, newEntry);
   };
@@ -367,16 +365,15 @@ function addEntry(
         extension: addEntryAction.extension!,
         timeCreated: date,
         timeUpdated: date,
+        stagedData: addEntryAction.content,
       },
     });
     newFileEntries.push(newEntry);
     let [newLinkEntries, newEntries] = entry_utils.recomputeEntries(newFileEntries, oldLinkEntries);
 
-    // Stage content
-    let path = path_utils.getPath(newEntry);
-    newAllFileMapsEdit.get(addEntryAction.repo!)?.data.setContent(path, addEntryAction.content);
-
-    // TODO: Stage meta
+    // Staging
+    stageContent(newEntry, newAllFileMapsEdit);
+    stageMeta(newEntry, newAllFileMapsEdit);
 
     return tuple(newFileEntries, newLinkEntries, newEntries, newEntry);
   };
@@ -400,6 +397,10 @@ function addEntry(
     });
     tmpLinkEntries.push(newEntry);
     let [newLinkEntries, newEntries] = entry_utils.recomputeEntries(newFileEntries, tmpLinkEntries);
+
+    // Staging
+    entry_utils.stageLinkDBUpdate(newLinkEntries, newAllFileMapsEdit);
+
     return tuple(newFileEntries, newLinkEntries, newEntries, newEntry);
   };
 
@@ -422,6 +423,39 @@ function addEntry(
   entry_utils.stageLinkDBUpdate(newLinkEntries, newAllFileMapsEdit);
 
   return [newFileEntries, newLinkEntries, newEntries, newActiveEntryIdx];
+}
+
+// Stage helpers
+
+function stageNoteContent(entry: EntryNote, allFileMapsEdit: MultiRepoFileMap) {
+  let repo = entry.content.repo;
+  let path = path_utils.getPath(entry);
+  allFileMapsEdit.get(repo)?.data.setContent(path, entry.content.text);
+}
+
+function stageDocumentContent(entry: EntryDoc, allFileMapsEdit: MultiRepoFileMap) {
+  let repo = entry.content.repo;
+  let path = path_utils.getPath(entry);
+  if (entry.content.stagedData != null) {
+    allFileMapsEdit.get(repo)?.data.setContent(path, entry.content.stagedData);
+  }
+}
+
+function stageContent(entry: EntryFile, allFileMapsEdit: MultiRepoFileMap) {
+  if (entry_utils.isNote(entry)) {
+    stageNoteContent(entry, allFileMapsEdit);
+  } else if (entry_utils.isDoc(entry)) {
+    stageDocumentContent(entry, allFileMapsEdit);
+  }
+}
+
+function stageMeta(entry: EntryFile, allFileMapsEdit: MultiRepoFileMap) {
+  let metaData = entry_utils.extractMetaData(entry);
+  let metaDataContent = io.serializeMetaData(metaData);
+
+  let repo = entry.content.repo;
+  let path = path_utils.getPaths(entry).metaPath;
+  allFileMapsEdit.get(repo)?.data.setContent(path, metaDataContent);
 }
 
 // ----------------------------------------------------------------------------
@@ -468,6 +502,19 @@ function reducer(state: State, action: Action): State {
       if (action.content !== activeEntry.content.text) {
         let [html, links] = markdown_utils.processMarkdownText(action.content);
 
+        // TODO: It would be nice if we would only update the "timeUpdate" in case
+        // the content is different from the original content, i.e., in case of a
+        // revert the timeUpdated gets reverted as well. However that is a bit tricky.
+        // It is not so easy to get the original timestamp. We'd compare the
+        // current note content to the orignal note content. If it is the same
+        // we need the original timestamp. We'd probably have to re-parse the
+        // original meta data and extract it from there. Also we have to be
+        // careful about other modifications to meta data. I.e., if the note
+        // content matches to the original note content, but the labels have
+        // changed, we'd need to set `timeUpdated` as well. So the condition
+        // actually need to be more complex than just content comparison.
+        // Perhaps a helper function based on the 4 variables oldFile, newFile,
+        // oldMetaFile, newMetaFile would be good?
         let activeEntryModified = entry_utils.recomputeKey({
           ...activeEntry,
           content: {
@@ -475,6 +522,7 @@ function reducer(state: State, action: Action): State {
             text: action.content,
             html: html,
             links: links,
+            timeUpdated: date_utils.getDateNow(),
           },
         });
         let result = modifyFileEntry(
@@ -490,31 +538,8 @@ function reducer(state: State, action: Action): State {
 
         // Stage git ops
         let newAllFileMapsEdit = state.allFileMapsEdit.clone();
-
-        // Write entry content
-        let repo = activeEntry.content.repo;
-        let path = path_utils.getPath(activeEntry);
-        newAllFileMapsEdit.get(repo)?.data.setContent(path, action.content);
-
-        // Write meta data
-        // TODO: It would be nice if we would only update the "timeUpdate" in case
-        // the content is different from the original content, i.e., in case of a
-        // revert the timeUpdated gets reverted as well. However that is a bit tricky.
-        // It is not so easy to get the original timestamp. We'd compare the
-        // current note content to the orignal note content. If it is the same
-        // we need the original timestamp. We'd probably have to re-parse the
-        // original meta data and extract it from there. Also we have to be
-        // careful about other modifications to meta data. I.e., if the note
-        // content matches to the original note content, but the labels have
-        // changed, we'd need to set `timeUpdated` as well. So the condition
-        // actually need to be more complex than just content comparison.
-        // Perhaps a helper function based on the 4 variables oldFile, newFile,
-        // oldMetaFile, newMetaFile would be good?
-        activeEntry.content.timeUpdated = date_utils.getDateNow();
-        let metaData = entry_utils.extractMetaData(activeEntryModified);
-        let metaDataPath = path_utils.getAssociatedMetaPath(path);
-        let metaDataContent = io.serializeMetaData(metaData);
-        newAllFileMapsEdit.get(repo)?.data.setContent(metaDataPath, metaDataContent);
+        stageNoteContent(activeEntryModified, newAllFileMapsEdit);
+        stageMeta(activeEntryModified, newAllFileMapsEdit);
 
         // Write new link DB
         entry_utils.stageLinkDBUpdate(newLinkEntries, newAllFileMapsEdit);

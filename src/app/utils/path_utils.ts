@@ -126,7 +126,10 @@ export function escapeTitle(s: string): string {
 // ----------------------------------------------------------------------------
 
 export function getPath(entry: EntryFile): string {
-  let s = `${entry.content.location}/${escapeTitle(entry.title)}`;
+  let s =
+    entry.content.location.trim().length === 0
+      ? escapeTitle(entry.title)
+      : `${entry.content.location}/${escapeTitle(entry.title)}`;
   if (entry.content.extension !== "") {
     s += "." + entry.content.extension;
   }

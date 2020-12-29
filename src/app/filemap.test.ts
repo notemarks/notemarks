@@ -1,5 +1,4 @@
 import { FileMap, MultiRepoFileMap } from "./filemap";
-// import * as filemap from "./filemap";
 
 import { createDefaultInitializedRepo } from "./repo";
 

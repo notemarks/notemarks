@@ -21,6 +21,7 @@ export type FileEntryProps = {
 
 export type ContentDoc = {
   kind: EntryKind.Document;
+  stagedData?: string;
 } & FileEntryProps;
 
 export type ContentNote = {
