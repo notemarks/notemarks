@@ -10,7 +10,7 @@ import { VerticalContainer, UiRow, StretchedUiRow } from "../components/UiRow";
 import { LabelTree } from "../components/LabelTree";
 import { DefaultTag } from "../components/ColorTag";
 
-import { Entries, Label, Labels } from "../types";
+import { EntryKind, Entries, Label, Labels } from "../types";
 import { doesLabelMatchLabels } from "../utils/label_utils";
 import * as fn from "../utils/fn_utils";
 import { MutableRef } from "../utils/react_utils";
@@ -22,8 +22,21 @@ export function splitSearchTerms(s: string): string[] {
     .filter((term) => term.length > 0);
 }
 
+export type EntryKindFilter = {
+  [EntryKind.NoteMarkdown]: boolean;
+  [EntryKind.Document]: boolean;
+  [EntryKind.Link]: boolean;
+};
+
 export type LabelFilter = { label: Label; state: number };
 export type LabelFilters = LabelFilter[];
+
+export function checkEntryKindFilter(
+  entryKind: EntryKind,
+  entryKindFilter: EntryKindFilter
+): boolean {
+  return entryKindFilter[entryKind];
+}
 
 export function checkMatchingTitle(title: string, searchTerms: string[]): boolean {
   // Currently we require all terms to match. Is there a use case for an `OR` mode?
@@ -58,13 +71,15 @@ export function checkMatchingLabels(labels: string[], labelFilters: LabelFilters
 export function filterEntries(
   entries: Entries,
   searchTerms: string[],
-  labelFilters: LabelFilters
+  labelFilters: LabelFilters,
+  entryKindFilter: EntryKindFilter
 ): Entries {
   let filteredEntries = [];
   for (let entry of entries) {
+    let matchingEntryKind = checkEntryKindFilter(entry.content.kind, entryKindFilter);
     let matchingTitle = checkMatchingTitle(entry.title, searchTerms);
     let matchingLabels = checkMatchingLabels(entry.labels, labelFilters);
-    if (matchingTitle && matchingLabels) {
+    if (matchingEntryKind && matchingTitle && matchingLabels) {
       filteredEntries.push(entry);
     }
   }
@@ -141,6 +156,11 @@ const List = React.forwardRef(
 
     const [searchTerms, setSearchTerms] = useState<string[]>([]);
     const [labelFilters, setLabelFilters] = useState<LabelFilters>([]);
+    const [entryKindFilter, setEntryKindFilter] = useState<EntryKindFilter>({
+      [EntryKind.NoteMarkdown]: true,
+      [EntryKind.Document]: true,
+      [EntryKind.Link]: true,
+    });
 
     /*
     // Note: For now the filteredEntries are computed asynchronously.
@@ -163,10 +183,10 @@ const List = React.forwardRef(
     //    re-rendering fast.
     */
     useEffect(() => {
-      let newFilteredEntries = filterEntries(entries, searchTerms, labelFilters);
+      let newFilteredEntries = filterEntries(entries, searchTerms, labelFilters, entryKindFilter);
       setSearchStats({ totalMatchingEntries: newFilteredEntries.length });
       setFilteredEntries(newFilteredEntries.slice(0, numVisibleEntries));
-    }, [entries, numVisibleEntries, searchTerms, labelFilters]);
+    }, [entries, numVisibleEntries, searchTerms, labelFilters, entryKindFilter]);
 
     // Note that it is probably necessary to keep this separate from the entry filtering effect above.
     // Issues with merging the two:
