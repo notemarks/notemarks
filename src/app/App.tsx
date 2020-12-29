@@ -829,6 +829,15 @@ function App() {
     }
   };
 
+  const activeEntryIsNote = (): boolean => {
+    let activeEntry = getActiveEntry();
+    if (activeEntry == null) {
+      return false;
+    } else {
+      return entry_utils.isNote(activeEntry);
+    }
+  };
+
   const anyStagedChange = () => {
     return state.stagedGitOps.map((repo, ops) => ops.length).reduce((a, b) => a + b, 0) > 0;
   };
@@ -905,19 +914,14 @@ function App() {
   };
 
   keyboardHandlers.handleSwitchEdit = () => {
-    switch (state.page) {
-      case Page.EntryView:
-        prepareSwitchFrom(state.page);
-        dispatch({ kind: ActionKind.SwitchToPage, page: Page.NoteEditor });
-        break;
-      case Page.NoteEditor:
-        prepareSwitchFrom(state.page);
-        dispatch({ kind: ActionKind.SwitchToPage, page: Page.EntryView });
-        break;
-      default: {
-        console.log("Switching not possible");
-        break;
-      }
+    if (state.page === Page.EntryView && activeEntryIsNote()) {
+      prepareSwitchFrom(state.page);
+      dispatch({ kind: ActionKind.SwitchToPage, page: Page.NoteEditor });
+    } else if (state.page === Page.NoteEditor && activeEntryIsNote()) {
+      prepareSwitchFrom(state.page);
+      dispatch({ kind: ActionKind.SwitchToPage, page: Page.EntryView });
+    } else {
+      console.log("Switching not possible");
     }
   };
   keyboardHandlers.handleSearch = () => {
@@ -1083,16 +1087,18 @@ function App() {
               key={Page.EntryView}
               icon={<ReadOutlined style={{ fontSize: 16 }} />}
               title="Entry Viewer"
+              disabled={state.activeEntryIdx == null}
             />
             <Menu.Item
               key={Page.NoteEditor}
               icon={<EditOutlined style={{ fontSize: 16 }} />}
               title="Editor"
+              disabled={!activeEntryIsNote()}
             />
             <Menu.Item
-              key={Page.Settings}
-              icon={<SettingOutlined style={{ fontSize: 16 }} />}
-              title="Settings"
+              key={Page.Add}
+              icon={<PlusOutlined style={{ fontSize: 16 }} />}
+              title="Add new entry"
             />
             <Menu.Item
               key={Page.Commit}
@@ -1111,9 +1117,9 @@ function App() {
               title="Reload entries"
             />
             <Menu.Item
-              key={Page.Add}
-              icon={<PlusOutlined style={{ fontSize: 16 }} />}
-              title="Add new entry"
+              key={Page.Settings}
+              icon={<SettingOutlined style={{ fontSize: 16 }} />}
+              title="Settings"
             />
           </Menu>
         }
