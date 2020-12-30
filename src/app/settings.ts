@@ -70,7 +70,9 @@ export function getStoredSettings(): Settings {
 }
 
 export function setStoredSettings(settings: Settings) {
-  window.localStorage.setItem("settings", JSON.stringify(settings));
+  let settingsClone: any = { ...settings };
+  delete settingsClone["auth"];
+  window.localStorage.setItem("settings", JSON.stringify(settingsClone));
 }
 
 export function clearAllStorage() {
@@ -78,4 +80,82 @@ export function clearAllStorage() {
   for (let key in window.localStorage) {
     delete window.localStorage[key];
   }
+}
+
+// ----------------------------------------------------------------------------
+// Crypto helpers
+// ----------------------------------------------------------------------------
+
+type Salt = Uint8Array;
+
+export async function encrypt(data: string) {
+  //let digest = await crypto.subtle.digest("SHA-256", data);
+}
+
+export function generateSalt(): Salt {
+  var salt = new Uint8Array(8);
+  window.crypto.getRandomValues(salt);
+  return salt;
+}
+
+/*
+export async function deriveKey(pw: string, salt: Salt) {
+  //let digest = await crypto.subtle.digest("SHA-256", data);
+
+  let alg = { name: "HMAC", hash: "SHA-256" };
+  let usages = ["sign", "verify"];
+  let key = await crypto.subtle.deriveKey(
+    { name: "PBKDF2", hash: "SHA-256", salt: salt, iterations: 10000 },
+    pw,
+    alg,
+    false,
+    usages
+  );
+}
+*/
+
+/*
+export function retrievePWKey() {
+  var usages = ["deriveKey"];
+  return crypto.subtle.generateKey("PBKDF2", false, usages);
+}
+*/
+
+function stringToByteArray(s: string): Uint8Array {
+  var encoder = new TextEncoder();
+  var sEncoded = encoder.encode(s);
+  return sEncoded;
+}
+
+export async function generateKey(password: string, salt: Salt): Promise<CryptoKey> {
+  // https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/importKey
+  // https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/deriveKey
+  let iterations = 1000;
+
+  let keyOrig = await window.crypto.subtle.importKey(
+    "raw",
+    stringToByteArray(password),
+    { name: "PBKDF2" },
+    false,
+    ["deriveBits", "deriveKey"]
+  );
+  let key = await window.crypto.subtle.deriveKey(
+    // algorithm
+    {
+      name: "PBKDF2",
+      salt: salt,
+      iterations: iterations,
+      hash: "SHA-256",
+    },
+    // baseKey
+    keyOrig,
+    // derivedKeyAlgorithm
+    { name: "AES-CBC", length: 256 },
+    // extractable
+    true,
+    // keyUsages
+    ["encrypt", "decrypt"]
+  );
+
+  return key;
 }
