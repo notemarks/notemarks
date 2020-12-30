@@ -36,7 +36,7 @@ import {
 import * as fn from "./utils/fn_utils";
 import * as entry_utils from "./utils/entry_utils";
 
-import { Settings, getStoredSettings, setStoredSettings, settingsReducer } from "./settings";
+import { Settings, storeSettings, settingsReducer } from "./settings";
 
 import { Repo, Repos } from "./repo";
 import * as repo_utils from "./repo";
@@ -760,7 +760,7 @@ function App({ initSettings }: { initSettings: Settings }) {
     // console.log("Storing repos:", repos)
     // Perhaps we need a little debounce here to avoid serializing the
     // settings on every keystroke in the settings dialog.
-    setStoredSettings(settings);
+    storeSettings(settings);
   }, [settings]);
 
   async function reloadEntries(newRepos: Repos) {
@@ -1142,9 +1142,4 @@ function App({ initSettings }: { initSettings: Settings }) {
   );
 }
 
-function AppWrapper() {
-  let initSettings = getStoredSettings();
-  return <App initSettings={initSettings} />;
-}
-
-export default AppWrapper;
+export default App;

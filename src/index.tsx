@@ -3,13 +3,13 @@ import ReactDOM from "react-dom";
 
 import "./index.css";
 
-import AppWrapper from "./app/App";
+import AppLifecycle from "./app/AppLifecycle";
 
 import reportWebVitals from "./reportWebVitals";
 
 ReactDOM.render(
   <React.StrictMode>
-    <AppWrapper />
+    <AppLifecycle />
   </React.StrictMode>,
   document.getElementById("root")
 );

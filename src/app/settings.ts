@@ -59,17 +59,19 @@ export function settingsReducer(state: Settings, action: SettingsAction): Settin
 // Storage I/O
 // ----------------------------------------------------------------------------
 
-export function getStoredSettings(): Settings {
-  let settings = window.localStorage.getItem("settings");
-  if (settings != null) {
+export function loadSettings(): Settings {
+  let settingsSerialized = window.localStorage.getItem("settings");
+  if (settingsSerialized != null) {
     // TODO: We need real validation here
-    return JSON.parse(settings) as Settings;
+    let settings = JSON.parse(settingsSerialized) as Settings;
+    settings.auth = {};
+    return settings;
   } else {
     return getDefaultSettings();
   }
 }
 
-export function setStoredSettings(settings: Settings) {
+export function storeSettings(settings: Settings) {
   let settingsClone: any = { ...settings };
   delete settingsClone["auth"];
   window.localStorage.setItem("settings", JSON.stringify(settingsClone));
@@ -96,6 +98,17 @@ export function generateSalt(): Salt {
   var salt = new Uint8Array(8);
   window.crypto.getRandomValues(salt);
   return salt;
+}
+
+export async function getSalt(): Promise<Salt> {
+  let salt = (await localforage.getItem("salt")) as Salt | undefined;
+  if (salt != null) {
+    return salt;
+  } else {
+    salt = generateSalt();
+    await localforage.setItem("salt", salt);
+    return salt;
+  }
 }
 
 /*
