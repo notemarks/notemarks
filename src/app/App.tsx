@@ -1033,6 +1033,7 @@ function App({ initSettings }: { initSettings: Settings }) {
         return (
           <NoteEditor
             entry={getActiveEntry()}
+            settings={settings.editor}
             ref={editorRef}
             onEditorDidMount={onEditorDidMount}
           />

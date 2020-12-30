@@ -4,7 +4,7 @@ import { Repos, createDefaultInitializedRepo } from "./repo";
 
 export type EditorSettings = {
   fontSize: number;
-  theme: string;
+  theme: "dark" | "light";
   wordWrap: "off" | "on" | "wordWrapColumn" | "bounded";
   wordWrapColumn: number;
 };
@@ -18,7 +18,7 @@ export function getDefaultEditorSettings(): EditorSettings {
   return {
     fontSize: 12,
     theme: "dark",
-    wordWrap: "on",
+    wordWrap: "bounded",
     wordWrapColumn: 100,
   };
 }

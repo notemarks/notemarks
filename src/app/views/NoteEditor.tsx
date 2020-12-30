@@ -1,5 +1,4 @@
-import React from "react";
-import { useRef, useImperativeHandle, forwardRef } from "react";
+import React, { useRef, useImperativeHandle, forwardRef } from "react";
 
 import Editor from "@monaco-editor/react";
 import * as monacoEditor from "monaco-editor/esm/vs/editor/editor.api";
@@ -10,6 +9,7 @@ import { NoEntrySelected } from "../components/HelperComponents";
 import { UiRow } from "../components/UiRow";
 
 import { Entry } from "../types";
+import { EditorSettings } from "../settings";
 import * as entry_utils from "../utils/entry_utils";
 import * as fn from "../utils/fn_utils";
 import * as clipboard_utils from "../utils/clipboard_utils";
@@ -118,11 +118,12 @@ export type NoteEditorRef = {
 
 type NoteEditorProps = {
   entry?: Entry;
+  settings: EditorSettings;
   onEditorDidMount: () => void;
 };
 
 const NoteEditor = forwardRef(
-  ({ entry, onEditorDidMount }: NoteEditorProps, ref: React.Ref<NoteEditorRef>) => {
+  ({ entry, settings, onEditorDidMount }: NoteEditorProps, ref: React.Ref<NoteEditorRef>) => {
     const editorRef = useRef(undefined as IStandaloneCodeEditor | undefined);
 
     // https://microsoft.github.io/monaco-editor/playground.html#interacting-with-the-editor-adding-an-action-to-an-editor-instance
@@ -177,15 +178,15 @@ const NoteEditor = forwardRef(
         <DebugBox>
           <Editor
             height="100%"
-            theme="dark"
+            theme={settings.theme}
             language="markdown"
             value={entry_utils.getText(entry)!}
             editorDidMount={onEditorDidMountWrapper}
             options={{
-              fontSize: 12,
+              fontSize: settings.fontSize,
               cursorBlinking: "smooth",
-              wordWrap: "on",
-              wordWrapColumn: 100,
+              wordWrap: settings.wordWrap,
+              wordWrapColumn: settings.wordWrapColumn,
               minimap: {
                 enabled: false,
               },

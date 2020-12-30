@@ -1,6 +1,6 @@
 import React, { useCallback } from "react";
 
-import { Space, Input, Row, Col, Switch, Card, Button, Divider } from "antd";
+import { Button, Input, InputNumber, Select, Switch, Row, Col, Card, Divider, Space } from "antd";
 import { RowProps } from "antd/lib/row";
 
 import {
@@ -15,10 +15,12 @@ import styled from "@emotion/styled";
 
 import { UiRow } from "../components/UiRow";
 
-import { Settings, SettingsAction, clearAllStorage } from "../settings";
+import { Settings, SettingsAction, clearAllStorage, EditorSettings } from "../settings";
 
 import { Repo, Repos, VerificationStatus, createDefaultInitializedRepo } from "../repo";
 import * as octokit from "../octokit";
+
+const { Option } = Select;
 
 // ----------------------------------------------------------------------------
 // Repo Card Header
@@ -49,11 +51,11 @@ function Header(repo: Repo) {
 
 const fromRowProps: RowProps = { justify: "end", align: "middle" as "middle", gutter: [8, 16] };
 
-function FormRow({ text, children }: { text?: string; children: React.ReactNode }) {
+function FormRow({ text, children }: { text?: string; children?: React.ReactNode }) {
   return (
     <Row {...fromRowProps}>
       {text != null ? <Col>{text}</Col> : null}
-      <Col span={16}>{children}</Col>
+      <Col span={20}>{children}</Col>
     </Row>
   );
 }
@@ -215,6 +217,69 @@ function MultiRepoForm({ repos, setRepos }: MultiRepoFormProps) {
 }
 
 // ----------------------------------------------------------------------------
+// EditorSettings
+// ----------------------------------------------------------------------------
+
+function EditorForm({
+  settings,
+  setSettings,
+}: {
+  settings: EditorSettings;
+  setSettings: (settings: EditorSettings) => void;
+}) {
+  return (
+    <>
+      <FormRow text="Font size:">
+        <InputNumber
+          placeholder="Font size"
+          defaultValue={settings.fontSize}
+          onChange={(value) => {
+            if (typeof value === "number") {
+              setSettings({ ...settings, fontSize: value });
+            }
+          }}
+          style={{ width: "100%" }}
+        />
+      </FormRow>
+      <FormRow text="Theme:">
+        <Select
+          defaultValue={settings.theme}
+          onChange={(value) => setSettings({ ...settings, theme: value })}
+          style={{ width: "100%" }}
+        >
+          <Option value="dark">dark</Option>
+          <Option value="light">light</Option>
+        </Select>
+      </FormRow>
+      <FormRow text="Word wrap">
+        <Select
+          defaultValue={settings.wordWrap}
+          onChange={(value) => setSettings({ ...settings, wordWrap: value })}
+          style={{ width: "100%" }}
+        >
+          <Option value="bounded">on (wrap on both viewport and word wrap column)</Option>
+          <Option value="wordWrapColumn">on (wrap on word wrap column)</Option>
+          <Option value="on">on (wrap on viewport)</Option>
+          <Option value="off">off</Option>
+        </Select>
+      </FormRow>
+      <FormRow text="Word wrap column:">
+        <InputNumber
+          placeholder="Word wrap column"
+          defaultValue={settings.wordWrapColumn}
+          onChange={(value) => {
+            if (typeof value === "number") {
+              setSettings({ ...settings, wordWrapColumn: value });
+            }
+          }}
+          style={{ width: "100%" }}
+        />
+      </FormRow>
+    </>
+  );
+}
+
+// ----------------------------------------------------------------------------
 // Settings
 // ----------------------------------------------------------------------------
 
@@ -231,10 +296,18 @@ function SettingsView({ settings, dispatch }: SettingsProps) {
           <Divider orientation="left">Repositories</Divider>
           <MultiRepoForm repos={settings.repos} setRepos={(repos) => dispatch({ repos: repos })} />
 
+          <Divider orientation="left">Editor Settings</Divider>
+          <EditorForm
+            settings={settings.editor}
+            setSettings={(editorSettings) => dispatch({ editor: editorSettings })}
+          />
+
           <Divider orientation="left">Browser cache</Divider>
-          <Button danger onClick={clearAllStorage}>
-            Clear all cache data
-          </Button>
+          <FormRow>
+            <Button danger onClick={clearAllStorage}>
+              Clear all cache data
+            </Button>
+          </FormRow>
         </>
       }
     />
