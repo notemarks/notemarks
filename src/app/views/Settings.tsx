@@ -45,6 +45,17 @@ function Header(repo: Repo) {
 // RepoForm
 // ----------------------------------------------------------------------------
 
+const fromRowProps: RowProps = { justify: "end", align: "middle" as "middle", gutter: [8, 16] };
+
+function FormRow({ text, children }: { text?: string; children: React.ReactNode }) {
+  return (
+    <Row {...fromRowProps}>
+      {text != null ? <Col>{text}</Col> : null}
+      <Col span={16}>{children}</Col>
+    </Row>
+  );
+}
+
 function RepoForm({
   repo,
   onDelete,
@@ -56,82 +67,63 @@ function RepoForm({
   onEdited: (repo: Repo) => void;
   onMakeDefault: () => void;
 }) {
-  const rowProps: RowProps = { justify: "end", align: "middle" as "middle", gutter: [8, 16] };
-
   return (
     <>
-      <Row {...rowProps}>
-        <Col>Name:</Col>
-        <Col span={16}>
-          <Input
-            placeholder="Name within Notemarks"
-            value={repo.name}
-            onChange={(evt) => onEdited({ ...repo, name: evt.target.value })}
-          />
-        </Col>
-      </Row>
-      <Row {...rowProps}>
-        <Col>User/Organization:</Col>
-        <Col span={16}>
-          <Input
-            placeholder="GitHub user name"
-            value={repo.userName}
-            onChange={(evt) => onEdited({ ...repo, userName: evt.target.value })}
-          />
-        </Col>
-      </Row>
-      <Row {...rowProps}>
-        <Col>Repository:</Col>
-        <Col span={16}>
-          <Input
-            placeholder="GitHub repository name"
-            value={repo.repoName}
-            onChange={(evt) => onEdited({ ...repo, repoName: evt.target.value })}
-          />
-        </Col>
-      </Row>
-      <Row {...rowProps}>
-        <Col>Token:</Col>
-        <Col span={16}>
-          <Input.Password
-            placeholder="GitHub access token"
-            value={repo.token}
-            onChange={(evt) => onEdited({ ...repo, token: evt.target.value })}
-          />
-        </Col>
-      </Row>
-      <Row {...rowProps}>
-        <Col>Default:</Col>
-        <Col span={16}>
-          <Switch checked={repo.default} onChange={() => onMakeDefault()} />
-        </Col>
-      </Row>
-      <Row {...rowProps}>
-        <Col span={16}>
-          <Row justify="space-between">
-            <Col>
-              <Button
-                type="primary"
-                onClick={async () => {
-                  onEdited({ ...repo, verified: VerificationStatus.inProgress });
-                  let verified = await octokit.verifyRepo(repo);
-                  onEdited({
-                    ...repo,
-                    verified: verified ? VerificationStatus.success : VerificationStatus.failed,
-                  });
-                }}
-              >
-                Verify Access
-              </Button>
-            </Col>
-            <Col>
-              <Button danger onClick={onDelete}>
-                Delete
-              </Button>
-            </Col>
-          </Row>
-        </Col>
-      </Row>
+      <FormRow text="Name:">
+        <Input
+          placeholder="Name within Notemarks"
+          value={repo.name}
+          onChange={(evt) => onEdited({ ...repo, name: evt.target.value })}
+        />
+      </FormRow>
+      <FormRow text="User/Organization:">
+        <Input
+          placeholder="GitHub repository user/organization"
+          value={repo.userName}
+          onChange={(evt) => onEdited({ ...repo, userName: evt.target.value })}
+        />
+      </FormRow>
+      <FormRow text="Repository:">
+        <Input
+          placeholder="GitHub repository name"
+          value={repo.repoName}
+          onChange={(evt) => onEdited({ ...repo, repoName: evt.target.value })}
+        />
+      </FormRow>
+      <FormRow text="Token:">
+        <Input.Password
+          placeholder="GitHub access token"
+          value={repo.token}
+          onChange={(evt) => onEdited({ ...repo, token: evt.target.value })}
+        />
+      </FormRow>
+      <FormRow text="Default:">
+        <Switch checked={repo.default} onChange={() => onMakeDefault()} />
+      </FormRow>
+      <FormRow>
+        <Row justify="space-between">
+          <Col>
+            <Button
+              type="primary"
+              onClick={async () => {
+                onEdited({ ...repo, verified: VerificationStatus.inProgress });
+                let verified = await octokit.verifyRepo(repo);
+                onEdited({
+                  ...repo,
+                  verified: verified ? VerificationStatus.success : VerificationStatus.failed,
+                });
+              }}
+            >
+              Verify Access
+            </Button>
+          </Col>
+          <Col>
+            <Button danger onClick={onDelete}>
+              Delete
+            </Button>
+          </Col>
+        </Row>
+      </FormRow>
     </>
   );
 }
