@@ -2,6 +2,10 @@ import * as localforage from "localforage";
 
 import { Repos, createDefaultInitializedRepo } from "./repo";
 
+export type AuthSettings = {
+  tokenGitHub?: string;
+};
+
 export type EditorSettings = {
   fontSize: number;
   theme: "dark" | "light";
@@ -11,6 +15,7 @@ export type EditorSettings = {
 
 export type Settings = {
   repos: Repos;
+  auth: AuthSettings;
   editor: EditorSettings;
 };
 
@@ -26,9 +31,19 @@ export function getDefaultEditorSettings(): EditorSettings {
 export function getDefaultSettings(): Settings {
   return {
     repos: [createDefaultInitializedRepo(true)],
+    auth: {},
     editor: getDefaultEditorSettings(),
   };
 }
+
+/*
+Possible future settings:
+
+General settings:
+  - number of visible rows in list view
+  - whether to count links in label counts. Although: If we make the label count update dynamic,
+    this wouldn't be needed. Dynamic would definitely be cooler.
+*/
 
 // ----------------------------------------------------------------------------
 // Settings reducer (trivial for now)
@@ -44,24 +59,10 @@ export function settingsReducer(state: Settings, action: SettingsAction): Settin
 // Storage I/O
 // ----------------------------------------------------------------------------
 
-/*
-export function getStoredRepos(): Repos {
-  let reposEntry = window.localStorage.getItem("repos");
-  if (reposEntry != null) {
-    return JSON.parse(reposEntry) as Repos;
-  } else {
-    return [createDefaultInitializedRepo(true)];
-  }
-}
-
-export function setStoredRepos(repos: Repos) {
-  window.localStorage.setItem("repos", JSON.stringify(repos));
-}
-*/
-
 export function getStoredSettings(): Settings {
   let settings = window.localStorage.getItem("settings");
   if (settings != null) {
+    // TODO: We need real validation here
     return JSON.parse(settings) as Settings;
   } else {
     return getDefaultSettings();

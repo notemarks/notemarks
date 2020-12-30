@@ -15,7 +15,14 @@ import styled from "@emotion/styled";
 
 import { UiRow } from "../components/UiRow";
 
-import { Settings, SettingsAction, clearAllStorage, EditorSettings } from "../settings";
+import {
+  Settings,
+  SettingsAction,
+  clearAllStorage,
+  AuthSettings,
+  EditorSettings,
+  settingsReducer,
+} from "../settings";
 
 import { Repo, Repos, VerificationStatus, createDefaultInitializedRepo } from "../repo";
 import * as octokit from "../octokit";
@@ -62,11 +69,13 @@ function FormRow({ text, children }: { text?: string; children?: React.ReactNode
 
 function RepoForm({
   repo,
+  auth,
   onDelete,
   onEdited,
   onMakeDefault,
 }: {
   repo: Repo;
+  auth: AuthSettings;
   onDelete: () => void;
   onEdited: (repo: Repo) => void;
   onMakeDefault: () => void;
@@ -83,8 +92,8 @@ function RepoForm({
       <FormRow text="User/Organization:">
         <Input
           placeholder="GitHub repository user/organization"
-          value={repo.userName}
-          onChange={(evt) => onEdited({ ...repo, userName: evt.target.value })}
+          value={repo.userOrOrgName}
+          onChange={(evt) => onEdited({ ...repo, userOrOrgName: evt.target.value })}
         />
       </FormRow>
       <FormRow text="Repository:">
@@ -92,13 +101,6 @@ function RepoForm({
           placeholder="GitHub repository name"
           value={repo.repoName}
           onChange={(evt) => onEdited({ ...repo, repoName: evt.target.value })}
-        />
-      </FormRow>
-      <FormRow text="Token:">
-        <Input.Password
-          placeholder="GitHub access token"
-          value={repo.token}
-          onChange={(evt) => onEdited({ ...repo, token: evt.target.value })}
         />
       </FormRow>
       <FormRow text="Default:">
@@ -111,7 +113,7 @@ function RepoForm({
               type="primary"
               onClick={async () => {
                 onEdited({ ...repo, verified: VerificationStatus.inProgress });
-                let verified = await octokit.verifyRepo(repo);
+                let verified = await octokit.verifyRepo(repo, auth);
                 onEdited({
                   ...repo,
                   verified: verified ? VerificationStatus.success : VerificationStatus.failed,
@@ -137,11 +139,12 @@ function RepoForm({
 // ----------------------------------------------------------------------------
 
 type MultiRepoFormProps = {
+  auth: AuthSettings;
   repos: Repos;
   setRepos: (repos: Repos) => void;
 };
 
-function MultiRepoForm({ repos, setRepos }: MultiRepoFormProps) {
+function MultiRepoForm({ auth, repos, setRepos }: MultiRepoFormProps) {
   const addRepo = useCallback(() => {
     let newRepo = createDefaultInitializedRepo(repos.length === 0 ? true : false);
     setRepos([...repos, newRepo]);
@@ -197,6 +200,7 @@ function MultiRepoForm({ repos, setRepos }: MultiRepoFormProps) {
             >
               <RepoForm
                 repo={repo}
+                auth={auth}
                 onDelete={() => deleteRepo(i)}
                 onEdited={(updatedRepo) => updateRepo(i, updatedRepo)}
                 onMakeDefault={() => makeRepoDefault(i)}
@@ -212,6 +216,30 @@ function MultiRepoForm({ repos, setRepos }: MultiRepoFormProps) {
           </Button>
         </Col>
       </Row>
+    </>
+  );
+}
+
+// ----------------------------------------------------------------------------
+// AuthSettings
+// ----------------------------------------------------------------------------
+
+function AuthForm({
+  settings,
+  setSettings,
+}: {
+  settings: AuthSettings;
+  setSettings: (settings: AuthSettings) => void;
+}) {
+  return (
+    <>
+      <FormRow text="GitHub access token:">
+        <Input.Password
+          placeholder="GitHub access token"
+          defaultValue={settings.tokenGitHub}
+          onChange={(evt) => setSettings({ ...settings, tokenGitHub: evt.target.value })}
+        />
+      </FormRow>
     </>
   );
 }
@@ -294,7 +322,17 @@ function SettingsView({ settings, dispatch }: SettingsProps) {
       center={
         <>
           <Divider orientation="left">Repositories</Divider>
-          <MultiRepoForm repos={settings.repos} setRepos={(repos) => dispatch({ repos: repos })} />
+          <MultiRepoForm
+            auth={settings.auth}
+            repos={settings.repos}
+            setRepos={(repos) => dispatch({ repos: repos })}
+          />
+
+          <Divider orientation="left">Authentication</Divider>
+          <AuthForm
+            settings={settings.auth}
+            setSettings={(authSettings) => dispatch({ auth: authSettings })}
+          />
 
           <Divider orientation="left">Editor Settings</Divider>
           <EditorForm

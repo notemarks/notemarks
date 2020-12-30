@@ -11,6 +11,7 @@ import {
 import { ok, okAsync, errAsync, ResultAsync, err } from "neverthrow";
 
 import { EntryFile, EntryDoc, WrappedError } from "./types";
+import { AuthSettings } from "./settings";
 import { Repo, Repos } from "./repo";
 
 import * as entry_utils from "./utils/entry_utils";
@@ -49,14 +50,14 @@ function startChain(): ResultAsync<null, WrappedError> {
 // High level functions
 // ----------------------------------------------------------------------------
 
-export async function verifyRepo(repo: Repo) {
+export async function verifyRepo(repo: Repo, auth: AuthSettings) {
   const octokit = new Octokit({
-    auth: repo.token,
+    auth: auth.tokenGitHub,
   });
 
   let content = await expect(
     octokit.repos.getContent({
-      owner: repo.userName,
+      owner: repo.userOrOrgName,
       repo: repo.repoName,
       path: ".",
     })
@@ -125,7 +126,7 @@ function cachedFetch(
     } else {
       return wrapPromise(
         octokit.repos.getContent({
-          owner: repo.userName,
+          owner: repo.userOrOrgName,
           repo: repo.repoName,
           path: path,
         }),
@@ -184,7 +185,7 @@ async function listFilesRecursive(
 
   let response = await wrapPromise(
     octokit.repos.getContent({
-      owner: repo.userName,
+      owner: repo.userOrOrgName,
       repo: repo.repoName,
       path: path,
     }),
@@ -294,7 +295,8 @@ async function downloadFiles(
 // - [ ] load statistics like "X files downloaded", "Y files from cache"?
 
 export async function loadEntries(
-  repos: Repos
+  repos: Repos,
+  auth: AuthSettings
 ): Promise<[EntryFile[], MultiRepoFileMap, MultiRepoFileMap, WrappedError[]]> {
   console.log(`Loading contents from ${repos.length} repos`);
 
@@ -303,7 +305,7 @@ export async function loadEntries(
 
   for (let repo of repos) {
     const octokit = new Octokit({
-      auth: repo.token,
+      auth: auth.tokenGitHub,
     });
 
     let files = await downloadFiles(octokit, repo, allErrors);
@@ -339,18 +341,19 @@ export async function loadEntries(
 
 export function downloadDocument(
   entry: EntryDoc,
+  auth: AuthSettings,
   decodeBase64: boolean
 ): ResultAsync<string, WrappedError> {
   let repo = entry.content.repo;
   let path = path_utils.getPath(entry);
 
   const octokit = new Octokit({
-    auth: repo.token,
+    auth: auth.tokenGitHub,
   });
 
   return wrapPromise(
     octokit.repos.getContent({
-      owner: repo.userName,
+      owner: repo.userOrOrgName,
       repo: repo.repoName,
       path: path,
     }),
@@ -380,12 +383,13 @@ type GitCreateTreeParamsTree = {
 };
 
 export function commit(
+  auth: AuthSettings,
   repo: Repo,
   ops: GitOp[],
   commitMsg: string
 ): ResultAsync<string, WrappedError> {
   const octokit = new Octokit({
-    auth: repo.token,
+    auth: auth.tokenGitHub,
   });
 
   let oldCommitSHA: string;
@@ -436,7 +440,7 @@ export function commit(
 function octokitGetRef(octokit: Octokit, repo: Repo, ref: string) {
   return wrapPromise(
     octokit.git.getRef({
-      owner: repo.userName,
+      owner: repo.userOrOrgName,
       repo: repo.repoName,
       ref: "heads/main", // TODO repo must contain branch or infer default branch...
     }),
@@ -447,7 +451,7 @@ function octokitGetRef(octokit: Octokit, repo: Repo, ref: string) {
 function octokitGetCommit(octokit: Octokit, repo: Repo, commitSHA: string) {
   return wrapPromise(
     octokit.git.getCommit({
-      owner: repo.userName,
+      owner: repo.userOrOrgName,
       repo: repo.repoName,
       commit_sha: commitSHA,
     }),
@@ -460,7 +464,7 @@ function octokitGetTree(octokit: Octokit, repo: Repo, treeSHA: string) {
   // How to recover from that?
   return wrapPromise(
     octokit.git.getTree({
-      owner: repo.userName,
+      owner: repo.userOrOrgName,
       repo: repo.repoName,
       tree_sha: treeSHA,
       recursive: "true",
@@ -472,7 +476,7 @@ function octokitGetTree(octokit: Octokit, repo: Repo, treeSHA: string) {
 function octokitCreateTree(octokit: Octokit, repo: Repo, tree: GitCreateTreeParamsTree[]) {
   return wrapPromise(
     octokit.git.createTree({
-      owner: repo.userName,
+      owner: repo.userOrOrgName,
       repo: repo.repoName,
       tree: tree,
     }),
@@ -489,7 +493,7 @@ function octokitCreateCommit(
 ) {
   return wrapPromise(
     octokit.git.createCommit({
-      owner: repo.userName,
+      owner: repo.userOrOrgName,
       repo: repo.repoName,
       message: commitMsg,
       parents: [oldCommitSHA],
@@ -502,7 +506,7 @@ function octokitCreateCommit(
 function octokitUpdateRef(octokit: Octokit, repo: Repo, ref: string, commitSHA: string) {
   return wrapPromise(
     octokit.git.updateRef({
-      owner: repo.userName,
+      owner: repo.userOrOrgName,
       repo: repo.repoName,
       ref: ref,
       sha: commitSHA,

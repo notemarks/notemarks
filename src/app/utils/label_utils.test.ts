@@ -22,9 +22,8 @@ function createDummyEntry(labels: string[]): Entry {
       repo: {
         key: "unique_key",
         name: "SomeRepo",
-        userName: "",
+        userOrOrgName: "",
         repoName: "",
-        token: "",
         enabled: true,
         default: true,
         verified: VerificationStatus.unknown,

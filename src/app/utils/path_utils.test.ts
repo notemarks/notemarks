@@ -84,9 +84,8 @@ function createDummyRepo(): Repo {
   return {
     key: "unique_key",
     name: "SomeRepo",
-    userName: "",
+    userOrOrgName: "",
     repoName: "",
-    token: "",
     enabled: true,
     default: true,
     verified: VerificationStatus.unknown,

@@ -46,13 +46,13 @@ import * as git_ops from "./git_ops";
 
 import { MultiRepoFileMap } from "./filemap";
 
-import { loadEntries } from "./octokit";
-
 import * as io from "./io";
 import * as path_utils from "./utils/path_utils";
 import * as date_utils from "./utils/date_utils";
 import * as label_utils from "./utils/label_utils";
 import * as markdown_utils from "./utils/markdown_utils";
+import * as octokit from "./octokit";
+import * as web_utils from "./utils/web_utils";
 
 import List from "./views/List";
 import EntryView from "./views/EntryView";
@@ -769,8 +769,9 @@ function App({ initSettings }: { initSettings: Settings }) {
     dispatch({ kind: ActionKind.StartReloading });
 
     let newActiveRepos = repo_utils.filterActiveRepos(newRepos);
-    let [newFileEntries, allFileMapsOrig, allFileMapsEdit, allErrors] = await loadEntries(
-      newActiveRepos
+    let [newFileEntries, allFileMapsOrig, allFileMapsEdit, allErrors] = await octokit.loadEntries(
+      newActiveRepos,
+      settings.auth
     );
 
     if (allErrors.length > 0) {
@@ -1026,6 +1027,14 @@ function App({ initSettings }: { initSettings: Settings }) {
                 ownLabels: ownLabels,
               });
             }}
+            onOpenDocument={async (entry: EntryDoc) => {
+              let contentBase64 = await octokit.downloadDocument(entry, settings.auth, false);
+              if (contentBase64.isOk()) {
+                let filename = path_utils.getBasename(entry);
+                let extension = entry.content.extension;
+                web_utils.downloadFromMemory(filename, extension, contentBase64.value);
+              }
+            }}
           />
         );
       }
@@ -1042,6 +1051,7 @@ function App({ initSettings }: { initSettings: Settings }) {
       case Page.Commit: {
         return (
           <PrepareCommit
+            auth={settings.auth}
             ops={state.stagedGitOps}
             onSuccessfulCommit={() => {
               dispatch({ kind: ActionKind.SuccessfulCommit });

@@ -1,14 +1,20 @@
 /* eslint-disable jest/no-conditional-expect */
+
+import { AuthSettings } from "./settings";
+import { Repo, createDefaultInitializedRepo } from "./repo";
+
 import * as octokit from "./octokit";
 import { GitOps, GitOpKind } from "./git_ops";
-import { Repo, createDefaultInitializedRepo } from "./repo";
 
 test("commitIntegrationTest", async () => {
   if (process.env.REACT_APP_AUTH != null) {
     let repo: Repo = createDefaultInitializedRepo(true);
-    repo.userName = "notemarks";
+    repo.userOrOrgName = "notemarks";
     repo.repoName = "DummyRepo";
-    repo.token = process.env.REACT_APP_AUTH;
+
+    let auth: AuthSettings = {
+      tokenGitHub: process.env.REACT_APP_AUTH,
+    };
 
     {
       let ops: GitOps = [
@@ -18,7 +24,7 @@ test("commitIntegrationTest", async () => {
           content: "foocontent",
         },
       ];
-      let result = await octokit.commit(repo, ops, "added foo.txt");
+      let result = await octokit.commit(auth, repo, ops, "added foo.txt");
       console.log(result);
       expect(result.isOk()).toBe(true);
     }
@@ -30,7 +36,7 @@ test("commitIntegrationTest", async () => {
           pathDst: "some/subfolder/bar.txt",
         },
       ];
-      let result = await octokit.commit(repo, ops, "moved foo.txt -> bar.txt");
+      let result = await octokit.commit(auth, repo, ops, "moved foo.txt -> bar.txt");
       console.log(result);
       expect(result.isOk()).toBe(true);
     }
@@ -41,7 +47,7 @@ test("commitIntegrationTest", async () => {
           path: "some/subfolder/bar.txt",
         },
       ];
-      let result = await octokit.commit(repo, ops, "removed bar.txt");
+      let result = await octokit.commit(auth, repo, ops, "removed bar.txt");
       console.log(result);
       expect(result.isOk()).toBe(true);
     }

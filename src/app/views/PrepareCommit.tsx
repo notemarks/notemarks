@@ -6,6 +6,7 @@ import styled from "@emotion/styled";
 
 import { UiRow } from "../components/UiRow";
 
+import { AuthSettings } from "../settings";
 import { GitOpKind } from "../git_ops";
 import type { GitOps, MultiRepoGitOps } from "../git_ops";
 import * as octokit from "../octokit";
@@ -92,11 +93,12 @@ const Footer = styled.div`
 `;
 
 type PrepareCommitProps = {
+  auth: AuthSettings;
   ops: MultiRepoGitOps;
   onSuccessfulCommit: () => void;
 };
 
-function PrepareCommit({ ops, onSuccessfulCommit }: PrepareCommitProps) {
+function PrepareCommit({ auth, ops, onSuccessfulCommit }: PrepareCommitProps) {
   // refs
   // let textAreaRef = useRef<TextAreaRef>(null);
 
@@ -143,7 +145,7 @@ function PrepareCommit({ ops, onSuccessfulCommit }: PrepareCommitProps) {
         let perRepoCommitMessage = prepareCommitMessage(singleRepoOps);
         return [
           octokit
-            .commit(repo, singleRepoOps, perRepoCommitMessage)
+            .commit(auth, repo, singleRepoOps, perRepoCommitMessage)
             .map((commitHash) => ({ repo: repo, commitHash: commitHash })),
         ];
       } else {

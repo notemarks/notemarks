@@ -14,10 +14,7 @@ import { Entry, EntryNote, EntryDoc, EntryLink } from "../types";
 import * as entry_utils from "../utils/entry_utils";
 import * as date_utils from "../utils/date_utils";
 import * as label_utils from "../utils/label_utils";
-import * as path_utils from "../utils/path_utils";
 import * as web_utils from "../utils/web_utils";
-
-import * as octokit from "../octokit";
 
 const { Title } = Typography;
 const { Panel } = Collapse;
@@ -125,15 +122,18 @@ type EntryViewProps = {
   entry?: Entry;
   onUpdateNoteData: (title: string, labels: string[]) => void;
   onUpdateLinkData: (title: string, ownLabels: string[]) => void;
+  onOpenDocument: (entry: EntryDoc) => void;
 };
 
-function EntryView({ entry, onUpdateNoteData, onUpdateLinkData }: EntryViewProps) {
+function EntryView({ entry, onUpdateNoteData, onUpdateLinkData, onOpenDocument }: EntryViewProps) {
   if (entry == null) {
     return <NoEntrySelected />;
   } else if (entry_utils.isNote(entry)) {
     return <NoteView entry={entry} onUpdateNoteData={onUpdateNoteData} />;
   } else if (entry_utils.isDoc(entry)) {
-    return <DocView entry={entry} onUpdateNoteData={onUpdateNoteData} />;
+    return (
+      <DocView entry={entry} onUpdateNoteData={onUpdateNoteData} onOpenDocument={onOpenDocument} />
+    );
   } else if (entry_utils.isLink(entry)) {
     return <LinkView entry={entry} onUpdateLinkData={onUpdateLinkData} />;
   } else {
@@ -260,9 +260,10 @@ const NoteEditForm = ({ initialTitle, initialLabels, onUpdateNoteData }: NoteEdi
 type DocViewProps = {
   entry: EntryDoc;
   onUpdateNoteData: (title: string, labels: string[]) => void;
+  onOpenDocument: (entry: EntryDoc) => void;
 };
 
-function DocView({ entry, onUpdateNoteData }: DocViewProps) {
+function DocView({ entry, onUpdateNoteData, onOpenDocument }: DocViewProps) {
   return (
     <VerticalContainer>
       <UiRow
@@ -287,14 +288,7 @@ function DocView({ entry, onUpdateNoteData }: DocViewProps) {
                   marginTop: "40px",
                   display: "inline-block",
                 }}
-                onClick={async () => {
-                  let contentBase64 = await octokit.downloadDocument(entry, false);
-                  if (contentBase64.isOk()) {
-                    let filename = path_utils.getBasename(entry);
-                    let extension = entry.content.extension;
-                    web_utils.downloadFromMemory(filename, extension, contentBase64.value);
-                  }
-                }}
+                onClick={() => onOpenDocument(entry)}
               >
                 <div style={{ marginLeft: "20px", marginRight: "20px" }}>open</div>
               </Button>

@@ -29,9 +29,8 @@ meaningful identifier where needed.
 export type Repo = {
   key: string;
   name: string;
-  userName: string;
+  userOrOrgName: string;
   repoName: string;
-  token: string;
   enabled: boolean;
   default: boolean;
   verified: VerificationStatus;
@@ -46,10 +45,9 @@ export type Repos = Repo[];
 export function createDefaultInitializedRepo(isFirst: boolean): Repo {
   return {
     key: uuidv4(),
-    name: "",
-    userName: "",
+    name: "Default",
+    userOrOrgName: "",
     repoName: "",
-    token: "",
     enabled: true,
     default: isFirst ? true : false,
     verified: VerificationStatus.unknown,
@@ -58,7 +56,7 @@ export function createDefaultInitializedRepo(isFirst: boolean): Repo {
 
 export function getRepoId(repo: Repo): string {
   // In GitHub world, this should provide a unique identifier.
-  return `github_${repo.userName}_${repo.repoName}`;
+  return `github_${repo.userOrOrgName}_${repo.repoName}`;
 }
 
 export function filterActiveRepos(repos: Repos): Repos {
@@ -79,7 +77,7 @@ export function getDefaultRepo(repos: Repos): Repo | undefined {
 // ----------------------------------------------------------------------------
 
 export function getRepoCommitPage(repo: Repo, commitHash: string): string {
-  return `https://github.com/${repo.userName}/${repo.repoName}/commit/${commitHash}`;
+  return `https://github.com/${repo.userOrOrgName}/${repo.repoName}/commit/${commitHash}`;
 }
 
 // ----------------------------------------------------------------------------
