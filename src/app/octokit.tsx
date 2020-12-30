@@ -103,10 +103,6 @@ export function base64DecodeUnicode(s: string): string {
   );
 }
 
-export function clearBrowserCache() {
-  localforage.clear();
-}
-
 // ----------------------------------------------------------------------------
 // Internal cached fetching
 // ----------------------------------------------------------------------------

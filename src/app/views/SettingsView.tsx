@@ -15,16 +15,18 @@ import styled from "@emotion/styled";
 
 import { UiRow } from "../components/UiRow";
 
+import { Settings, SettingsAction, clearAllStorage } from "../settings";
+
 import { Repo, Repos, VerificationStatus, createDefaultInitializedRepo } from "../repo";
 import * as octokit from "../octokit";
+
+// ----------------------------------------------------------------------------
+// Repo Card Header
+// ----------------------------------------------------------------------------
 
 const StyledRepoTitle = styled.span`
   font-size: 16px;
 `;
-
-// ----------------------------------------------------------------------------
-// Header
-// ----------------------------------------------------------------------------
 
 function Header(repo: Repo) {
   return (
@@ -98,7 +100,7 @@ function RepoForm({
         />
       </FormRow>
       <FormRow text="Default:">
-        <Switch checked={repo.default} onChange={() => onMakeDefault()} />
+        <Switch checked={repo.default} onChange={onMakeDefault} />
       </FormRow>
       <FormRow>
         <Row justify="space-between">
@@ -164,6 +166,10 @@ function MultiRepoForm({ repos, setRepos }: MultiRepoFormProps) {
   };
 
   const makeRepoDefault = (i: number) => {
+    // Note that we deliberately only handle "make repo default" case,
+    // and don't care about the negation "make repo not the default".
+    // This makes sense, because we don't want to end up with no default
+    // anyway. The only allowed change is to make another repo the default.
     let newRepos = [...repos];
     for (let j = 0; j < newRepos.length; ++j) {
       if (j === i) {
@@ -213,20 +219,20 @@ function MultiRepoForm({ repos, setRepos }: MultiRepoFormProps) {
 // ----------------------------------------------------------------------------
 
 type SettingsProps = {
-  repos: Repos;
-  setRepos: (repos: Repos) => void;
+  settings: Settings;
+  dispatch: (action: SettingsAction) => void;
 };
 
-function Settings({ repos, setRepos }: SettingsProps) {
+function SettingsView({ settings, dispatch }: SettingsProps) {
   return (
     <UiRow
       center={
         <>
           <Divider orientation="left">Repositories</Divider>
-          <MultiRepoForm repos={repos} setRepos={setRepos} />
+          <MultiRepoForm repos={settings.repos} setRepos={(repos) => dispatch({ repos: repos })} />
 
           <Divider orientation="left">Browser cache</Divider>
-          <Button danger onClick={octokit.clearBrowserCache}>
+          <Button danger onClick={clearAllStorage}>
             Clear all cache data
           </Button>
         </>
@@ -251,7 +257,7 @@ function VerificationStatusIcon({ status }: { status: VerificationStatus }) {
   }
 }
 
-export default Settings;
+export default SettingsView;
 
 // First take on RepoForm -- still any relevance?
 

@@ -1,4 +1,4 @@
-import React, { useState, useReducer, useEffect, useRef, useLayoutEffect } from "react";
+import React, { useReducer, useEffect, useRef, useLayoutEffect } from "react";
 import "./App.css";
 
 import { Layout, Menu, Modal } from "antd";
@@ -36,6 +36,8 @@ import {
 import * as fn from "./utils/fn_utils";
 import * as entry_utils from "./utils/entry_utils";
 
+import { Settings, getStoredSettings, setStoredSettings, settingsReducer } from "./settings";
+
 import { Repo, Repos } from "./repo";
 import * as repo_utils from "./repo";
 
@@ -57,7 +59,7 @@ import EntryView from "./views/EntryView";
 import NoteEditor, { NoteEditorRef } from "./views/NoteEditor";
 import PrepareCommit from "./views/PrepareCommit";
 import AddEntry from "./views/AddEntry";
-import Settings from "./views/Settings";
+import SettingsView from "./views/SettingsView";
 
 const { Content } = Layout;
 
@@ -738,19 +740,16 @@ function reducer(state: State, action: Action): State {
 // App
 // ----------------------------------------------------------------------------
 
-function App() {
+function App({ initSettings }: { initSettings: Settings }) {
   console.log("Rendering: App");
 
   useEffectOnce(() => {
-    let initRepos = repo_utils.getStoredRepos();
-    console.log("Initially loaded repos:", initRepos);
-    setRepos(initRepos);
-    reloadEntries(initRepos);
+    reloadEntries(initSettings.repos);
   });
 
   // *** Settings: Repos state
 
-  const [repos, setRepos] = useState([] as Repos);
+  const [settings, settingsDispatch] = useReducer(settingsReducer, initSettings);
 
   // Effect to store repo changes to local storage.
   // Note that it is slightly awkward that we re-store the repos data
@@ -759,8 +758,10 @@ function App() {
   // the repo data as an argument to useState in every re-render.
   useEffect(() => {
     // console.log("Storing repos:", repos)
-    repo_utils.setStoredRepos(repos);
-  }, [repos]);
+    // Perhaps we need a little debounce here to avoid serializing the
+    // settings on every keystroke in the settings dialog.
+    setStoredSettings(settings);
+  }, [settings]);
 
   async function reloadEntries(newRepos: Repos) {
     console.log("Reloading entries");
@@ -944,7 +945,7 @@ function App() {
       case Page.Reload: {
         if (!state.isReloading) {
           if (anyStagedChange() === false) {
-            reloadEntries(repos);
+            reloadEntries(settings.repos);
           } else {
             Modal.confirm({
               title: "Do you want to reload entries?",
@@ -952,7 +953,7 @@ function App() {
               content:
                 "You have uncommitted changes. Reloading the repository content will discard local changes.",
               onOk() {
-                reloadEntries(repos);
+                reloadEntries(settings.repos);
               },
             });
           }
@@ -1050,7 +1051,7 @@ function App() {
       case Page.Add: {
         return (
           <AddEntry
-            repos={repo_utils.filterActiveRepos(repos)}
+            repos={repo_utils.filterActiveRepos(settings.repos)}
             onAdded={({ entryKind, repo, title, labels, content, location, extension }) => {
               dispatch({
                 kind: ActionKind.CreateEntry,
@@ -1067,7 +1068,7 @@ function App() {
         );
       }
       case Page.Settings: {
-        return <Settings repos={repos} setRepos={setRepos} />;
+        return <SettingsView settings={settings} dispatch={settingsDispatch} />;
       }
     }
   };
@@ -1130,4 +1131,9 @@ function App() {
   );
 }
 
-export default App;
+function AppWrapper() {
+  let initSettings = getStoredSettings();
+  return <App initSettings={initSettings} />;
+}
+
+export default AppWrapper;

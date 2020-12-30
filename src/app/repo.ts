@@ -75,23 +75,6 @@ export function getDefaultRepo(repos: Repos): Repo | undefined {
 }
 
 // ----------------------------------------------------------------------------
-// Storage I/O
-// ----------------------------------------------------------------------------
-
-export function getStoredRepos(): Repos {
-  let reposEntry = window.localStorage.getItem("repos");
-  if (reposEntry != null) {
-    return JSON.parse(reposEntry) as Repos;
-  } else {
-    return [createDefaultInitializedRepo(true)];
-  }
-}
-
-export function setStoredRepos(repos: Repos) {
-  window.localStorage.setItem("repos", JSON.stringify(repos));
-}
-
-// ----------------------------------------------------------------------------
 // Utility functions
 // ----------------------------------------------------------------------------
 
