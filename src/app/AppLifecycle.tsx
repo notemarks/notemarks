@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 
 import App from "./App";
 
@@ -6,19 +6,22 @@ import { useEffectOnce } from "./utils/react_utils";
 
 import { loadSettings, getSalt } from "./settings";
 
-function AppLifecycle() {
+function AppLifecycle(): React.ReactElement {
   console.log("Rendering: AppWrapper");
-  let initSettings = loadSettings();
+
+  let [app, setApp] = useState(null as React.ReactNode);
 
   useEffectOnce(() => {
     async function load() {
-      let salt = await getSalt();
-      console.log("salt result:", salt);
+      console.log("initial load");
+      let initSettings = await loadSettings();
+      //let salt = await getSalt();
+      setApp(<App initSettings={initSettings} />);
     }
     load();
   });
 
-  return <App initSettings={initSettings} />;
+  return <>{app}</>;
 }
 
 export default AppLifecycle;
