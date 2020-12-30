@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 
 import App from "./App";
+import LoginForm from "./LoginForm";
 
 import { useEffectOnce } from "./utils/react_utils";
 
@@ -16,7 +17,8 @@ function AppLifecycle(): React.ReactElement {
       console.log("initial load");
       let initSettings = await loadSettings();
       //let salt = await getSalt();
-      setApp(<App initSettings={initSettings} />);
+      //setApp(<App initSettings={initSettings} />);
+      setApp(<LoginForm />);
     }
     load();
   });

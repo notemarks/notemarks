@@ -197,10 +197,14 @@ export async function decrypt(
   dataEncryptedArray: ArrayBuffer,
   key: CryptoKey,
   nonce: Nonce
-): Promise<string> {
+): Promise<string | undefined> {
   let alg = { name: "AES-GCM", iv: nonce };
-  let dataArray = await crypto.subtle.decrypt(alg, key, dataEncryptedArray);
-  return arrayBufferToString(dataArray);
+  try {
+    let dataArray = await crypto.subtle.decrypt(alg, key, dataEncryptedArray);
+    return arrayBufferToString(dataArray);
+  } catch {
+    return undefined;
+  }
 }
 
 export async function storeAuth(auth: AuthSettings, key: CryptoKey) {
@@ -210,11 +214,13 @@ export async function storeAuth(auth: AuthSettings, key: CryptoKey) {
   await localforage.setItem("auth_nonce", authNonce);
 }
 
-export async function loadAuth(key: CryptoKey) {
+export async function loadAuth(key: CryptoKey): Promise<AuthSettings | undefined> {
   let authData = (await localforage.getItem("auth_data")) as ArrayBuffer | undefined;
   let authNonce = (await localforage.getItem("auth_nonce")) as Nonce | undefined;
   if (authData != null && authNonce != null) {
     let authSerialized = await decrypt(authData, key, authNonce);
-    return JSON.parse(authSerialized) as AuthSettings;
+    if (authSerialized != null) {
+      return JSON.parse(authSerialized) as AuthSettings;
+    }
   }
 }
