@@ -1,6 +1,18 @@
 import React, { useCallback } from "react";
 
-import { Button, Input, InputNumber, Select, Switch, Row, Col, Card, Divider, Space } from "antd";
+import {
+  Alert,
+  Button,
+  Input,
+  InputNumber,
+  Select,
+  Switch,
+  Row,
+  Col,
+  Card,
+  Divider,
+  Space,
+} from "antd";
 import { RowProps } from "antd/lib/row";
 
 import {
@@ -311,13 +323,16 @@ function EditorForm({
 type SettingsProps = {
   settings: Settings;
   dispatch: (action: SettingsAction) => void;
+  isAuthenticatedSession: boolean;
 };
 
-function SettingsView({ settings, dispatch }: SettingsProps) {
+function SettingsView({ settings, dispatch, isAuthenticatedSession }: SettingsProps) {
   return (
     <UiRow
       center={
         <>
+          <AuthenticationInfo isAuthenticatedSession={isAuthenticatedSession} />
+
           <Divider orientation="left">Repositories</Divider>
           <MultiRepoForm
             auth={settings.auth}
@@ -362,6 +377,32 @@ function VerificationStatusIcon({ status }: { status: VerificationStatus }) {
     return <CheckCircleTwoTone twoToneColor="#2be262" style={{ fontSize: "24px" }} />;
   } else {
     return <LoadingOutlined style={{ fontSize: "24px" }} />;
+  }
+}
+
+function AuthenticationInfo({ isAuthenticatedSession }: { isAuthenticatedSession: boolean }) {
+  if (!isAuthenticatedSession) {
+    return (
+      <Alert
+        message="Temporary session"
+        type="warning"
+        showIcon
+        description={
+          <div>
+            This session has been started without a local encryption password. For security reasons
+            none of the settings changes below will be persisted into the browser's local storage.
+            If you want your browser to remember these settings, you can start a{" "}
+            <a href="./" target="_blank" rel="noopener noreferrer">
+              new session
+            </a>{" "}
+            with a local encryption password.
+          </div>
+        }
+        style={{ marginTop: "20px" }}
+      />
+    );
+  } else {
+    return null;
   }
 }
 

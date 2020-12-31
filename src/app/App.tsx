@@ -1086,7 +1086,13 @@ function App({ initSettings, session }: { initSettings: Settings; session: Stora
         );
       }
       case Page.Settings: {
-        return <SettingsView settings={settings} dispatch={settingsDispatch} />;
+        return (
+          <SettingsView
+            settings={settings}
+            dispatch={settingsDispatch}
+            isAuthenticatedSession={session.isAuthenticated()}
+          />
+        );
       }
     }
   };
