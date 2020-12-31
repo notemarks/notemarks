@@ -54,6 +54,18 @@ export function createDefaultInitializedRepo(isFirst: boolean): Repo {
   };
 }
 
+export function createSimpleRepo(name: string, ghUserOrOrg: string, ghRepo: string): Repo {
+  return {
+    key: uuidv4(),
+    name: name,
+    userOrOrgName: ghUserOrOrg,
+    repoName: ghRepo,
+    enabled: true,
+    default: true,
+    verified: VerificationStatus.success,
+  };
+}
+
 export function getRepoId(repo: Repo): string {
   // In GitHub world, this should provide a unique identifier.
   return `github_${repo.userOrOrgName}_${repo.repoName}`;

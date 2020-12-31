@@ -5,7 +5,8 @@ import LoginForm from "./LoginForm";
 
 import { useEffectOnce } from "./utils/react_utils";
 
-import { Settings, StorageSession, isAnyAuthStored } from "./settings";
+import { Settings, StorageSession, isAnyAuthStored, getDefaultSettings } from "./settings";
+import { createSimpleRepo } from "./repo";
 
 type StateNone = {
   mode: "none";
@@ -25,9 +26,6 @@ type StateApp = {
 type State = StateNone | StateLogin | StateApp;
 
 function AppLifecycle() {
-  // : React.ReactElement
-  console.log("Rendering: AppWrapper");
-
   let [state, setState] = useState({ mode: "none" } as State);
 
   const onLogin = (settings: Settings, session: StorageSession) => {
@@ -40,12 +38,24 @@ function AppLifecycle() {
 
   useEffectOnce(() => {
     async function load() {
-      console.log("initial load");
-      let anyAuthStored = await isAnyAuthStored();
-      setState({
-        mode: "login",
-        anyAuthStored: anyAuthStored,
-      });
+      console.log("Initial load");
+
+      let locInfo = parseWindowLocation();
+
+      if (locInfo.skipLogin === false) {
+        let anyAuthStored = await isAnyAuthStored();
+        setState({
+          mode: "login",
+          anyAuthStored: anyAuthStored,
+        });
+      } else {
+        let session = new StorageSession();
+        setState({
+          mode: "app",
+          initialSettings: locInfo.settings,
+          session: session,
+        });
+      }
     }
     load();
   });
@@ -57,6 +67,33 @@ function AppLifecycle() {
       return <LoginForm anyAuthStored={state.anyAuthStored} onLogin={onLogin} />;
     case "app":
       return <App initSettings={state.initialSettings} session={state.session} />;
+  }
+}
+
+type WindowLocationInfo =
+  | {
+      skipLogin: false;
+    }
+  | {
+      skipLogin: true;
+      settings: Settings;
+    };
+
+function parseWindowLocation(): WindowLocationInfo {
+  let hash = window.location.hash;
+  hash = hash.replace(/^#+/g, "");
+  console.log(hash);
+  if (hash === "demo-awesome") {
+    let settings = getDefaultSettings();
+    settings.repos = [createSimpleRepo("Awesome", "notemarks", "demo-awesome")];
+    return {
+      skipLogin: true,
+      settings,
+    };
+  } else {
+    return {
+      skipLogin: false,
+    };
   }
 }
 

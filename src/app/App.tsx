@@ -759,7 +759,12 @@ function App({ initSettings, session }: { initSettings: Settings; session: Stora
   useDebouncedEffect(
     () => {
       // console.log("Storing settings:", settings);
-      session.storeSettings(settings);
+      // Note that we only store settings in authenticated mode. Otherwise
+      // the demo modes (which use default settings + fixed repo values)
+      // would always overwrite the user's manually configured settings.
+      if (session.isAuthenticated()) {
+        session.storeSettings(settings);
+      }
     },
     300,
     [session, settings]

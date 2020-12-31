@@ -72,14 +72,14 @@ function LoginForm({
       />
 
       <Divider />
-      <Form initialValues={{ reset: !anyAuthStored }} onFinish={onFinish}>
+      <Form initialValues={{ reset: !anyAuthStored, password: "" }} onFinish={onFinish}>
         <Form.Item
           name="password"
           validateTrigger="onBlur"
           rules={[
             () => ({
               validator(rule, value) {
-                if (value.length >= 4) {
+                if (value != null && value.length >= 4) {
                   return Promise.resolve();
                 } else {
                   return Promise.reject(

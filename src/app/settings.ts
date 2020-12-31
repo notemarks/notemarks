@@ -75,6 +75,10 @@ type SettingsLoadResult = {
 export class StorageSession {
   constructor(private key?: CryptoKey) {}
 
+  isAuthenticated(): boolean {
+    return this.key != null;
+  }
+
   storeSettings(settings: Settings) {
     if (this.key != null) {
       storeAuth(settings.auth, this.key);

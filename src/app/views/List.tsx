@@ -13,7 +13,7 @@ import { DefaultTag } from "../components/ColorTag";
 import { EntryKind, Entries, Label, Labels } from "../types";
 import { doesLabelMatchLabels } from "../utils/label_utils";
 import * as fn from "../utils/fn_utils";
-import { MutableRef } from "../utils/react_utils";
+import { MutableRef, useDebouncedEffect } from "../utils/react_utils";
 
 export function splitSearchTerms(s: string): string[] {
   return s
@@ -182,11 +182,15 @@ const List = React.forwardRef(
     //    in the VDOM changes when the searchTerms change) should make the first
     //    re-rendering fast.
     */
-    useEffect(() => {
-      let newFilteredEntries = filterEntries(entries, searchTerms, labelFilters, entryKindFilter);
-      setSearchStats({ totalMatchingEntries: newFilteredEntries.length });
-      setFilteredEntries(newFilteredEntries.slice(0, numVisibleEntries));
-    }, [entries, numVisibleEntries, searchTerms, labelFilters, entryKindFilter]);
+    useDebouncedEffect(
+      () => {
+        let newFilteredEntries = filterEntries(entries, searchTerms, labelFilters, entryKindFilter);
+        setSearchStats({ totalMatchingEntries: newFilteredEntries.length });
+        setFilteredEntries(newFilteredEntries.slice(0, numVisibleEntries));
+      },
+      100,
+      [entries, numVisibleEntries, searchTerms, labelFilters, entryKindFilter]
+    );
 
     // Note that it is probably necessary to keep this separate from the entry filtering effect above.
     // Issues with merging the two:

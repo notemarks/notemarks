@@ -399,7 +399,6 @@ export function commit(
     })
     .andThen((response) => {
       defaultBranch = response.data.default_branch;
-      console.log(defaultBranch);
       return octokitGetRef(octokit, repo, defaultBranch);
     })
     .andThen((response) => {
