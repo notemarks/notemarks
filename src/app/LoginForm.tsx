@@ -3,33 +3,41 @@ import React, { useState } from "react";
 import { Form, Input, Button, Checkbox, Modal, Alert, Divider } from "antd";
 import { LockOutlined } from "@ant-design/icons";
 
-function LoginForm() {
-  /*
-  state = {
-    loading: false,
-    visible: true,
-  };
+import { Settings, StorageSession, generateKeyFromStoredSalt } from "./settings";
 
-  showModal = () => {
-    this.setState({
-      visible: true,
-    });
-  };
+function LoginForm({
+  anyAuthStored,
+  onLogin,
+}: {
+  anyAuthStored: boolean;
+  onLogin: (settings: Settings, session: StorageSession) => void;
+}) {
+  let [loading, setLoading] = useState(false);
 
-  handleOk = () => {
-    this.setState({ loading: true });
-    setTimeout(() => {
-      this.setState({ loading: false, visible: false });
-    }, 3000);
-  };
+  const onFinish = async (values: any) => {
+    setLoading(true);
+    try {
+      let key = await generateKeyFromStoredSalt(values["password"]);
+      let reset = values["reset"] as boolean;
 
-  handleCancel = () => {
-    this.setState({ visible: false });
-  };
-  */
+      let session = new StorageSession(key);
+      let settingsLoadResult = await session.loadSettings(reset);
 
-  const onFinish = (values: any) => {
-    console.log("Received values of form: ", values);
+      if (anyAuthStored && settingsLoadResult.status.loadAuthFailed) {
+        Modal.error({
+          title: "Failure",
+          content: "Failed to decrypt local data. Password mismatch?",
+        });
+      } else {
+        // Call to onLogin must be asynchronous, because otherwise setLoading
+        // would try to do a state update to an already unmounted component.
+        setTimeout(() => {
+          onLogin(settingsLoadResult.settings, session);
+        }, 0);
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -41,8 +49,6 @@ function LoginForm() {
           notemarks
         </span>
       }
-      //onOk={this.handleOk}
-      //onCancel={this.handleCancel}
       closable={false}
       footer={null}
     >
@@ -64,11 +70,12 @@ function LoginForm() {
         }
         type="info"
       />
+
       <Divider />
-      <Form initialValues={{ reset: false }} onFinish={onFinish}>
+      <Form initialValues={{ reset: !anyAuthStored }} onFinish={onFinish}>
         <Form.Item
           name="password"
-          validateTrigger="onFinish"
+          validateTrigger="onBlur"
           rules={[
             () => ({
               validator(rule, value) {
@@ -88,17 +95,18 @@ function LoginForm() {
             type="password"
             placeholder="Local encryption password"
             autoFocus
-
-            //onPressEnter={onStart}
           />
         </Form.Item>
         <Form.Item name="reset" valuePropName="checked">
           <Checkbox>Reset local encryption password</Checkbox>
         </Form.Item>
         <Form.Item style={{ marginBottom: 0 }}>
-          <Button type="primary">Start</Button>
+          <Button type="primary" htmlType="submit" loading={loading}>
+            Start
+          </Button>
         </Form.Item>
       </Form>
+
       <Divider />
       <div style={{ fontSize: 12, marginTop: "8px", color: "#666" }}>
         <p>What is the purpose of the local encryption password?</p>

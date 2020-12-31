@@ -5,25 +5,59 @@ import LoginForm from "./LoginForm";
 
 import { useEffectOnce } from "./utils/react_utils";
 
-import { loadSettings, getSalt } from "./settings";
+import { Settings, StorageSession, isAnyAuthStored } from "./settings";
 
-function AppLifecycle(): React.ReactElement {
+type StateNone = {
+  mode: "none";
+};
+
+type StateLogin = {
+  mode: "login";
+  anyAuthStored: boolean;
+};
+
+type StateApp = {
+  mode: "app";
+  initialSettings: Settings;
+  session: StorageSession;
+};
+
+type State = StateNone | StateLogin | StateApp;
+
+function AppLifecycle() {
+  // : React.ReactElement
   console.log("Rendering: AppWrapper");
 
-  let [app, setApp] = useState(null as React.ReactNode);
+  let [state, setState] = useState({ mode: "none" } as State);
+
+  const onLogin = (settings: Settings, session: StorageSession) => {
+    setState({
+      mode: "app",
+      initialSettings: settings,
+      session: session,
+    });
+  };
 
   useEffectOnce(() => {
     async function load() {
       console.log("initial load");
-      let initSettings = await loadSettings();
-      //let salt = await getSalt();
-      //setApp(<App initSettings={initSettings} />);
-      setApp(<LoginForm />);
+      let anyAuthStored = await isAnyAuthStored();
+      setState({
+        mode: "login",
+        anyAuthStored: anyAuthStored,
+      });
     }
     load();
   });
 
-  return <>{app}</>;
+  switch (state.mode) {
+    case "none":
+      return null;
+    case "login":
+      return <LoginForm anyAuthStored={state.anyAuthStored} onLogin={onLogin} />;
+    case "app":
+      return <App initSettings={state.initialSettings} />;
+  }
 }
 
 export default AppLifecycle;

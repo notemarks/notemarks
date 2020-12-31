@@ -19,6 +19,8 @@ export type Settings = {
   editor: EditorSettings;
 };
 
+export type SettingsWithoutAuth = Omit<Settings, "auth">;
+
 export function getDefaultEditorSettings(): EditorSettings {
   return {
     fontSize: 12,
@@ -58,6 +60,74 @@ export function settingsReducer(state: Settings, action: SettingsAction): Settin
 // ----------------------------------------------------------------------------
 // Storage I/O
 // ----------------------------------------------------------------------------
+
+type SettingsLoadStatus = {
+  deserializationFailed: boolean;
+  validationFailed: boolean;
+  loadAuthFailed: boolean;
+};
+
+type SettingsLoadResult = {
+  settings: Settings;
+  status: SettingsLoadStatus;
+};
+
+export class StorageSession {
+  constructor(private key?: CryptoKey) {}
+
+  storeSettings(settings: Settings) {
+    if (this.key != null) {
+      storeAuth(settings.auth, this.key);
+    }
+
+    let settingsClone: any = { ...settings };
+    delete settingsClone["auth"];
+    window.localStorage.setItem("settings", JSON.stringify(settingsClone));
+  }
+
+  async loadSettings(resetAuth: boolean): Promise<SettingsLoadResult> {
+    let status: SettingsLoadStatus = {
+      deserializationFailed: false,
+      validationFailed: false,
+      loadAuthFailed: false,
+    };
+    let settingsWithoutAuth = this.loadNormalSettings(status);
+    let authSettings = await this.loadAuthSettings(status, resetAuth);
+
+    let settings: Settings = { ...settingsWithoutAuth, auth: authSettings };
+
+    return { settings, status };
+  }
+
+  private loadNormalSettings(status: SettingsLoadStatus): SettingsWithoutAuth {
+    let settingsSerialized = window.localStorage.getItem("settings");
+    if (settingsSerialized != null) {
+      // TODO: We need real validation here
+      let settings = JSON.parse(settingsSerialized) as Settings;
+      return settings;
+    } else {
+      status.deserializationFailed = true;
+      return getDefaultSettings();
+    }
+  }
+
+  private async loadAuthSettings(
+    status: SettingsLoadStatus,
+    resetAuth: boolean
+  ): Promise<AuthSettings> {
+    if (this.key == null || resetAuth) {
+      return {};
+    } else {
+      let authLoaded = await loadAuth(this.key);
+      if (authLoaded != null) {
+        return authLoaded;
+      } else {
+        status.loadAuthFailed = true;
+        return {};
+      }
+    }
+  }
+}
 
 export function storeSettings(settings: Settings, key?: CryptoKey) {
   if (key != null) {
@@ -101,7 +171,7 @@ type Salt = Uint8Array;
 type Nonce = Uint8Array;
 
 export function generateSalt(): Salt {
-  var salt = new Uint8Array(8);
+  var salt = new Uint8Array(16);
   window.crypto.getRandomValues(salt);
   return salt;
 }
@@ -152,10 +222,14 @@ function arrayBufferToString(a: ArrayBuffer): string {
   return s;
 }
 
+// ----------------------------------------------------------------------------
+// Encryption
+// ----------------------------------------------------------------------------
+
 export async function generateKey(password: string, salt: Salt): Promise<CryptoKey> {
   // https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/importKey
   // https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/deriveKey
-  let iterations = 1000;
+  let iterations = 10000;
 
   let keyOrig = await window.crypto.subtle.importKey(
     "raw",
@@ -177,13 +251,22 @@ export async function generateKey(password: string, salt: Salt): Promise<CryptoK
     // derivedKeyAlgorithm
     { name: "AES-GCM", length: 256 },
     // extractable
-    true,
+    false,
     // keyUsages
     ["encrypt", "decrypt"]
   );
 
   return key;
 }
+
+export async function generateKeyFromStoredSalt(password: string): Promise<CryptoKey> {
+  let salt = await getSalt();
+  return generateKey(password, salt);
+}
+
+// ----------------------------------------------------------------------------
+// Encryption
+// ----------------------------------------------------------------------------
 
 export async function encrypt(data: string, key: CryptoKey): Promise<[ArrayBuffer, Nonce]> {
   let dataArray = stringToByteArray(data);
@@ -223,4 +306,10 @@ export async function loadAuth(key: CryptoKey): Promise<AuthSettings | undefined
       return JSON.parse(authSerialized) as AuthSettings;
     }
   }
+}
+
+export async function isAnyAuthStored(): Promise<boolean> {
+  let authData = (await localforage.getItem("auth_data")) as ArrayBuffer | undefined;
+  let authNonce = (await localforage.getItem("auth_nonce")) as Nonce | undefined;
+  return authData != null && authNonce != null;
 }
