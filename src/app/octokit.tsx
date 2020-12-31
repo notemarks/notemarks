@@ -390,14 +390,17 @@ export function commit(
 
   let oldCommitSHA: string;
   let newCommitSHA: string;
+  let defaultBranch: string;
 
   return startChain()
     .andThen(() => {
-      return octokitGetRef(
-        octokit,
-        repo,
-        "heads/main" // TODO repo must contain branch or infer default branch...
-      );
+      // Needed for knowing the default branch
+      return octokitGetGeneralRepoInfo(octokit, repo);
+    })
+    .andThen((response) => {
+      defaultBranch = response.data.default_branch;
+      console.log(defaultBranch);
+      return octokitGetRef(octokit, repo, defaultBranch);
     })
     .andThen((response) => {
       oldCommitSHA = response.data.object.sha;
@@ -428,17 +431,27 @@ export function commit(
     })
     .andThen((response) => {
       newCommitSHA = response.data.sha;
-      return octokitUpdateRef(octokit, repo, "heads/main", newCommitSHA);
+      return octokitUpdateRef(octokit, repo, `heads/${defaultBranch}`, newCommitSHA);
     })
     .map(() => newCommitSHA);
 }
 
-function octokitGetRef(octokit: Octokit, repo: Repo, ref: string) {
+function octokitGetGeneralRepoInfo(octokit: Octokit, repo: Repo) {
+  return wrapPromise(
+    octokit.repos.get({
+      owner: repo.userOrOrgName,
+      repo: repo.repoName,
+    }),
+    "Failed to get default branch."
+  );
+}
+
+function octokitGetRef(octokit: Octokit, repo: Repo, branch: string) {
   return wrapPromise(
     octokit.git.getRef({
       owner: repo.userOrOrgName,
       repo: repo.repoName,
-      ref: "heads/main", // TODO repo must contain branch or infer default branch...
+      ref: `heads/${branch}`,
     }),
     "Failed to get head ref."
   );
