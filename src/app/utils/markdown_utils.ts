@@ -94,8 +94,8 @@ export function extractLinks(html: string): string[] {
   const links = [] as string[];
 
   htmlLinks.forEach((htmlLink) => {
-    let href = htmlLink.getAttribute("href");
-    if (href != null) {
+    let href = htmlLink.getAttribute("href")?.trim();
+    if (href != null && !href.startsWith("#")) {
       links.push(href);
     }
   });

@@ -8,6 +8,7 @@ import {
   GithubOutlined,
   CheckCircleTwoTone,
   ExclamationCircleTwoTone,
+  QuestionCircleTwoTone,
   LoadingOutlined,
 } from "@ant-design/icons";
 
@@ -41,7 +42,7 @@ function Header(repo: Repo) {
     <Space>
       <Row wrap={false} align="middle" gutter={8}>
         <Col flex="auto">
-          <GithubOutlined style={{ fontSize: "32px", color: "#666" }} />
+          <GithubOutlined style={{ fontSize: "24px", color: "#666" }} />
         </Col>
         <Col flex="auto">
           <StyledRepoTitle>{repo.name}</StyledRepoTitle>
@@ -102,6 +103,12 @@ function RepoForm({
           onChange={(evt) => onEdited({ ...repo, repoName: evt.target.value })}
         />
       </FormRow>
+      <FormRow text="Enabled:">
+        <Switch
+          checked={repo.enabled}
+          onChange={(value) => onEdited({ ...repo, enabled: value })}
+        />
+      </FormRow>
       <FormRow text="Default:">
         <Switch checked={repo.default} onChange={onMakeDefault} />
       </FormRow>
@@ -149,14 +156,6 @@ function MultiRepoForm({ auth, repos, setRepos }: MultiRepoFormProps) {
     setRepos([...repos, newRepo]);
   }, [repos, setRepos]);
 
-  /*
-  const toggleEnableRepo = (i: number) => {
-    let newRepos = [...repos];
-    newRepos[i].enabled = !newRepos[i].enabled;
-    setRepos(newRepos);
-  };
-  */
-
   const deleteRepo = (i: number) => {
     let newRepos = [...repos];
     newRepos.splice(i, 1);
@@ -194,7 +193,6 @@ function MultiRepoForm({ auth, repos, setRepos }: MultiRepoFormProps) {
               title={Header(repo)}
               size="small"
               hoverable
-              //extra={<Switch checked={repo.enabled} onClick={() => toggleEnableRepo(i)}></Switch>}
               extra={<VerificationStatusIcon status={repo.verified} />}
             >
               <RepoForm
@@ -357,11 +355,11 @@ function SettingsView({ settings, dispatch }: SettingsProps) {
 
 function VerificationStatusIcon({ status }: { status: VerificationStatus }) {
   if (status === VerificationStatus.unknown) {
-    return <CheckCircleTwoTone twoToneColor="#aaaaaa" style={{ fontSize: "24px" }} />;
+    return <QuestionCircleTwoTone twoToneColor="#e6e6e6" style={{ fontSize: "24px" }} />;
   } else if (status === VerificationStatus.failed) {
     return <ExclamationCircleTwoTone twoToneColor="#eb2f96" style={{ fontSize: "24px" }} />;
   } else if (status === VerificationStatus.success) {
-    return <CheckCircleTwoTone twoToneColor="#52c41a" style={{ fontSize: "24px" }} />;
+    return <CheckCircleTwoTone twoToneColor="#2be262" style={{ fontSize: "24px" }} />;
   } else {
     return <LoadingOutlined style={{ fontSize: "24px" }} />;
   }
