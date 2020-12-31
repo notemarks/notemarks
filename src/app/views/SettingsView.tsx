@@ -21,7 +21,6 @@ import {
   clearAllStorage,
   AuthSettings,
   EditorSettings,
-  settingsReducer,
 } from "../settings";
 
 import { Repo, Repos, VerificationStatus, createDefaultInitializedRepo } from "../repo";

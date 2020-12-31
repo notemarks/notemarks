@@ -1,4 +1,4 @@
-import React, { useReducer, useEffect, useRef, useLayoutEffect } from "react";
+import React, { useReducer, useRef, useLayoutEffect } from "react";
 import "./App.css";
 
 import { Layout, Menu, Modal } from "antd";
@@ -19,7 +19,7 @@ import styled from "@emotion/styled";
 import * as monacoEditor from "monaco-editor/esm/vs/editor/editor.api";
 import mousetrap from "mousetrap";
 
-import { useEffectOnce } from "./utils/react_utils";
+import { useEffectOnce, useDebouncedEffect } from "./utils/react_utils";
 import { UiRow } from "./components/UiRow";
 import { UploadOutlinedWithStatus } from "./components/HelperComponents";
 
@@ -36,7 +36,7 @@ import {
 import * as fn from "./utils/fn_utils";
 import * as entry_utils from "./utils/entry_utils";
 
-import { Settings, storeSettings, settingsReducer } from "./settings";
+import { Settings, StorageSession, settingsReducer } from "./settings";
 
 import { Repo, Repos } from "./repo";
 import * as repo_utils from "./repo";
@@ -740,7 +740,7 @@ function reducer(state: State, action: Action): State {
 // App
 // ----------------------------------------------------------------------------
 
-function App({ initSettings }: { initSettings: Settings }) {
+function App({ initSettings, session }: { initSettings: Settings; session: StorageSession }) {
   console.log("Rendering: App");
 
   useEffectOnce(() => {
@@ -756,12 +756,14 @@ function App({ initSettings }: { initSettings: Settings }) {
   // after the initial loading, because it uses setRepos. But on first
   // glance that shouldn't cause trouble and is better then reloading
   // the repo data as an argument to useState in every re-render.
-  useEffect(() => {
-    // console.log("Storing repos:", repos)
-    // Perhaps we need a little debounce here to avoid serializing the
-    // settings on every keystroke in the settings dialog.
-    storeSettings(settings);
-  }, [settings]);
+  useDebouncedEffect(
+    () => {
+      // console.log("Storing settings:", settings);
+      session.storeSettings(settings);
+    },
+    300,
+    [session, settings]
+  );
 
   async function reloadEntries(newRepos: Repos) {
     console.log("Reloading entries");

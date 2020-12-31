@@ -129,33 +129,6 @@ export class StorageSession {
   }
 }
 
-export function storeSettings(settings: Settings, key?: CryptoKey) {
-  if (key != null) {
-    storeAuth(settings.auth, key);
-  }
-
-  let settingsClone: any = { ...settings };
-  delete settingsClone["auth"];
-  window.localStorage.setItem("settings", JSON.stringify(settingsClone));
-}
-
-export async function loadSettings(key?: CryptoKey): Promise<Settings> {
-  let settingsSerialized = window.localStorage.getItem("settings");
-  if (settingsSerialized != null) {
-    // TODO: We need real validation here
-    let settings = JSON.parse(settingsSerialized) as Settings;
-    if (key == null) {
-      settings.auth = {};
-    } else {
-      let authLoaded = await loadAuth(key);
-      settings.auth = authLoaded != null ? authLoaded : {};
-    }
-    return settings;
-  } else {
-    return getDefaultSettings();
-  }
-}
-
 export function clearAllStorage() {
   localforage.clear();
   for (let key in window.localStorage) {
@@ -186,29 +159,6 @@ export async function getSalt(): Promise<Salt> {
     return salt;
   }
 }
-
-/*
-export async function deriveKey(pw: string, salt: Salt) {
-  //let digest = await crypto.subtle.digest("SHA-256", data);
-
-  let alg = { name: "HMAC", hash: "SHA-256" };
-  let usages = ["sign", "verify"];
-  let key = await crypto.subtle.deriveKey(
-    { name: "PBKDF2", hash: "SHA-256", salt: salt, iterations: 10000 },
-    pw,
-    alg,
-    false,
-    usages
-  );
-}
-*/
-
-/*
-export function retrievePWKey() {
-  var usages = ["deriveKey"];
-  return crypto.subtle.generateKey("PBKDF2", false, usages);
-}
-*/
 
 function stringToByteArray(s: string): Uint8Array {
   var encoder = new TextEncoder();
@@ -268,16 +218,16 @@ export async function generateKeyFromStoredSalt(password: string): Promise<Crypt
 // Encryption
 // ----------------------------------------------------------------------------
 
-export async function encrypt(data: string, key: CryptoKey): Promise<[ArrayBuffer, Nonce]> {
+export async function encrypt(data: string, key: CryptoKey): Promise<[Uint8Array, Nonce]> {
   let dataArray = stringToByteArray(data);
   let nonce = crypto.getRandomValues(new Uint8Array(16));
   let alg = { name: "AES-GCM", iv: nonce };
-  let dataArrayEncrypted = await crypto.subtle.encrypt(alg, key, dataArray);
+  let dataArrayEncrypted = new Uint8Array(await crypto.subtle.encrypt(alg, key, dataArray));
   return [dataArrayEncrypted, nonce];
 }
 
 export async function decrypt(
-  dataEncryptedArray: ArrayBuffer,
+  dataEncryptedArray: Uint8Array,
   key: CryptoKey,
   nonce: Nonce
 ): Promise<string | undefined> {
@@ -298,7 +248,7 @@ export async function storeAuth(auth: AuthSettings, key: CryptoKey) {
 }
 
 export async function loadAuth(key: CryptoKey): Promise<AuthSettings | undefined> {
-  let authData = (await localforage.getItem("auth_data")) as ArrayBuffer | undefined;
+  let authData = (await localforage.getItem("auth_data")) as Uint8Array | undefined;
   let authNonce = (await localforage.getItem("auth_nonce")) as Nonce | undefined;
   if (authData != null && authNonce != null) {
     let authSerialized = await decrypt(authData, key, authNonce);
@@ -309,7 +259,7 @@ export async function loadAuth(key: CryptoKey): Promise<AuthSettings | undefined
 }
 
 export async function isAnyAuthStored(): Promise<boolean> {
-  let authData = (await localforage.getItem("auth_data")) as ArrayBuffer | undefined;
+  let authData = (await localforage.getItem("auth_data")) as Uint8Array | undefined;
   let authNonce = (await localforage.getItem("auth_nonce")) as Nonce | undefined;
   return authData != null && authNonce != null;
 }

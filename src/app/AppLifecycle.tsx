@@ -56,7 +56,7 @@ function AppLifecycle() {
     case "login":
       return <LoginForm anyAuthStored={state.anyAuthStored} onLogin={onLogin} />;
     case "app":
-      return <App initSettings={state.initialSettings} />;
+      return <App initSettings={state.initialSettings} session={state.session} />;
   }
 }
 

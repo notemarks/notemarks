@@ -328,10 +328,6 @@ export async function loadEntries(
     console.log(allErrors);
   }
 
-  // TODO: Remove
-  console.log(fileEntries);
-  console.log(allFileMapsEdit);
-
   return [fileEntries, allFileMapsOrig, allFileMapsEdit, allErrors];
 }
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 
 // The problem with forwardRef in TypeScript is that using a normal React.Ref<T> as
 // the second argument makes its RefObject immutable, i.e., ref.current cannot be
@@ -29,3 +29,18 @@ export function useEffectOnce(func: () => void) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(func, []);
 }
+
+export const useDebouncedEffect = (func: () => void, delay: number, deps: React.DependencyList) => {
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const callback = useCallback(func, deps);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      callback();
+    }, delay);
+
+    return () => {
+      clearTimeout(timeout);
+    };
+  }, [callback, delay]);
+};
