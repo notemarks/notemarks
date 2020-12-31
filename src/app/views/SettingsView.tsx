@@ -249,6 +249,19 @@ function AuthForm({
           onChange={(evt) => setSettings({ ...settings, tokenGitHub: evt.target.value })}
         />
       </FormRow>
+      <FormRow>
+        <div style={{ fontSize: 12, color: "#666" }}>
+          For more information refer to the{" "}
+          <a
+            href="https://github.com/notemarks/notemarks#GitHubAuthentication"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            GitHub authentication documentation
+          </a>
+          .
+        </div>
+      </FormRow>
     </>
   );
 }
