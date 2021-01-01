@@ -3,8 +3,11 @@
 
 A git based labeling app to manage notes, documents, and bookmarks.
 
-Give it a try:
-- [Demo awesome](https://notemarks.app/#demo-awesome): This demo consists of only one note -- the famous [awesome](https://github.com/sindresorhus/awesome) readme. The main purpose of the demo is to show how embedded links are accessible in the general search.
+[notemarks.app](https://notemarks.app)
+
+Or try a demo:
+- [Demo tutorial](https://notemarks.app/#demo-tutorial): This is a small walk-through of notemarks features.
+- [Demo awesome](https://notemarks.app/#demo-awesome): This demo consists of only one note — the famous [awesome](https://github.com/sindresorhus/awesome) readme. The main purpose of the demo is to show how embedded links are accessible in the general search.
 
 ## Why notemarks?
 
@@ -87,9 +90,9 @@ Notemarks infers note and document titles directly from their filenames in order
 
 ### Short term
 
-- GitHub credential encryption
-- Login mechanism
 - Embedding images via paste
+- Auto-complete on labels
+- Filter search by entry types
 
 ### Mid term
 

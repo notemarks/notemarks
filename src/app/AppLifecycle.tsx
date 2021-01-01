@@ -87,9 +87,9 @@ function parseWindowLocation(): WindowLocationInfo {
   let hash = window.location.hash;
   hash = hash.replace(/^#+/g, "");
   console.log(hash);
-  if (hash === "demo-awesome") {
+  if (hash === "demo-awesome" || hash === "demo-tutorial") {
     let settings = getDefaultSettings();
-    settings.repos = [createSimpleRepo("Awesome", "notemarks", "demo-awesome")];
+    settings.repos = [createSimpleRepo("Awesome", "notemarks", hash)];
     return {
       skipLogin: true,
       settings,
