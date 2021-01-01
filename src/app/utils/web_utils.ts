@@ -97,3 +97,11 @@ export function downloadFromMemory(filename: string, extension: string, dataBase
 
   document.body.removeChild(element);
 }
+
+export function gtagLoginEvent() {
+  (window as any).gtag("event", "login", {});
+}
+
+export function gtagDemoEvent() {
+  (window as any).gtag("event", "demo", {});
+}

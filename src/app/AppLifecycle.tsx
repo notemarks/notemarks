@@ -8,6 +8,8 @@ import { useEffectOnce } from "./utils/react_utils";
 import { Settings, StorageSession, isAnyAuthStored, getDefaultSettings } from "./settings";
 import { createSimpleRepo } from "./repo";
 
+import * as web_utils from "./utils/web_utils";
+
 type StateNone = {
   mode: "none";
 };
@@ -44,12 +46,14 @@ function AppLifecycle() {
 
       if (locInfo.skipLogin === false) {
         let anyAuthStored = await isAnyAuthStored();
+        web_utils.gtagLoginEvent();
         setState({
           mode: "login",
           anyAuthStored: anyAuthStored,
         });
       } else {
         let session = new StorageSession();
+        web_utils.gtagDemoEvent();
         setState({
           mode: "app",
           initialSettings: locInfo.settings,
