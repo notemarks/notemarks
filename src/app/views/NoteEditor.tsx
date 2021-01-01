@@ -12,8 +12,8 @@ import { Entry } from "../types";
 import { EditorSettings } from "../settings";
 import * as entry_utils from "../utils/entry_utils";
 import * as fn from "../utils/fn_utils";
-import * as clipboard_utils from "../utils/clipboard_utils";
-import * as web_utils from "../utils/web_utils";
+// import * as clipboard_utils from "../utils/clipboard_utils";
+// import * as web_utils from "../utils/web_utils";
 
 type IStandaloneCodeEditor = monacoEditor.editor.IStandaloneCodeEditor;
 
@@ -55,6 +55,7 @@ for cursor restoring, we might as well drop the forwardRef mechanism and
 pass that ref up via the callback manually?
 */
 
+/*
 async function handlePasteLink(editor: monacoEditor.editor.ICodeEditor) {
   let clipboardText = await clipboard_utils.getClipboardText();
   console.log("clipboard text:", clipboardText);
@@ -99,6 +100,7 @@ async function handlePasteLink(editor: monacoEditor.editor.ICodeEditor) {
     editor.executeEdits("paste-link", [op], [newSelection]);
   }
 }
+*/
 
 const DebugBox = styled.div`
   height: 100%;
@@ -128,6 +130,9 @@ const NoteEditor = forwardRef(
 
     // https://microsoft.github.io/monaco-editor/playground.html#interacting-with-the-editor-adding-an-action-to-an-editor-instance
     const onEditorDidMountWrapper = (_: () => string, editor: IStandaloneCodeEditor) => {
+      // Temporarily disable paste magic because it breaks syntax highlighting:
+      // https://github.com/suren-atoyan/monaco-react/issues/155
+      /*
       editor.addAction({
         // An unique identifier of the contributed action.
         id: "link-paste",
@@ -145,6 +150,7 @@ const NoteEditor = forwardRef(
           handlePasteLink(editor);
         },
       });
+      */
 
       editorRef.current = editor;
       onEditorDidMount();
