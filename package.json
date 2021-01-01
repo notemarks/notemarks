@@ -6,7 +6,7 @@
     "@ant-design/icons": "^4.2.2",
     "@emotion/core": "^10.1.1",
     "@emotion/styled": "^10.0.27",
-    "@monaco-editor/react": "^3.7.0",
+    "@monaco-editor/react": "^3.7.4",
     "@octokit/rest": "^18.0.9",
     "@testing-library/jest-dom": "^5.11.5",
     "@testing-library/react": "^11.1.1",
