@@ -1,6 +1,8 @@
 
 ![logo/full.png](logo/full.png)
 
+[![Build Status](https://github.com/notemarks/notemarks/workflows/CI/badge.svg)](https://github.com/notemarks/notemarks/actions?query=workflow%3Aci)
+
 A git based labeling app to manage notes, documents, and bookmarks.
 
 [notemarks.app](https://notemarks.app)
