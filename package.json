@@ -41,7 +41,6 @@
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
-    "release": "react-scripts build && cp -ar build/. ../NotemarksWeb/docs/",
     "test": "react-scripts test",
     "coverage": "npm test -- --coverage --watchAll=false",
     "eject": "react-scripts eject",
