@@ -11,6 +11,8 @@ Or try a demo:
 - [Demo tutorial](https://notemarks.app/#demo-tutorial): This is a small walk-through of notemarks features.
 - [Demo awesome](https://notemarks.app/#demo-awesome): This demo consists of only one note — the famous [awesome](https://github.com/sindresorhus/awesome) readme. The main purpose of the demo is to show how embedded links are accessible in the general search.
 
+Project status: The app is currently in an early beta status. There will be bugs, and there are many things to improve internally and externally. Nonetheless it has reached a level of basic usefulness 😉. I hope I can stabilize the app over the following weeks.
+
 ## Why notemarks?
 
 - **Mixing notes, documents, and bookmarks**: My note-taking approach is an interplay of notes, documents (e.g. papers), and bookmarks. For instance, in some cases a note revolves around a bookmark or document, in other cases a note evolves into a collection of links. In notemarks all three can be managed in a coherent system — at least eventually.
