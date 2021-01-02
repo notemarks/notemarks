@@ -14,7 +14,7 @@ jobs:
     strategy:
       matrix:
         node-version: [14.x]
-    name: CI (node version: ${{ matrix.nim }})
+    name: "CI (node version: ${{ matrix.nim }} )"
 
     steps:
     - name: Checkout repository
