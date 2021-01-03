@@ -56,16 +56,35 @@ function LoginForm({
         message="Welcome to notemarks!"
         description={
           <span>
-            Notemarks is a git based labeling app to manage notes, documents, and bookmarks. If you
-            are new to notemarks visit the{" "}
-            <a
-              href="https://github.com/notemarks/notemarks"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              GitHub project page
-            </a>{" "}
-            for more information.
+            <p>
+              Notemarks is a git based labeling app to manage notes, documents, and bookmarks. If
+              you are new to notemarks you may want to:
+            </p>
+            <ul style={{ marginBottom: 0 }}>
+              <li>
+                <p style={{ marginBottom: "0.5em" }}>
+                  Try the{" "}
+                  <a
+                    href="https://notemarks.app/#demo-tutorial"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    tutorial.
+                  </a>
+                </p>
+              </li>
+              <li>
+                Visit the{" "}
+                <a
+                  href="https://github.com/notemarks/notemarks"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  project page
+                </a>{" "}
+                for more information.
+              </li>
+            </ul>
           </span>
         }
         type="info"
