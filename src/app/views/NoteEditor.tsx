@@ -1,7 +1,11 @@
 import React, { useRef, useImperativeHandle, forwardRef } from "react";
 
-import Editor from "@monaco-editor/react";
-import * as monacoEditor from "monaco-editor/esm/vs/editor/editor.api";
+import Editor, { monaco } from "@monaco-editor/react";
+
+// Caution: It is crucial to use `monacoTypes` only for type definitions, and
+// never instantiate actual objects from it, see:
+// https://github.com/suren-atoyan/monaco-react/issues/155
+import * as monacoTypes from "monaco-editor/esm/vs/editor/editor.api";
 
 import styled from "@emotion/styled";
 
@@ -12,10 +16,12 @@ import { Entry } from "../types";
 import { EditorSettings } from "../settings";
 import * as entry_utils from "../utils/entry_utils";
 import * as fn from "../utils/fn_utils";
-// import * as clipboard_utils from "../utils/clipboard_utils";
-// import * as web_utils from "../utils/web_utils";
+import * as clipboard_utils from "../utils/clipboard_utils";
+import * as web_utils from "../utils/web_utils";
 
-type IStandaloneCodeEditor = monacoEditor.editor.IStandaloneCodeEditor;
+type MonacoInstance = typeof monacoTypes;
+type ICodeEditor = monacoTypes.editor.ICodeEditor;
+type IStandaloneCodeEditor = monacoTypes.editor.IStandaloneCodeEditor;
 
 /*
 // ----------------------------------------------------------------------------
@@ -55,8 +61,7 @@ for cursor restoring, we might as well drop the forwardRef mechanism and
 pass that ref up via the callback manually?
 */
 
-/*
-async function handlePasteLink(editor: monacoEditor.editor.ICodeEditor) {
+async function handlePasteLink(editor: ICodeEditor, monacoInstance: MonacoInstance) {
   let clipboardText = await clipboard_utils.getClipboardText();
   console.log("clipboard text:", clipboardText);
   if (clipboardText == null) {
@@ -68,8 +73,6 @@ async function handlePasteLink(editor: monacoEditor.editor.ICodeEditor) {
 
   // try to request a title from clipboard text
   let title = await web_utils.getTitle(clipboardText);
-
-  console.log("title is:", title);
   if (title === undefined) {
     title = "";
   }
@@ -77,7 +80,7 @@ async function handlePasteLink(editor: monacoEditor.editor.ICodeEditor) {
   var selection = editor.getSelection();
   // console.log(selection);
   if (selection !== null) {
-    var range = new monacoEditor.Range(
+    var range = new monacoInstance.Range(
       selection.startLineNumber,
       selection.startColumn,
       selection.endLineNumber,
@@ -91,7 +94,7 @@ async function handlePasteLink(editor: monacoEditor.editor.ICodeEditor) {
       text: text,
       forceMoveMarkers: true,
     };
-    let newSelection = new monacoEditor.Selection(
+    let newSelection = new monacoInstance.Selection(
       selection.startLineNumber,
       selection.startColumn + 1 + title.length,
       selection.startLineNumber,
@@ -100,7 +103,6 @@ async function handlePasteLink(editor: monacoEditor.editor.ICodeEditor) {
     editor.executeEdits("paste-link", [op], [newSelection]);
   }
 }
-*/
 
 const DebugBox = styled.div`
   height: 100%;
@@ -113,8 +115,8 @@ export type NoteEditorRef = {
   getEditorContent: () => string | undefined;
   getScrollPosition: () => number | undefined;
   setScrollPosition: (pos: number) => void;
-  getCursorPosition: () => monacoEditor.Position | undefined;
-  setCursorPosition: (pos: monacoEditor.Position) => void;
+  getCursorPosition: () => monacoTypes.Position | undefined;
+  setCursorPosition: (pos: monacoTypes.Position) => void;
   focus: () => void;
 };
 
@@ -129,10 +131,11 @@ const NoteEditor = forwardRef(
     const editorRef = useRef(undefined as IStandaloneCodeEditor | undefined);
 
     // https://microsoft.github.io/monaco-editor/playground.html#interacting-with-the-editor-adding-an-action-to-an-editor-instance
-    const onEditorDidMountWrapper = (_: () => string, editor: IStandaloneCodeEditor) => {
+    const onEditorDidMountWrapper = async (_: () => string, editor: IStandaloneCodeEditor) => {
+      let monacoInstance = await monaco.init();
+
       // Temporarily disable paste magic because it breaks syntax highlighting:
       // https://github.com/suren-atoyan/monaco-react/issues/155
-      /*
       editor.addAction({
         // An unique identifier of the contributed action.
         id: "link-paste",
@@ -140,17 +143,18 @@ const NoteEditor = forwardRef(
         label: "Link paste",
         // An optional array of keybindings for the action.
         keybindings: [
-          monacoEditor.KeyMod.CtrlCmd | monacoEditor.KeyMod.Shift | monacoEditor.KeyCode.KEY_V,
+          monacoInstance.KeyMod.CtrlCmd |
+            monacoInstance.KeyMod.Shift |
+            monacoInstance.KeyCode.KEY_V,
         ],
         contextMenuGroupId: "navigation",
         contextMenuOrder: 1.5,
         // Method that will be executed when the action is triggered.
         // @param editor The editor instance is passed in as a convenience
         run: function (editor) {
-          handlePasteLink(editor);
+          handlePasteLink(editor, monacoInstance);
         },
       });
-      */
 
       editorRef.current = editor;
       onEditorDidMount();
@@ -171,7 +175,7 @@ const NoteEditor = forwardRef(
       getCursorPosition: () => {
         return fn.mapNullToUndefined(editorRef.current?.getPosition());
       },
-      setCursorPosition: (pos: monacoEditor.Position) => {
+      setCursorPosition: (pos: monacoTypes.Position) => {
         editorRef.current?.setPosition(pos);
       },
       focus: () => {
