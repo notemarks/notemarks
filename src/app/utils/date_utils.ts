@@ -25,48 +25,53 @@ export function dateToString(d: Date): string {
 }
 
 export function stringToDate(s: string): Date | undefined {
-  let splitDateTime = s.split("T");
-  if (splitDateTime.length !== 2) {
-    return undefined;
+  let year = 0;
+  let month = 0;
+  let day = 0;
+  let hour = 0;
+  let minute = 0;
+  let second = 0;
+  let millis = 0;
+
+  let timeString = "";
+
+  {
+    let match = /(\d\d\d\d)-(\d\d)-(\d\d)T?(.*?)$/.exec(s);
+    if (match != null) {
+      year = parseInt(match[1]);
+      month = parseInt(match[2]);
+      day = parseInt(match[3]);
+      timeString = match[4];
+    } else {
+      return undefined;
+    }
   }
 
-  let [date, timeWithMillis] = splitDateTime;
-
-  let splitDate = date.split("-");
-  if (splitDate.length !== 3) {
-    return undefined;
+  if (timeString !== "") {
+    let match = /(..):(..):(..)\.?(.*?)$/.exec(timeString);
+    if (match != null) {
+      hour = parseInt(match[1]);
+      minute = parseInt(match[2]);
+      second = parseInt(match[3]);
+      if (match[4] !== "") {
+        millis = parseInt(match[4]);
+      }
+    }
   }
 
-  let [year, month, day] = splitDate.map((x) => parseInt(x));
-  if (isNaN(year) || isNaN(month) || isNaN(day)) {
+  if (
+    isNaN(year) ||
+    isNaN(month) ||
+    isNaN(day) ||
+    isNaN(hour) ||
+    isNaN(minute) ||
+    isNaN(second) ||
+    isNaN(millis)
+  ) {
     return undefined;
+  } else {
+    return new Date(year, month - 1, day, hour, minute, second, millis);
   }
-
-  let splitTimeMillis = timeWithMillis.split(".");
-  if (splitTimeMillis.length === 1) {
-    splitTimeMillis.push("0");
-  } else if (splitTimeMillis.length !== 2) {
-    return undefined;
-  }
-
-  let [time, millis] = splitTimeMillis;
-
-  let splitTime = time.split(":");
-  if (splitTime.length !== 3) {
-    return undefined;
-  }
-
-  let [hour, minute, second] = splitTime.map((x) => parseInt(x));
-  if (isNaN(hour) || isNaN(minute) || isNaN(second)) {
-    return undefined;
-  }
-
-  let millisNumber = parseInt(millis);
-  if (isNaN(millisNumber)) {
-    return undefined;
-  }
-
-  return new Date(year, month - 1, day, hour, minute, second, millisNumber);
 }
 
 export function formatDateHuman(d: Date): string {

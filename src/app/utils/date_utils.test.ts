@@ -15,6 +15,9 @@ test("stringToDate", () => {
   let stringToDate = date_utils.stringToDate;
   let d: Date;
 
+  d = new Date(2020, 11, 24, 0, 0, 0);
+  expect(stringToDate("2020-12-24")).toEqual(d);
+
   d = new Date(2020, 11, 24, 18, 30, 1);
   expect(stringToDate("2020-12-24T18:30:01")).toEqual(d);
 
@@ -23,6 +26,9 @@ test("stringToDate", () => {
 
   d = new Date(2020, 0, 1, 0, 0, 0, 0);
   expect(stringToDate("2020-01-01T00:00:00.000")).toEqual(d);
+
+  d = new Date(2020, 0, 1, 1, 2, 3, 4);
+  expect(stringToDate("2020-01-01T01:02:03.004")).toEqual(d);
 
   expect(stringToDate("foo")).toBeUndefined();
   expect(stringToDate("fooTbar")).toBeUndefined();
