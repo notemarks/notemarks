@@ -92,32 +92,33 @@ Notemarks infers note and document titles directly from their filenames in order
 
 ## Planned features
 
+Feel free to vote on linked issues to help prioritize features.
+
 ### Short term
 
-- Embedding images via paste
-- Auto-complete on labels
-- Filter search by entry types
+- [Embedding images via paste](https://github.com/notemarks/notemarks/issues/3)
+- [Auto-complete on labels](https://github.com/notemarks/notemarks/issues/4)
+- [Filter search by entry types](https://github.com/notemarks/notemarks/issues/5)
 
 ### Mid term
 
-- Table multi-select for batch labelling
-- Priority system for entries to allow for custom sorting (use case: pinning/favorites)
-- Priority system for labels to allow for custom sorting
-- Dynamically update label counts in tree view depending on selection
-- Full text search, perhaps with fuzziness
-- "Unlabeled" Label
-- Labels inferred from file paths
-- Modifyable label colors
-- Time as a label for publications
-- .notemarksignore file
-- Multiple note rendering styles
-- More per-note preferences like Markdown flavor, encryption
-- Note encryption
+- [Table multi-select for batch labelling](https://github.com/notemarks/notemarks/issues/6)
+- [Priority system for entries to allow for custom sorting (use case: pinning/favorites)](https://github.com/notemarks/notemarks/issues/7)
+- [Priority system for labels to allow for custom sorting](https://github.com/notemarks/notemarks/issues/8)
+- [Dynamically update label counts in tree view depending on selection](https://github.com/notemarks/notemarks/issues/9)
+- [Full text search, perhaps with fuzziness](https://github.com/notemarks/notemarks/issues/10)
+- ["Unlabeled" Label](https://github.com/notemarks/notemarks/issues/11)
+- [Labels inferred from file paths](https://github.com/notemarks/notemarks/issues/12)
+- [Modifyable label colors](https://github.com/notemarks/notemarks/issues/13)
+- [.notemarksignore file](https://github.com/notemarks/notemarks/issues/14)
+- [Multiple note rendering styles](https://github.com/notemarks/notemarks/issues/15)
+- [Note encryption](https://github.com/notemarks/notemarks/issues/16)
+- [More per-note preferences like Markdown flavor, encryption](https://github.com/notemarks/notemarks/issues/17)
 
 ### Longer term
 
-- Other data backends like Bitbucket or even Dropbox
-- Native apps
+- [Other data backends like Bitbucket or even Dropbox](https://github.com/notemarks/notemarks/issues/18)
+- [Native apps](https://github.com/notemarks/notemarks/issues/19)
 
 ## Support
 
